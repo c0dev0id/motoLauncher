@@ -5,6 +5,7 @@ import android.os.Bundle
 import android.view.KeyEvent
 import androidx.activity.addCallback
 import androidx.appcompat.app.AppCompatActivity
+import androidx.core.view.doOnPreDraw
 import androidx.recyclerview.widget.GridLayoutManager
 import de.codevoid.motolauncher.data.AppRepository
 import de.codevoid.motolauncher.data.FavoritesStore
@@ -38,12 +39,10 @@ class HomeActivity : AppCompatActivity() {
         binding.homeGrid.adapter = adapter
 
         // Size each row to the grid's measured height so all three rows pack in without
-        // scrolling; the tiles' own margins are subtracted by the adapter. This listens on
-        // every layout pass rather than firing once: on a cold start the first layout can
-        // happen before the framework shrinks the grid for the system bars, and a one-shot
-        // callback would lock in that too-tall height. The setter no-ops on an unchanged
-        // value, so recomputing on every pass is cheap.
-        binding.homeGrid.addOnLayoutChangeListener { grid, _, _, _, _, _, _, _, _ ->
+        // scrolling; the tiles' own margins are subtracted by the adapter. System bars are
+        // hidden app-wide, so the grid's height is stable from the first layout pass — a
+        // one-shot pre-draw callback is enough.
+        binding.homeGrid.doOnPreDraw { grid ->
             val usable = grid.height - grid.paddingTop - grid.paddingBottom
             if (usable > 0) adapter.itemHeightPx = usable / ROWS
         }
