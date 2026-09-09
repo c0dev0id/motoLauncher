@@ -67,6 +67,18 @@ class TileActionsDialogTest {
     }
 
     @Test
+    fun reassignRowIsHiddenWhenNoCallbackIsGiven() {
+        val dialog = showTileActionsDialog(
+            ApplicationProvider.getApplicationContext(),
+            entry,
+            onAppInfo = {},
+            onUninstall = {},
+        )
+        assertEquals(android.view.View.GONE, dialog.findViewById<TextView>(R.id.actionReassign).visibility)
+        assertEquals(android.view.View.VISIBLE, dialog.findViewById<TextView>(R.id.actionUninstall).visibility)
+    }
+
+    @Test
     fun rowsAppearInDocumentedOrder() {
         val dialog = show()
         val parent = dialog.findViewById<TextView>(R.id.actionAppInfo).parent as android.view.ViewGroup

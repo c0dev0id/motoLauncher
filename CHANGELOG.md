@@ -43,6 +43,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   stores the choice. Back or Escape closes the menu.
 - The app picker, when opened for a slot, starts with a **None** tile that clears the
   slot.
+- Long-pressing an app in the All Apps list opens the same menu with **App info** and
+  **Uninstall** only.
 - Tapping an empty "+" tile on the home screen now opens the app picker for that slot
   directly instead of the Configure Favorites screen. That screen is still reachable by
   long-pressing "All Apps" for the theme, update, and cellular-indicator controls.

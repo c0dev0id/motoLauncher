@@ -50,8 +50,9 @@ These drive nearly every UI decision — violating them defeats the point of the
 
 - Configurable set of **favorite apps** pinned to the home screen permanently.
 - **App list** showing all installed apps (with a touch-only search filter).
-- **Short tap / Enter → launch** the app; **touch long press** → on Home a tile-styled
-  menu (App info / Uninstall / Reassign app), in the app list the app-info screen directly.
+- **Short tap / Enter → launch** the app; **touch long press** → a tile-styled menu:
+  App info / Uninstall / Reassign app on Home, App info / Uninstall in the app list
+  (nothing in pick mode).
 - **In-app update check** against the GitHub `dev` pre-release: compare installed build
   to latest pre-release, offer install if newer. Must be **user-triggered** (the device is
   mostly offline — never auto-poll the network).
@@ -117,7 +118,8 @@ Package layout under `de.codevoid.motolauncher`:
   its children are invisible to dpad traversal but still take touch focus (an `EditText`
   inside it still opens the IME). `focusableInTouchMode` and
   `descendantFocusability="blocksDescendants"` were both tried and rejected; see the journal.
-- `ui/TileActionsDialog.kt` — `showTileActionsDialog()`: a plain `Dialog` on
+- `ui/TileActionsDialog.kt` — `showTileActionsDialog()` (Reassign row only when a
+  callback is passed): a plain `Dialog` on
   `Theme.MotoLauncher.Dialog` (not `AlertDialog`, whose Material3 look would override
   the palette) with `tile_background` buttons; dismisses itself before invoking the
   chosen callback. Dialog chrome (background, min width) lives in that theme and in the

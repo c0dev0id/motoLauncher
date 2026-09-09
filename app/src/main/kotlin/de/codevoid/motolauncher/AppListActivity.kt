@@ -30,6 +30,7 @@ import de.codevoid.motolauncher.ui.TileItem
 import de.codevoid.motolauncher.ui.enableImmersiveMode
 import de.codevoid.motolauncher.ui.finishOnEscape
 import de.codevoid.motolauncher.ui.runUpdateFlow
+import de.codevoid.motolauncher.ui.showTileActionsDialog
 import kotlinx.coroutines.Deferred
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.async
@@ -121,7 +122,12 @@ class AppListActivity : AppCompatActivity() {
                 onClick = { onAppSelected(entry.component) },
                 onLongClick = {
                     if (!pickMode) {
-                        repository.openInfo(entry.component)
+                        showTileActionsDialog(
+                            context = this,
+                            entry = entry,
+                            onAppInfo = { repository.openInfo(entry.component) },
+                            onUninstall = { repository.requestUninstall(entry.component) },
+                        )
                         true
                     } else {
                         false

@@ -77,7 +77,8 @@
   `setOnLongClickListener` is untouched, so tapping and holding a tile still works.
 - **Home tile long-press opens a tile-styled menu (`TileActionsDialog`).** Rows in order:
   App info, Uninstall (system uninstaller via `ACTION_DELETE`, no permission needed),
-  Reassign app. Reassigning a favourite without the menu meant a detour through
+  Reassign app. The app list's long-press shows the same dialog without the Reassign row
+  (there is no slot), so one dialog serves both screens. Reassigning a favourite without the menu meant a detour through
   Settings; app info alone was not worth a long-press. The menu is a plain `Dialog` with a custom layout, not an
   `AlertDialog`: the Material3 dialog theme brings its own surface colours and small
   buttons, whereas the custom view reuses `tile_background` and the launcher palette so
