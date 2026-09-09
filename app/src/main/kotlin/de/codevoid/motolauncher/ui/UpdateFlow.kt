@@ -15,10 +15,9 @@ import kotlinx.coroutines.launch
 // build, update available with an install prompt, failure — is a dialog. This is an
 // off-bike, touch-only flow, so the stock alert buttons are acceptable here.
 //
-// lifecycleScope cancels at ON_DESTROY (theme toggle, Home press, low memory), and
-// CancellationException is an Exception, so a bare catch would run the error path
-// against a dead activity and crash on show(). Cancellation is rethrown, and every
-// dialog is gated on the activity still being alive.
+// CancellationException is an Exception, so the catches rethrow it: a job cancelled
+// at ON_DESTROY must complete as cancelled, not as "handled". Dialogs reached after
+// the activity is gone are dropped by showImmersive().
 fun AppCompatActivity.runUpdateFlow(button: Button) {
     val checker = UpdateChecker(this)
 
@@ -27,16 +26,13 @@ fun AppCompatActivity.runUpdateFlow(button: Button) {
         button.setText(labelRes)
     }
 
-    fun show(builder: AlertDialog.Builder) {
-        if (isFinishing || isDestroyed) return
-        builder.create().showImmersive()
-    }
-
-    fun showMessage(text: String) = show(
+    fun showMessage(text: String) {
         AlertDialog.Builder(this)
             .setMessage(text)
             .setPositiveButton(R.string.ok, null)
-    )
+            .create()
+            .showImmersive()
+    }
 
     fun showError(e: Exception) =
         showMessage(getString(R.string.update_failed, e.message ?: e.javaClass.simpleName))
@@ -56,12 +52,14 @@ fun AppCompatActivity.runUpdateFlow(button: Button) {
         }
     }
 
-    fun promptInstall(release: ReleaseInfo) = show(
+    fun promptInstall(release: ReleaseInfo) {
         AlertDialog.Builder(this)
             .setTitle(getString(R.string.update_available, release.versionName))
             .setPositiveButton(R.string.update_download) { _, _ -> downloadAndInstall(release) }
             .setNegativeButton(R.string.cancel, null)
-    )
+            .create()
+            .showImmersive()
+    }
 
     setButton(R.string.checking_updates, enabled = false)
     lifecycleScope.launch {
