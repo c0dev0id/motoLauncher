@@ -7,6 +7,7 @@
     <string name="tile_action_reassign">Reassign app</string>
     <string name="tile_action_app_info">App info</string>
     <string name="cancel">Cancel</string>
+    <string name="ok">OK</string>
     <string name="theme_dark">Dark</string>
     <string name="theme_light">Light</string>
     <string name="check_for_updates">Check for updates</string>

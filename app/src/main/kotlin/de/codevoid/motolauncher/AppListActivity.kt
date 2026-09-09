@@ -12,7 +12,6 @@ import android.text.TextWatcher
 import android.view.KeyEvent
 import android.view.View
 import androidx.activity.result.contract.ActivityResultContracts.RequestPermission
-import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.content.ContextCompat
 import androidx.lifecycle.lifecycleScope
@@ -26,9 +25,7 @@ import de.codevoid.motolauncher.ui.AppTileAdapter
 import de.codevoid.motolauncher.ui.TileItem
 import de.codevoid.motolauncher.ui.enableImmersiveMode
 import de.codevoid.motolauncher.ui.finishOnEscape
-import de.codevoid.motolauncher.ui.showImmersive
-import de.codevoid.motolauncher.update.ReleaseInfo
-import de.codevoid.motolauncher.update.UpdateChecker
+import de.codevoid.motolauncher.ui.runUpdateFlow
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
@@ -37,8 +34,6 @@ class AppListActivity : AppCompatActivity() {
 
     private lateinit var binding: ActivityAppListBinding
     private lateinit var repository: AppRepository
-    private lateinit var themeStore: ThemeStore
-    private lateinit var updateChecker: UpdateChecker
     private val adapter = AppTileAdapter(emptyList())
     private var allApps: List<AppEntry> = emptyList()
 
@@ -57,8 +52,6 @@ class AppListActivity : AppCompatActivity() {
         window.enableImmersiveMode()
 
         repository = AppRepository(this)
-        themeStore = ThemeStore(this)
-        updateChecker = UpdateChecker(this)
 
         binding.backButton.setOnClickListener { finish() }
 
@@ -76,9 +69,10 @@ class AppListActivity : AppCompatActivity() {
 
         // Label shows the active theme; tapping flips it, which recreates the activity so
         // the label refreshes on the way back in.
+        val themeStore = ThemeStore(this)
         binding.themeButton.setText(if (themeStore.isDark) R.string.theme_dark else R.string.theme_light)
         binding.themeButton.setOnClickListener { themeStore.isDark = !themeStore.isDark }
-        binding.checkUpdateButton.setOnClickListener { checkForUpdates() }
+        binding.checkUpdateButton.setOnClickListener { runUpdateFlow(binding.checkUpdateButton) }
         binding.enableCellularButton.setOnClickListener {
             cellularPermissionLauncher.launch(Manifest.permission.READ_PHONE_STATE)
         }
@@ -137,67 +131,6 @@ class AppListActivity : AppCompatActivity() {
         } else {
             repository.launch(component)
         }
-    }
-
-    // Progress shows on the button itself; outcomes are dialogs, so the header row
-    // never needs a status line.
-    private fun checkForUpdates() {
-        setUpdateBusy(R.string.checking_updates)
-        lifecycleScope.launch {
-            try {
-                val release = updateChecker.check()
-                if (release == null) showMessage(getString(R.string.update_none)) else promptInstall(release)
-            } catch (e: Exception) {
-                showUpdateError(e)
-            } finally {
-                setUpdateIdle()
-            }
-        }
-    }
-
-    private fun promptInstall(release: ReleaseInfo) {
-        AlertDialog.Builder(this, R.style.Theme_MotoLauncher_Dialog)
-            .setTitle(getString(R.string.update_available, release.versionName))
-            .setPositiveButton(R.string.update_download) { _, _ -> downloadAndInstall(release) }
-            .setNegativeButton(R.string.cancel, null)
-            .create()
-            .showImmersive()
-    }
-
-    private fun downloadAndInstall(release: ReleaseInfo) {
-        setUpdateBusy(R.string.downloading)
-        lifecycleScope.launch {
-            try {
-                val file = updateChecker.download(release)
-                startActivity(updateChecker.installIntent(file))
-            } catch (e: Exception) {
-                showUpdateError(e)
-            } finally {
-                setUpdateIdle()
-            }
-        }
-    }
-
-    private fun setUpdateBusy(labelRes: Int) {
-        binding.checkUpdateButton.isEnabled = false
-        binding.checkUpdateButton.setText(labelRes)
-    }
-
-    private fun setUpdateIdle() {
-        binding.checkUpdateButton.isEnabled = true
-        binding.checkUpdateButton.setText(R.string.check_for_updates)
-    }
-
-    private fun showUpdateError(e: Exception) {
-        showMessage(getString(R.string.update_failed, e.message ?: e.javaClass.simpleName))
-    }
-
-    private fun showMessage(text: String) {
-        AlertDialog.Builder(this, R.style.Theme_MotoLauncher_Dialog)
-            .setMessage(text)
-            .setPositiveButton(android.R.string.ok, null)
-            .create()
-            .showImmersive()
     }
 
     override fun onWindowFocusChanged(hasFocus: Boolean) {
