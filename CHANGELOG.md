@@ -37,9 +37,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   appear as dialogs. The separate Configure Favorites screen is gone, along with the
   "All Apps" long-press that opened it.
 - Long-pressing an assigned favourite on the home screen now opens a tile-styled menu
-  with two large buttons instead of jumping straight to the system app-info screen:
-  **Reassign app** opens the app picker for that slot and stores the choice, **App info**
-  opens the system screen as before. Back or Escape closes the menu.
+  with three large buttons instead of jumping straight to the system app-info screen:
+  **App info** opens the system screen as before, **Uninstall** hands the app to the
+  system uninstaller, and **Reassign app** opens the app picker for that slot and
+  stores the choice. Back or Escape closes the menu.
+- The app picker, when opened for a slot, starts with a **None** tile that clears the
+  slot.
 - Tapping an empty "+" tile on the home screen now opens the app picker for that slot
   directly instead of the Configure Favorites screen. That screen is still reachable by
   long-pressing "All Apps" for the theme, update, and cellular-indicator controls.

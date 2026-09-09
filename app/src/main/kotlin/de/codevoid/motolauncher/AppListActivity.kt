@@ -111,25 +111,35 @@ class AppListActivity : AppCompatActivity() {
         binding.enableCellularButton.visibility = if (needsAsk) View.VISIBLE else View.GONE
     }
 
+    // In pick mode a "None" tile leads the grid, whatever the search says: choosing it
+    // clears the slot. It is the only way to empty a favourite.
     private fun render(apps: List<AppEntry>) {
-        adapter.submit(
-            apps.map { entry ->
-                TileItem(
-                    label = entry.label,
-                    icon = entry.icon,
-                    onClick = { onAppSelected(entry.component) },
-                    onLongClick = {
-                        if (!pickMode) {
-                            repository.openInfo(entry.component)
-                            true
-                        } else {
-                            false
-                        }
-                    },
-                )
-            }
-        )
+        val appTiles = apps.map { entry ->
+            TileItem(
+                label = entry.label,
+                icon = entry.icon,
+                onClick = { onAppSelected(entry.component) },
+                onLongClick = {
+                    if (!pickMode) {
+                        repository.openInfo(entry.component)
+                        true
+                    } else {
+                        false
+                    }
+                },
+            )
+        }
+        adapter.submit(if (pickMode) listOf(noneTile()) + appTiles else appTiles)
     }
+
+    private fun noneTile() = TileItem(
+        label = getString(R.string.pick_none),
+        icon = ContextCompat.getDrawable(this, R.drawable.ic_none)!!,
+        onClick = {
+            FavoritesStore(this).clearSlot(pickSlot)
+            finish()
+        },
+    )
 
     private fun onAppSelected(component: ComponentName) {
         if (pickMode) {

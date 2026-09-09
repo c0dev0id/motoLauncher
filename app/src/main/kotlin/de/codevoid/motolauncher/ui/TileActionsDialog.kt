@@ -14,8 +14,9 @@ import de.codevoid.motolauncher.databinding.DialogTileActionsBinding
 fun showTileActionsDialog(
     context: Context,
     entry: AppEntry,
-    onReassign: () -> Unit,
     onAppInfo: () -> Unit,
+    onUninstall: () -> Unit,
+    onReassign: () -> Unit,
 ): Dialog {
     val binding = DialogTileActionsBinding.inflate(LayoutInflater.from(context))
     binding.appIcon.setImageDrawable(entry.icon)
@@ -23,13 +24,17 @@ fun showTileActionsDialog(
 
     val dialog = Dialog(context, R.style.Theme_MotoLauncher_Dialog)
     dialog.setContentView(binding.root)
-    binding.actionReassign.setOnClickListener {
-        dialog.dismiss()
-        onReassign()
-    }
     binding.actionAppInfo.setOnClickListener {
         dialog.dismiss()
         onAppInfo()
+    }
+    binding.actionUninstall.setOnClickListener {
+        dialog.dismiss()
+        onUninstall()
+    }
+    binding.actionReassign.setOnClickListener {
+        dialog.dismiss()
+        onReassign()
     }
     dialog.showImmersive()
     return dialog

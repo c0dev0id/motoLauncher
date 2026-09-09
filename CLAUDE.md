@@ -51,7 +51,7 @@ These drive nearly every UI decision — violating them defeats the point of the
 - Configurable set of **favorite apps** pinned to the home screen permanently.
 - **App list** showing all installed apps (with a touch-only search filter).
 - **Short tap / Enter → launch** the app; **touch long press** → on Home a tile-styled
-  menu (Reassign app / App info), in the app list the app-info screen directly.
+  menu (App info / Uninstall / Reassign app), in the app list the app-info screen directly.
 - **In-app update check** against the GitHub `dev` pre-release: compare installed build
   to latest pre-release, offer install if newer. Must be **user-triggered** (the device is
   mostly offline — never auto-poll the network).
@@ -77,9 +77,9 @@ Package layout under `de.codevoid.motolauncher`:
   list in pick mode for that slot. Back is swallowed; Escape is not handled at all. A
   `StatusBarView` sits above the grid.
 - `AppListActivity` — full app list in a `RecyclerView` + `GridLayoutManager`. Also runs
-  in "pick mode" (`AppListActivity.pickIntent(context, slot)`): the chosen app is written
-  to that `FavoritesStore` slot and the activity finishes; callers rebuild in `onResume`,
-  so there is no result contract. Loads apps on `Dispatchers.IO`, filters with
+  in "pick mode" (`AppListActivity.pickIntent(context, slot)`): a leading "None" tile
+  clears the slot, any app tile is written to that `FavoritesStore` slot, and the
+  activity finishes; callers rebuild in `onResume`, so there is no result contract. Loads apps on `Dispatchers.IO`, filters with
   `AppRepository.filterApps` on every keystroke; `AppListViewModel` (same file) holds the
   enumeration as a `Deferred` so the theme toggle's recreate reuses it. The header
   `TouchOnlyRow` holds a `headerConfig` group, hidden in pick mode, with the theme toggle
@@ -88,7 +88,8 @@ Package layout under `de.codevoid.motolauncher`:
   once granted (API 31+ only). Header buttons use `Widget.MotoLauncher.HeaderButton`.
 - `data/AppRepository` — thin wrapper over `LauncherApps` (not `PackageManager`),
   iterating all `UserManager` profiles. `launch` → `startMainActivity`, `openInfo` →
-  `startAppDetailsActivity`. `loadByComponents` resolves only the favorites' components
+  `startAppDetailsActivity`, `requestUninstall` → `ACTION_DELETE` hand-off to the system
+  uninstaller. `loadByComponents` resolves only the favorites' components
   so Home never enumerates or rasterizes every installed app. `sortApps` / `filterApps`
   are pure companion functions — that's the unit-tested surface.
 - `data/FavoritesStore` — `SLOT_COUNT` = 11 slots in `SharedPreferences` (`favorites`)
