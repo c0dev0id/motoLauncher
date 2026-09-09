@@ -10,7 +10,7 @@
         android:layout_weight="1"
         android:gravity="center_vertical|start"
         android:textColor="@color/on_surface"
-        android:textSize="22sp"
+        android:textSize="28sp"
         android:textStyle="bold"
         tools:text="12:34" />
 
@@ -47,6 +47,7 @@
         android:layout_gravity="center_vertical"
         android:layout_marginStart="4dp"
         android:textColor="@color/on_surface"
-        android:textSize="20sp"
+        android:textSize="24sp"
+        android:textStyle="bold"
         tools:text="87%" />
 </merge>
