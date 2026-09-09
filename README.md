@@ -1,32 +1,29 @@
 # motoLauncher
 
-I learned that it's best to let the AI decide how to build a project and only define the intent. This is what we do here. Below I will list the intent and some constraints, all technical and architectural decision can be taken by the AI, which also allows to ignore global CLAUDE.md pereferences and constraints.
+A home screen for Android-based motorcycle navigation devices, designed to be
+operated with gloves and a handlebar remote while riding.
 
-## Project Intent
+## Purpose
 
-I have a android based navigation system. The navigation system itself is an app with the ID "com.thorkracing.dmd2launcher". What is missing on this device is a launcher, or Home App, which is simple and optimized for the usage with gloves while riding.
+Riding gloves make precise touch and swiping impractical, and much of the
+interaction happens through the bike's remote rather than the screen.
+motoLauncher replaces the device's home screen with a simple, large-tiled
+layout built for exactly those conditions.
 
-Constraints:
-- No swiping gestures. Swiping is very hard to do with gloves.
-- Big touch targets. Precise touch is hard with gloves. So we need big buttons.
-- Optimized for Landscape orientation in 1920x1080 screen resolution on a 7 inch screen.
+## Features
 
-Abilities:
-- A configurable set of favorite apps need to stay on the home screen all the time.
-- There needs to be an app list, which shows all apps (with a limit filter)
-- Long press on an app should open the app info (settings)
-- Short tap on an app should launch the app
-- the main home screen should be usable using keyboard input. The available keys are: dpad-left, dpad-right, dpad-up, dpad-down, Enter, Escape. (Background, these are the key codes the motorcycle remote control unit emits). It is fine to rely on touch input for configuration tasks. But the main screen should be usable with the remote to start apps. Ideally also the app list (excluding search).
-- There should be a way to update the app from within the app (check if the current nightly pre-release differs from the installed one. If there's a new one, offer to install it. The update check should be user triggered, because the app is mostly used offline.
+- **Favorites grid.** A fixed grid of large tiles for the apps you use most.
+  Tap a tile to launch its app; long-press to open that app's system settings.
+- **All apps.** A dedicated tile opens the full list of installed apps, with a
+  search field to narrow it down quickly.
+- **Remote friendly.** The home screen and app list can be navigated entirely
+  with the remote's direction pad and Enter key — no touch required to launch an
+  app. There are no swipe gestures anywhere in normal use.
+- **Configuration.** Assign, change, or clear the apps in your favorite tiles
+  from a settings screen, reachable from the home screen at any time.
+- **Updates.** Check for and install a newer version on demand. Because the
+  device is usually offline, updates are only ever checked when you ask.
 
-# Building the app:
+## Layout
 
-The app can't be built locally, because the android studio is not available for this platform. Set up a github action workflow similar to https://github.com/c0dev0id/androsnd/blob/main/.github/workflows/build.yml
-
-- Run on push
-- Build app
-- Create signed apk
-- Create nightly pre-release with signed apk (only keep the latest pre-release)
-- lint, test, etc in parallel
-
-The SIGNING variables have been configured on the repository already.
+motoLauncher is built for landscape orientation on a 1920x1080, 7-inch screen.
