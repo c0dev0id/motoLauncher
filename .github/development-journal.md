@@ -36,9 +36,11 @@
 - **Immersive mode app-wide.** System bars are hidden from every activity via
   `WindowInsetsControllerCompat`. The device is a single-purpose launcher on a
   glove-operated screen — nothing on those bars is useful, and reclaiming the pixels
-  removes the cold-start row-height race the previous commit was patching around
-  (`homeGrid.height` is now stable on the first layout pass, so the row-height layout
-  listener was retired).
+  gives the launcher the full canvas. Note: the row-height layout listener on `homeGrid`
+  stays as-is; it exists to bridge the ordering between the first layout pass and
+  `adapter.submit` (which runs in `onResume` and can arrive after the first measure), not
+  to react to inset changes. Retiring it in favour of a one-shot pre-draw callback set
+  the tile height too late and cut the bottom row off.
 - **Custom top bar on Home only.** `StatusBarView` is a self-contained widget: it
   registers `ACTION_TIME_TICK`, `ACTION_BATTERY_CHANGED`, a Wi-Fi `NetworkCallback`, and
   (API 31+) `TelephonyCallback.SignalStrengthsListener` in `onAttachedToWindow`, and
