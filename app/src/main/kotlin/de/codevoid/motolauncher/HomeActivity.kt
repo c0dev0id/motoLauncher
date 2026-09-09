@@ -5,6 +5,9 @@ import android.os.Bundle
 import android.view.KeyEvent
 import androidx.activity.addCallback
 import androidx.appcompat.app.AppCompatActivity
+import androidx.core.view.ViewCompat
+import androidx.core.view.WindowInsetsCompat
+import androidx.core.view.updatePadding
 import androidx.recyclerview.widget.GridLayoutManager
 import de.codevoid.motolauncher.data.AppRepository
 import de.codevoid.motolauncher.data.FavoritesStore
@@ -30,10 +33,17 @@ class HomeActivity : AppCompatActivity() {
         binding.homeGrid.layoutManager = GridLayoutManager(this, COLUMNS)
         binding.homeGrid.adapter = adapter
 
-        binding.homeGrid.post {
-            val usable = binding.homeGrid.height -
-                binding.homeGrid.paddingTop - binding.homeGrid.paddingBottom
-            if (usable > 0) adapter.itemHeightPx = usable / ROWS
+        // The launcher window sits behind the status/navigation bars; inset the grid so its
+        // three rows are measured against the visible area instead of scrolling under them.
+        val basePad = binding.homeGrid.paddingTop
+        ViewCompat.setOnApplyWindowInsetsListener(binding.homeGrid) { v, insets ->
+            val bars = insets.getInsets(WindowInsetsCompat.Type.systemBars())
+            v.updatePadding(top = basePad + bars.top, bottom = basePad + bars.bottom)
+            v.post {
+                val usable = v.height - v.paddingTop - v.paddingBottom
+                if (usable > 0) adapter.itemHeightPx = usable / ROWS
+            }
+            insets
         }
 
         onBackPressedDispatcher.addCallback(this) { /* home is the root; swallow back */ }
