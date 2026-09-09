@@ -1,6 +1,5 @@
 package de.codevoid.motolauncher
 
-import android.content.ComponentName
 import android.content.Intent
 import android.graphics.drawable.Drawable
 import android.os.Bundle
@@ -8,7 +7,6 @@ import android.view.LayoutInflater
 import android.view.ViewGroup
 import android.widget.LinearLayout
 import androidx.activity.addCallback
-import androidx.activity.result.contract.ActivityResultContracts.StartActivityForResult
 import androidx.appcompat.app.AppCompatActivity
 import de.codevoid.motolauncher.data.AppEntry
 import de.codevoid.motolauncher.data.AppRepository
@@ -25,19 +23,6 @@ class HomeActivity : AppCompatActivity() {
     private lateinit var favorites: FavoritesStore
     private lateinit var repository: AppRepository
     private val tiles = ArrayList<ItemAppTileBinding>(COLUMNS * ROWS)
-    private var pickingSlot = -1
-
-    // Empty "+" tiles and "Reassign app" open the picker for that slot directly; the
-    // result lands in the slot and onResume rebuilds the grid. Settings (theme, update,
-    // cellular) is only reachable via long-press on "All Apps" and is slated for removal.
-    private val pickLauncher = registerForActivityResult(StartActivityForResult()) { result ->
-        val flat = result.data?.getStringExtra(AppListActivity.RESULT_COMPONENT)
-        val component = flat?.let { ComponentName.unflattenFromString(it) }
-        if (result.resultCode == RESULT_OK && pickingSlot >= 0 && component != null) {
-            favorites.setSlot(pickingSlot, component)
-        }
-        pickingSlot = -1
-    }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -161,12 +146,9 @@ class HomeActivity : AppCompatActivity() {
         ).show()
     }
 
+    // The picker writes the slot itself; onResume rebuilds the grid on return.
     private fun pickForSlot(slot: Int) {
-        pickingSlot = slot
-        pickLauncher.launch(
-            Intent(this, AppListActivity::class.java)
-                .putExtra(AppListActivity.EXTRA_PICK_MODE, true)
-        )
+        startActivity(AppListActivity.pickIntent(this, slot))
     }
 
     private fun openSettings() {

@@ -1,7 +1,7 @@
 package de.codevoid.motolauncher
 
-import android.app.Activity
 import android.content.ComponentName
+import android.content.Context
 import android.content.Intent
 import android.os.Bundle
 import android.text.Editable
@@ -12,6 +12,7 @@ import androidx.lifecycle.lifecycleScope
 import androidx.recyclerview.widget.GridLayoutManager
 import de.codevoid.motolauncher.data.AppEntry
 import de.codevoid.motolauncher.data.AppRepository
+import de.codevoid.motolauncher.data.FavoritesStore
 import de.codevoid.motolauncher.databinding.ActivityAppListBinding
 import de.codevoid.motolauncher.ui.AppTileAdapter
 import de.codevoid.motolauncher.ui.TileItem
@@ -27,7 +28,10 @@ class AppListActivity : AppCompatActivity() {
     private lateinit var repository: AppRepository
     private val adapter = AppTileAdapter(emptyList())
     private var allApps: List<AppEntry> = emptyList()
-    private val pickMode by lazy { intent.getBooleanExtra(EXTRA_PICK_MODE, false) }
+    // >= 0: pick mode — the chosen app is written to that favourite slot and the
+    // activity finishes. NO_SLOT: browse mode — tap launches, long-press opens app info.
+    private val pickSlot by lazy { intent.getIntExtra(EXTRA_PICK_SLOT, NO_SLOT) }
+    private val pickMode get() = pickSlot != NO_SLOT
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -82,10 +86,7 @@ class AppListActivity : AppCompatActivity() {
 
     private fun onAppSelected(component: ComponentName) {
         if (pickMode) {
-            setResult(
-                Activity.RESULT_OK,
-                Intent().putExtra(RESULT_COMPONENT, component.flattenToString()),
-            )
+            FavoritesStore(this).setSlot(pickSlot, component)
             finish()
         } else {
             repository.launch(component)
@@ -101,8 +102,12 @@ class AppListActivity : AppCompatActivity() {
         finishOnEscape(keyCode) || super.onKeyDown(keyCode, event)
 
     companion object {
-        const val EXTRA_PICK_MODE = "pick_mode"
-        const val RESULT_COMPONENT = "component"
+        private const val EXTRA_PICK_SLOT = "pick_slot"
+        private const val NO_SLOT = -1
         private const val COLUMNS = 5
+
+        // Callers rebuild their grid in onResume, so no result contract is needed.
+        fun pickIntent(context: Context, slot: Int): Intent =
+            Intent(context, AppListActivity::class.java).putExtra(EXTRA_PICK_SLOT, slot)
     }
 }

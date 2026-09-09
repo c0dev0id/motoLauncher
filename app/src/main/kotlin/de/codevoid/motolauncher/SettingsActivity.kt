@@ -1,15 +1,12 @@
 package de.codevoid.motolauncher
 
 import android.Manifest
-import android.content.ComponentName
-import android.content.Intent
 import android.content.pm.PackageManager
 import android.os.Build
 import android.os.Bundle
 import android.view.KeyEvent
 import android.view.View
 import androidx.activity.result.contract.ActivityResultContracts.RequestPermission
-import androidx.activity.result.contract.ActivityResultContracts.StartActivityForResult
 import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.content.ContextCompat
@@ -35,20 +32,9 @@ class SettingsActivity : AppCompatActivity() {
     private lateinit var updateChecker: UpdateChecker
     private lateinit var themeStore: ThemeStore
     private val adapter = AppTileAdapter(emptyList())
-    private var pickingSlot = -1
 
     private val cellularPermissionLauncher =
         registerForActivityResult(RequestPermission()) { updateCellularPermissionButton() }
-
-    private val pickLauncher = registerForActivityResult(StartActivityForResult()) { result ->
-        val flat = result.data?.getStringExtra(AppListActivity.RESULT_COMPONENT)
-        val component = flat?.let { ComponentName.unflattenFromString(it) }
-        if (result.resultCode == RESULT_OK && pickingSlot >= 0 && component != null) {
-            favorites.setSlot(pickingSlot, component)
-        }
-        pickingSlot = -1
-        renderSlots()
-    }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -76,12 +62,11 @@ class SettingsActivity : AppCompatActivity() {
         binding.enableCellularButton.setOnClickListener {
             cellularPermissionLauncher.launch(Manifest.permission.READ_PHONE_STATE)
         }
-
-        renderSlots()
     }
 
     override fun onResume() {
         super.onResume()
+        renderSlots()
         updateCellularPermissionButton()
     }
 
@@ -119,11 +104,7 @@ class SettingsActivity : AppCompatActivity() {
     }
 
     private fun pickForSlot(index: Int) {
-        pickingSlot = index
-        pickLauncher.launch(
-            Intent(this, AppListActivity::class.java)
-                .putExtra(AppListActivity.EXTRA_PICK_MODE, true)
-        )
+        startActivity(AppListActivity.pickIntent(this, index))
     }
 
     private fun checkForUpdates() {
