@@ -43,8 +43,7 @@
         <activity
             android:name=".AppListActivity"
             android:exported="false"
-            android:screenOrientation="landscape"
-            android:parentActivityName=".HomeActivity" />
+            android:screenOrientation="landscape" />
 
         <provider
             android:name="androidx.core.content.FileProvider"

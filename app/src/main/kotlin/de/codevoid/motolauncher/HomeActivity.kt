@@ -90,7 +90,6 @@ class HomeActivity : AppCompatActivity() {
                     tile = tiles[index],
                     label = entry.label,
                     icon = entry.icon,
-                    iconRes = 0,
                     onClick = { repository.launch(entry.component) },
                     onLongClick = {
                         showTileActionsDialog(
@@ -106,7 +105,6 @@ class HomeActivity : AppCompatActivity() {
                 bindTile(
                     tile = tiles[index],
                     label = getString(R.string.empty_slot),
-                    icon = null,
                     iconRes = R.drawable.ic_add,
                     onClick = { pickForSlot(index) },
                     onLongClick = { pickForSlot(index); true },
@@ -117,22 +115,23 @@ class HomeActivity : AppCompatActivity() {
         bindTile(
             tile = tiles[COLUMNS * ROWS - 1],
             label = getString(R.string.all_apps),
-            icon = null,
             iconRes = R.drawable.ic_all_apps,
             onClick = { startActivity(Intent(this, AppListActivity::class.java)) },
-            onLongClick = { false },
         )
 
         tiles[0].root.post { tiles[0].root.requestFocus() }
     }
 
+    // Tiles are reused across rebinds, so a tile without a long-press must clear the
+    // previous listener and drop isLongClickable, or the framework keeps arming the
+    // long-press timer for it.
     private fun bindTile(
         tile: ItemAppTileBinding,
         label: String,
-        icon: Drawable?,
-        iconRes: Int,
+        icon: Drawable? = null,
+        iconRes: Int = 0,
         onClick: () -> Unit,
-        onLongClick: () -> Boolean,
+        onLongClick: (() -> Boolean)? = null,
     ) {
         tile.appLabel.text = label
         when {
@@ -141,7 +140,12 @@ class HomeActivity : AppCompatActivity() {
             else -> tile.appIcon.setImageDrawable(null)
         }
         tile.root.setOnClickListener { onClick() }
-        tile.root.setOnLongClickListener { onLongClick() }
+        if (onLongClick != null) {
+            tile.root.setOnLongClickListener { onLongClick() }
+        } else {
+            tile.root.setOnLongClickListener(null)
+            tile.root.isLongClickable = false
+        }
     }
 
     // The picker writes the slot itself; onResume rebuilds the grid on return.
