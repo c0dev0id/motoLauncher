@@ -22,6 +22,7 @@ class AppTileAdapter(private var items: List<TileItem>) :
         val binding = ItemAppTileBinding.inflate(
             LayoutInflater.from(parent.context), parent, false
         )
+        binding.root.blockKeyLongPress()
         return TileViewHolder(binding)
     }
 

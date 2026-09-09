@@ -3,7 +3,6 @@ package de.codevoid.motolauncher
 import android.content.Intent
 import android.graphics.drawable.Drawable
 import android.os.Bundle
-import android.view.KeyEvent
 import android.view.LayoutInflater
 import android.view.ViewGroup
 import android.widget.LinearLayout
@@ -13,6 +12,7 @@ import de.codevoid.motolauncher.data.AppRepository
 import de.codevoid.motolauncher.data.FavoritesStore
 import de.codevoid.motolauncher.databinding.ActivityHomeBinding
 import de.codevoid.motolauncher.databinding.ItemAppTileBinding
+import de.codevoid.motolauncher.ui.blockKeyLongPress
 import de.codevoid.motolauncher.ui.enableImmersiveMode
 
 class HomeActivity : AppCompatActivity() {
@@ -60,6 +60,7 @@ class HomeActivity : AppCompatActivity() {
                         existing.bottomMargin,
                     )
                 }
+                tile.root.blockKeyLongPress()
                 row.addView(tile.root)
                 tiles.add(tile)
             }
@@ -136,16 +137,6 @@ class HomeActivity : AppCompatActivity() {
 
     private fun openSettings() {
         startActivity(Intent(this, SettingsActivity::class.java))
-    }
-
-    override fun onKeyDown(keyCode: Int, event: KeyEvent): Boolean {
-        // Home is the root, so Escape has nothing to go "back" to; use it as the remote's
-        // route into configuration (there is no spare tile once every slot is filled).
-        if (keyCode == KeyEvent.KEYCODE_ESCAPE) {
-            openSettings()
-            return true
-        }
-        return super.onKeyDown(keyCode, event)
     }
 
     companion object {
