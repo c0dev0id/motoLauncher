@@ -37,5 +37,18 @@ It runs in immersive mode so the launcher owns the full screen.
 
 ## Screenshots
 
-The repository's `/screenshots` directory currently contains no screenshot
-assets to embed here yet.
+### Home
+
+![Home screen](screenshots/main.png)
+
+### Home action menu
+
+![Home tile action menu](screenshots/main-popup.png)
+
+### All apps
+
+![All apps screen](screenshots/all-apps.png)
+
+### Light theme
+
+![Home screen in light theme](screenshots/main-light.png)
