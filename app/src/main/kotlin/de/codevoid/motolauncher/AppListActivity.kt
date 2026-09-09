@@ -16,6 +16,7 @@ import de.codevoid.motolauncher.databinding.ActivityAppListBinding
 import de.codevoid.motolauncher.ui.AppTileAdapter
 import de.codevoid.motolauncher.ui.TileItem
 import de.codevoid.motolauncher.ui.enableImmersiveMode
+import de.codevoid.motolauncher.ui.finishOnEscape
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
@@ -96,13 +97,8 @@ class AppListActivity : AppCompatActivity() {
         if (hasFocus) enableImmersiveMode()
     }
 
-    override fun onKeyDown(keyCode: Int, event: KeyEvent): Boolean {
-        if (keyCode == KeyEvent.KEYCODE_ESCAPE) {
-            finish()
-            return true
-        }
-        return super.onKeyDown(keyCode, event)
-    }
+    override fun onKeyDown(keyCode: Int, event: KeyEvent): Boolean =
+        finishOnEscape(keyCode) || super.onKeyDown(keyCode, event)
 
     companion object {
         const val EXTRA_PICK_MODE = "pick_mode"

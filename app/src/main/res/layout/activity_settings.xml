@@ -20,7 +20,6 @@
             android:background="?attr/selectableItemBackground"
             android:src="@drawable/ic_back"
             android:contentDescription="@string/back"
-            android:focusable="false"
             android:scaleType="center" />
 
         <TextView

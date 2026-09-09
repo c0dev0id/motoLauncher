@@ -66,12 +66,6 @@
 - **Wi-Fi via `NetworkCallback`, not `WifiManager.connectionInfo`.** Reading RSSI through
   `NetworkCapabilities.transportInfo` avoids `ACCESS_FINE_LOCATION`; only
   `ACCESS_WIFI_STATE` + `ACCESS_NETWORK_STATE` are needed.
-- **Back button uses `focusable="false"`.** The `AppList` and `Settings` activities gain
-  a visible back button now that the Android nav bar is gone. `focusableInTouchMode` was
-  tried first, but on an `ImageButton` the first tap only acquired focus — the click
-  needed a second tap. `View.performClick` doesn't require focus, so `focusable="false"`
-  is the right knob: touch activates on the first tap, Escape still finishes the
-  activity for remote users (the surrounding `TouchOnlyRow` already keeps dpad away).
 - **Key-driven long-press is blocked; touch long-press is not.** Long-press opens app
   info / the settings picker — both touch-only destinations a rider can't back out of
   without touching the screen. `View.blockKeyLongPress()` sets an `OnKeyListener` on

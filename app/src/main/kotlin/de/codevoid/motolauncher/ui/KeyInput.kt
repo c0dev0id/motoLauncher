@@ -1,5 +1,6 @@
 package de.codevoid.motolauncher.ui
 
+import android.app.Activity
 import android.view.KeyEvent
 import android.view.View
 
@@ -30,4 +31,15 @@ fun View.blockKeyLongPress() {
             else -> false
         }
     }
+}
+
+// ESC on the handlebar remote and on any USB/BT keyboard closes the current screen.
+// Android maps hardware BACK to onBackPressedDispatcher by default; ESC is not wired
+// to that path, so activities that want ESC to behave like BACK must translate it.
+fun Activity.finishOnEscape(keyCode: Int): Boolean {
+    if (keyCode == KeyEvent.KEYCODE_ESCAPE) {
+        finish()
+        return true
+    }
+    return false
 }

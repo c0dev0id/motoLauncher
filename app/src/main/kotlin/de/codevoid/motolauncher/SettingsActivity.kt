@@ -22,6 +22,7 @@ import de.codevoid.motolauncher.databinding.ActivitySettingsBinding
 import de.codevoid.motolauncher.ui.AppTileAdapter
 import de.codevoid.motolauncher.ui.TileItem
 import de.codevoid.motolauncher.ui.enableImmersiveMode
+import de.codevoid.motolauncher.ui.finishOnEscape
 import de.codevoid.motolauncher.update.ReleaseInfo
 import de.codevoid.motolauncher.update.UpdateChecker
 import kotlinx.coroutines.launch
@@ -176,13 +177,8 @@ class SettingsActivity : AppCompatActivity() {
         if (hasFocus) enableImmersiveMode()
     }
 
-    override fun onKeyDown(keyCode: Int, event: KeyEvent): Boolean {
-        if (keyCode == KeyEvent.KEYCODE_ESCAPE) {
-            finish()
-            return true
-        }
-        return super.onKeyDown(keyCode, event)
-    }
+    override fun onKeyDown(keyCode: Int, event: KeyEvent): Boolean =
+        finishOnEscape(keyCode) || super.onKeyDown(keyCode, event)
 
     companion object {
         private const val COLUMNS = 4
