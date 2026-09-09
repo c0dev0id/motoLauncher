@@ -1,13 +1,18 @@
 package de.codevoid.motolauncher
 
+import android.Manifest
 import android.content.ComponentName
 import android.content.Intent
+import android.content.pm.PackageManager
+import android.os.Build
 import android.os.Bundle
 import android.view.KeyEvent
 import android.view.View
+import androidx.activity.result.contract.ActivityResultContracts.RequestPermission
 import androidx.activity.result.contract.ActivityResultContracts.StartActivityForResult
 import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
+import androidx.core.content.ContextCompat
 import androidx.lifecycle.lifecycleScope
 import androidx.recyclerview.widget.GridLayoutManager
 import de.codevoid.motolauncher.data.AppRepository
@@ -30,6 +35,9 @@ class SettingsActivity : AppCompatActivity() {
     private lateinit var themeStore: ThemeStore
     private val adapter = AppTileAdapter(emptyList())
     private var pickingSlot = -1
+
+    private val cellularPermissionLauncher =
+        registerForActivityResult(RequestPermission()) { updateCellularPermissionButton() }
 
     private val pickLauncher = registerForActivityResult(StartActivityForResult()) { result ->
         val flat = result.data?.getStringExtra(AppListActivity.RESULT_COMPONENT)
@@ -64,7 +72,26 @@ class SettingsActivity : AppCompatActivity() {
         binding.themeButton.setText(if (themeStore.isDark) R.string.theme_dark else R.string.theme_light)
         binding.themeButton.setOnClickListener { themeStore.isDark = !themeStore.isDark }
 
+        binding.enableCellularButton.setOnClickListener {
+            cellularPermissionLauncher.launch(Manifest.permission.READ_PHONE_STATE)
+        }
+
         renderSlots()
+    }
+
+    override fun onResume() {
+        super.onResume()
+        updateCellularPermissionButton()
+    }
+
+    // The cellular indicator is optional: expose the ask only when the platform can
+    // deliver signal readings (API 31+) and the permission is still missing. Once
+    // granted, the button silently disappears — no toast, no dialog.
+    private fun updateCellularPermissionButton() {
+        val needsAsk = Build.VERSION.SDK_INT >= Build.VERSION_CODES.S &&
+            ContextCompat.checkSelfPermission(this, Manifest.permission.READ_PHONE_STATE) !=
+            PackageManager.PERMISSION_GRANTED
+        binding.enableCellularButton.visibility = if (needsAsk) View.VISIBLE else View.GONE
     }
 
     private fun renderSlots() {

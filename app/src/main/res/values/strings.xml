@@ -17,4 +17,6 @@
     <string name="update_failed">Update check failed: %1$s</string>
     <string name="downloading">Downloading update…</string>
     <string name="back">Back</string>
+    <string name="battery_percent">%1$d%%</string>
+    <string name="enable_cellular_indicator">Enable cellular indicator</string>
 </resources>
