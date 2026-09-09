@@ -49,6 +49,9 @@
   queries one stable endpoint. The APK filename (`motoLauncher-<versionName>.apk`) carries
   the version, compared against `BuildConfig.VERSION_NAME`. Install is user-triggered and
   hands the APK to the system installer via `FileProvider` (`REQUEST_INSTALL_PACKAGES`).
+  Downloaded APKs are wiped on process start (`MotoLauncherApp`, background thread), not
+  on resume: an installed update restarts the launcher, which is the earliest safe
+  moment, and a start can never overlap an in-flight download.
 - **Favorites in `SharedPreferences`** as slot→flattened `ComponentName`. 11 slots; the 12th
   grid cell is the fixed "All Apps" tile.
 - **Immersive mode app-wide.** System bars are hidden from every activity via
