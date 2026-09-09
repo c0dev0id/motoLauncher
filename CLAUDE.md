@@ -73,13 +73,14 @@ Package layout under `de.codevoid.motolauncher`:
   `LinearLayout` rows once in `onCreate`, and `buildGrid()` rebinds them in `onResume`.
   Weighted layout divides space in the layout pass by construction, which is what fixed
   the cold-start "third row cut off" first-frame race. Touch long-press on an assigned
-  tile shows `TileActionsDialog`; "Reassign app" and empty "+" tiles launch the app list
-  in pick mode via `pickLauncher` and store the result in `pickingSlot`. Back is
-  swallowed; Escape is not handled at all. A `StatusBarView` sits above the grid.
+  tile calls `showTileActionsDialog`; "Reassign app" and empty "+" tiles start the app
+  list in pick mode for that slot. Back is swallowed; Escape is not handled at all. A
+  `StatusBarView` sits above the grid.
 - `AppListActivity` — full app list in a `RecyclerView` + `GridLayoutManager`. Also runs
-  in "pick mode" (`EXTRA_PICK_MODE`) to return a flattened `ComponentName`
-  (`RESULT_COMPONENT`) to Settings via `StartActivityForResult`. Loads apps on
-  `Dispatchers.IO`, filters with `AppRepository.filterApps` on every keystroke.
+  in "pick mode" (`AppListActivity.pickIntent(context, slot)`): the chosen app is written
+  to that `FavoritesStore` slot and the activity finishes; callers rebuild in `onResume`,
+  so there is no result contract. Loads apps on `Dispatchers.IO`, filters with
+  `AppRepository.filterApps` on every keystroke.
 - `SettingsActivity` — slot picker (tap to pick, long-press to clear), theme toggle
   (flipping recreates the activity), user-triggered update check, and an "enable
   cellular indicator" button that requests `READ_PHONE_STATE` at runtime and hides
@@ -110,12 +111,13 @@ Package layout under `de.codevoid.motolauncher`:
   its children are invisible to dpad traversal but still take touch focus (an `EditText`
   inside it still opens the IME). `focusableInTouchMode` and
   `descendantFocusability="blocksDescendants"` were both tried and rejected; see the journal.
-- `ui/TileActionsDialog` — plain `Dialog` (not `AlertDialog`, whose Material3 theme
-  would override the palette) with `tile_background` buttons; dismisses itself before
-  invoking the chosen callback.
-- `ui/Immersive.kt` — `enableImmersiveMode()` on `Window` and `AppCompatActivity`, called
-  in `onCreate`, again on `onWindowFocusChanged(true)` because permission dialogs and the
-  installer restore the bars, and on any dialog window the app shows.
+- `ui/TileActionsDialog.kt` — `showTileActionsDialog()`: a plain `Dialog` on
+  `Theme.MotoLauncher.Dialog` (not `AlertDialog`, whose Material3 look would override
+  the palette) with `tile_background` buttons; dismisses itself before invoking the
+  chosen callback. Dialog chrome (background, min width) lives in that theme.
+- `ui/Immersive.kt` — `Window.enableImmersiveMode()`, called in `onCreate` and again on
+  `onWindowFocusChanged(true)` because permission dialogs and the installer restore the
+  bars, and `Dialog.showImmersive()`, which every dialog the app shows must use.
 - `ui/StatusBarView` — self-contained Home top bar (time, Wi-Fi, cellular, battery).
   Registers its receivers/callbacks in `onAttachedToWindow` and releases them in
   `onDetachedFromWindow`; `HomeActivity` does no lifecycle wiring. Icons are

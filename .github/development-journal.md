@@ -77,11 +77,16 @@
   worth a long-press. The menu is a plain `Dialog` with a custom layout, not an
   `AlertDialog`: the Material3 dialog theme brings its own surface colours and small
   buttons, whereas the custom view reuses `tile_background` and the launcher palette so
-  it reads as part of the grid and stays glove-sized. "Reassign app" launches
-  `AppListActivity` in pick mode straight from Home (same `StartActivityForResult`
-  contract Settings uses) and writes the result into the long-pressed slot. The dialog
-  window calls `enableImmersiveMode()` itself because a dialog is a separate window and
-  would otherwise bring the system bars back while showing.
+  it reads as part of the grid and stays glove-sized; its chrome (background drawable,
+  minimum width) is `Theme.MotoLauncher.Dialog` in `themes.xml`, not code. Every dialog
+  goes through `Dialog.showImmersive()` because a dialog is a separate window and would
+  otherwise bring the system bars back while showing.
+- **The app picker writes the favourite slot itself.** Pick mode is
+  `AppListActivity.pickIntent(context, slot)`: on selection the activity stores the
+  component in `FavoritesStore` and finishes. Home and Settings just `startActivity` and
+  rebuild their grid in `onResume` — no `StartActivityForResult`, no result extra, no
+  "which slot was I picking for" state in the caller. The earlier version carried that
+  launcher and sentinel in both activities.
 - **Escape on Home does nothing; slots are configured in place.** Home is the launcher
   root — there is nothing for "back" to go to. A remote-only user has no route into any
   configuration, and that is intentional: the device is on a motorbike, configuration is
