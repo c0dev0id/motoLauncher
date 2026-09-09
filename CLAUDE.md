@@ -102,7 +102,8 @@ Package layout under `de.codevoid.motolauncher`:
   (`motoLauncher-<versionName>.apk`); `isNewer` is a plain string inequality against
   `BuildConfig.VERSION_NAME`, so any differing published build counts as an update.
   Install is a hand-off: download to `cacheDir/updates/`, then `FileProvider` +
-  `ACTION_VIEW` to the system installer.
+  `ACTION_VIEW` to the system installer. `download()` clears other files first;
+  `deleteInstalledUpdate()` (from `MotoLauncherApp`) removes only the running build's APK.
 - `ui/AppTileAdapter` + `ui/TileItem` — the `RecyclerView` adapter used by the app list
   (not by Home). Callers compose a `List<TileItem>`; the adapter stays dumb and calls
   `blockKeyLongPress()` once per view holder.
