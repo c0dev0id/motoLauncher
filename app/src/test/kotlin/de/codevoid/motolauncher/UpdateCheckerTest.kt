@@ -1,5 +1,6 @@
 package de.codevoid.motolauncher
 
+import androidx.test.core.app.ApplicationProvider
 import de.codevoid.motolauncher.update.ReleaseInfo
 import de.codevoid.motolauncher.update.UpdateChecker
 import org.junit.Assert.assertEquals
@@ -9,6 +10,7 @@ import org.junit.Assert.assertTrue
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
+import java.io.File
 
 @RunWith(RobolectricTestRunner::class)
 class UpdateCheckerTest {
@@ -35,6 +37,25 @@ class UpdateCheckerTest {
     @Test
     fun parseReleaseReturnsNullWithoutAssetsArray() {
         assertNull(UpdateChecker.parseRelease("""{"tag_name":"dev"}"""))
+    }
+
+    @Test
+    fun clearDownloadsRemovesEveryFileInTheUpdatesDir() {
+        val context = ApplicationProvider.getApplicationContext<android.content.Context>()
+        val dir = File(context.cacheDir, "updates").apply { mkdirs() }
+        File(dir, "motoLauncher-dev-old.apk").writeText("x")
+        File(dir, "motoLauncher-dev-new.apk").writeText("y")
+
+        UpdateChecker(context).clearDownloads()
+
+        assertEquals(0, dir.listFiles().orEmpty().size)
+    }
+
+    @Test
+    fun clearDownloadsToleratesMissingDir() {
+        val context = ApplicationProvider.getApplicationContext<android.content.Context>()
+        File(context.cacheDir, "updates").deleteRecursively()
+        UpdateChecker(context).clearDownloads()
     }
 
     @Test

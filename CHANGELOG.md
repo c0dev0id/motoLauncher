@@ -50,6 +50,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   Michroma is bundled under the SIL Open Font License 1.1 — see `MICHROMA-LICENSE.txt`.
 
 ### Fixed
+- Downloaded update APKs are deleted when the launcher starts, so an installed update
+  no longer leaves its installer file behind in the app cache.
 - Returning to the home screen no longer moves the remote's focus back to the top-left
   tile; it stays on the tile the app was launched from.
 - Leaving the All Apps screen while an update check or download was in flight (theme
