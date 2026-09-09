@@ -32,3 +32,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Changed
 - The Android status bar and navigation bar are now hidden app-wide so the full screen
   is available for the launcher's own UI.
+
+### Fixed
+- Home grid no longer shows the bottom row cut off for the first frame on cold start.

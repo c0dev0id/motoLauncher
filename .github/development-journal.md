@@ -22,10 +22,19 @@
 - **Search is touch-only by design.** The `EditText` is `focusableInTouchMode`, so the
   remote's dpad skips it — satisfying "app list is remote-navigable, search is not" with
   no custom key handling.
-- **One generic `AppTileAdapter` + `TileItem`.** Home, all-apps, and settings screens each
-  compose a `List<TileItem>` (apps, "All Apps", empty slots); the adapter stays dumb.
-- **Home tile height computed at runtime.** The 4×3 grid fills exactly 3 rows regardless of
-  screen density; the scrollable lists keep the layout's default tile height.
+- **Shared `AppTileAdapter` + `TileItem` for scrollable lists.** The all-apps and settings
+  screens compose a `List<TileItem>` (apps, "All Apps", empty slots); the adapter stays
+  dumb. Home doesn't use it — see the next entry.
+- **Home grid: weighted `LinearLayout`, not `RecyclerView`.** 12 tiles, always visible,
+  never scrolling — the RecyclerView lifecycle is the wrong shape. The adapter binds
+  before the parent's final size is known, so on cold start the first frame lays tiles
+  out at the XML default height and the third row is briefly cut off; the earlier
+  workaround was an `addOnLayoutChangeListener` that recomputed row height on every pass.
+  Nested weighted `LinearLayout`s (3 rows × 4 tiles, `weight=1` throughout) divide the
+  available space during the layout pass by construction — no first-frame race, no
+  per-pass recompute, no adapter needed. Tiles are inflated once in `onCreate` and
+  rebound in `onResume`. Focus traversal is Android's default (visual proximity), which
+  handles a fixed 4×3 grid correctly.
 - **Update model: hand-off install against a fixed `dev` tag.** CI deletes and recreates the
   `dev` pre-release each push, so "keep only the latest" needs no cleanup and the app always
   queries one stable endpoint. The APK filename (`motoLauncher-<versionName>.apk`) carries
@@ -36,11 +45,7 @@
 - **Immersive mode app-wide.** System bars are hidden from every activity via
   `WindowInsetsControllerCompat`. The device is a single-purpose launcher on a
   glove-operated screen — nothing on those bars is useful, and reclaiming the pixels
-  gives the launcher the full canvas. Note: the row-height layout listener on `homeGrid`
-  stays as-is; it exists to bridge the ordering between the first layout pass and
-  `adapter.submit` (which runs in `onResume` and can arrive after the first measure), not
-  to react to inset changes. Retiring it in favour of a one-shot pre-draw callback set
-  the tile height too late and cut the bottom row off.
+  gives the launcher the full canvas.
 - **Custom top bar on Home only.** `StatusBarView` is a self-contained widget: it
   registers `ACTION_TIME_TICK`, `ACTION_BATTERY_CHANGED`, a Wi-Fi `NetworkCallback`, and
   (API 31+) `TelephonyCallback.SignalStrengthsListener` in `onAttachedToWindow`, and
