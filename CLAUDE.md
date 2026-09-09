@@ -41,8 +41,10 @@ These drive nearly every UI decision — violating them defeats the point of the
   of (app info, Settings, the search field, the back/theme/update buttons) is deliberately
   unreachable from the remote: touch-only controls sit in a `TouchOnlyRow`, key-driven
   long-press is blocked on every tile, and Escape on Home does nothing. Do not "fix" any
-  of these by making them dpad-reachable. Configuration is a touch workflow reached via
-  the empty "+" tiles or a long-press on "All Apps".
+  of these by making them dpad-reachable. Configuration is a touch workflow: empty "+"
+  tiles and "Reassign app" open the picker for that slot in place; Settings (theme,
+  update, cellular ask) is reached only by long-pressing "All Apps" and is slated for
+  removal in its current form — don't grow it.
 
 ## Required features
 
@@ -70,8 +72,10 @@ Package layout under `de.codevoid.motolauncher`:
   RecyclerView: `populateGrid()` inflates `item_app_tile` 12 times into three weighted
   `LinearLayout` rows once in `onCreate`, and `buildGrid()` rebinds them in `onResume`.
   Weighted layout divides space in the layout pass by construction, which is what fixed
-  the cold-start "third row cut off" first-frame race. Back is swallowed; Escape is not
-  handled at all. A `StatusBarView` sits above the grid.
+  the cold-start "third row cut off" first-frame race. Touch long-press on an assigned
+  tile shows `TileActionsDialog`; "Reassign app" and empty "+" tiles launch the app list
+  in pick mode via `pickLauncher` and store the result in `pickingSlot`. Back is
+  swallowed; Escape is not handled at all. A `StatusBarView` sits above the grid.
 - `AppListActivity` — full app list in a `RecyclerView` + `GridLayoutManager`. Also runs
   in "pick mode" (`EXTRA_PICK_MODE`) to return a flattened `ComponentName`
   (`RESULT_COMPONENT`) to Settings via `StartActivityForResult`. Loads apps on

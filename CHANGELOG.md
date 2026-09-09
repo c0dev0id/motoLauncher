@@ -34,6 +34,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   with two large buttons instead of jumping straight to the system app-info screen:
   **Reassign app** opens the app picker for that slot and stores the choice, **App info**
   opens the system screen as before. Back or Escape closes the menu.
+- Tapping an empty "+" tile on the home screen now opens the app picker for that slot
+  directly instead of the Configure Favorites screen. That screen is still reachable by
+  long-pressing "All Apps" for the theme, update, and cellular-indicator controls.
 - The Android status bar and navigation bar are now hidden app-wide so the full screen
   is available for the launcher's own UI.
 - The custom home status bar now uses the Michroma display font, sits at larger sizes

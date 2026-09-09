@@ -82,11 +82,13 @@
   contract Settings uses) and writes the result into the long-pressed slot. The dialog
   window calls `enableImmersiveMode()` itself because a dialog is a separate window and
   would otherwise bring the system bars back while showing.
-- **Escape on Home does nothing; Settings is reached via empty slots.** Home is the
-  launcher root — there is nothing for "back" to go to. Once every favourite slot is
-  filled a remote-only user has no route into Settings, but that is intentional: the
-  device is on a motorbike, configuration is a touch-only workflow. On first-time setup
-  the empty "+" tiles route to Settings, which is enough to bootstrap.
+- **Escape on Home does nothing; slots are configured in place.** Home is the launcher
+  root — there is nothing for "back" to go to. A remote-only user has no route into any
+  configuration, and that is intentional: the device is on a motorbike, configuration is
+  a touch-only workflow. Empty "+" tiles and the tile menu's "Reassign app" open the
+  picker for that slot directly, so favourites never need the Settings screen. Settings
+  remains only for theme, update check, and the cellular-permission ask, reached by
+  long-pressing "All Apps"; the intent is to retire it in its current form.
 
 ## Core Features
 
