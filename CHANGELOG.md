@@ -25,3 +25,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   mostly offline).
 - GitHub Actions build: parallel lint and unit tests, signed release APK, and a
   self-replacing `dev` pre-release.
+- Custom home status bar showing the current time on the left and Wi-Fi, cellular, and
+  battery indicators on the right, aligned with the grid margins.
+- Visible back button on the app list and settings screens for touch users.
+
+### Changed
+- The Android status bar and navigation bar are now hidden app-wide so the full screen
+  is available for the launcher's own UI.

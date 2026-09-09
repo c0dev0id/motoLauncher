@@ -33,6 +33,24 @@
   hands the APK to the system installer via `FileProvider` (`REQUEST_INSTALL_PACKAGES`).
 - **Favorites in `SharedPreferences`** as slot→flattened `ComponentName`. 11 slots; the 12th
   grid cell is the fixed "All Apps" tile.
+- **Immersive mode app-wide.** System bars are hidden from every activity via
+  `WindowInsetsControllerCompat`. The device is a single-purpose launcher on a
+  glove-operated screen — nothing on those bars is useful, and reclaiming the pixels
+  removes the cold-start row-height race the previous commit was patching around
+  (`homeGrid.height` is now stable on the first layout pass, so the row-height layout
+  listener was retired).
+- **Custom top bar on Home only.** `StatusBarView` is a self-contained widget: it
+  registers `ACTION_TIME_TICK`, `ACTION_BATTERY_CHANGED`, a Wi-Fi `NetworkCallback`, and
+  (API 31+) `TelephonyCallback.SignalStrengthsListener` in `onAttachedToWindow`, and
+  releases them in `onDetachedFromWindow` — no lifecycle wiring in `HomeActivity`.
+  Signal-strength icons are `<level-list>` drawables so updates are one `setImageLevel()`.
+- **Wi-Fi via `NetworkCallback`, not `WifiManager.connectionInfo`.** Reading RSSI through
+  `NetworkCapabilities.transportInfo` avoids `ACCESS_FINE_LOCATION`; only
+  `ACCESS_WIFI_STATE` + `ACCESS_NETWORK_STATE` are needed.
+- **Back button via `focusableInTouchMode`.** The `AppList` and `Settings` activities gain
+  a visible back button now that the Android nav bar is gone. Marking it
+  `focusableInTouchMode` reuses the same pattern the search box uses: touch users tap it,
+  dpad users skip it and rely on Escape — no custom key handling.
 
 ## Core Features
 
