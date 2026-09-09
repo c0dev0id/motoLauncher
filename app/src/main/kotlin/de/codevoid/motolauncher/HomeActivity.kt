@@ -8,14 +8,13 @@ import android.view.ViewGroup
 import android.widget.LinearLayout
 import androidx.activity.addCallback
 import androidx.appcompat.app.AppCompatActivity
-import de.codevoid.motolauncher.data.AppEntry
 import de.codevoid.motolauncher.data.AppRepository
 import de.codevoid.motolauncher.data.FavoritesStore
 import de.codevoid.motolauncher.databinding.ActivityHomeBinding
 import de.codevoid.motolauncher.databinding.ItemAppTileBinding
-import de.codevoid.motolauncher.ui.TileActionsDialog
 import de.codevoid.motolauncher.ui.blockKeyLongPress
 import de.codevoid.motolauncher.ui.enableImmersiveMode
+import de.codevoid.motolauncher.ui.showTileActionsDialog
 
 class HomeActivity : AppCompatActivity() {
 
@@ -28,7 +27,7 @@ class HomeActivity : AppCompatActivity() {
         super.onCreate(savedInstanceState)
         binding = ActivityHomeBinding.inflate(layoutInflater)
         setContentView(binding.root)
-        enableImmersiveMode()
+        window.enableImmersiveMode()
 
         favorites = FavoritesStore(this)
         repository = AppRepository(this)
@@ -77,7 +76,7 @@ class HomeActivity : AppCompatActivity() {
 
     override fun onWindowFocusChanged(hasFocus: Boolean) {
         super.onWindowFocusChanged(hasFocus)
-        if (hasFocus) enableImmersiveMode()
+        if (hasFocus) window.enableImmersiveMode()
     }
 
     private fun buildGrid() {
@@ -93,7 +92,15 @@ class HomeActivity : AppCompatActivity() {
                     icon = entry.icon,
                     iconRes = 0,
                     onClick = { repository.launch(entry.component) },
-                    onLongClick = { showTileActions(index, entry); true },
+                    onLongClick = {
+                        showTileActionsDialog(
+                            context = this,
+                            entry = entry,
+                            onReassign = { pickForSlot(index) },
+                            onAppInfo = { repository.openInfo(entry.component) },
+                        )
+                        true
+                    },
                 )
             } else {
                 bindTile(
@@ -135,15 +142,6 @@ class HomeActivity : AppCompatActivity() {
         }
         tile.root.setOnClickListener { onClick() }
         tile.root.setOnLongClickListener { onLongClick() }
-    }
-
-    private fun showTileActions(slot: Int, entry: AppEntry) {
-        TileActionsDialog.create(
-            context = this,
-            entry = entry,
-            onReassign = { pickForSlot(slot) },
-            onAppInfo = { repository.openInfo(entry.component) },
-        ).show()
     }
 
     // The picker writes the slot itself; onResume rebuilds the grid on return.
