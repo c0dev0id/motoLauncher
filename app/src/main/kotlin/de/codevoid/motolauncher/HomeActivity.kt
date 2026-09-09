@@ -33,6 +33,9 @@ class HomeActivity : AppCompatActivity() {
         repository = AppRepository(this)
 
         populateGrid()
+        // Seed the remote's focus once. Tiles are reused across rebinds and Android keeps
+        // the focused view across app switches, so nothing needs re-seeding on resume.
+        tiles[0].root.post { tiles[0].root.requestFocus() }
 
         onBackPressedDispatcher.addCallback(this) { /* home is the root; swallow back */ }
     }
@@ -119,11 +122,6 @@ class HomeActivity : AppCompatActivity() {
             iconRes = R.drawable.ic_all_apps,
             onClick = { startActivity(Intent(this, AppListActivity::class.java)) },
         )
-
-        // Seed focus only when nothing holds it (first launch). The tile views are reused
-        // across rebinds, so coming back from an app keeps focus on the tile it was
-        // launched from instead of jumping to the top-left corner.
-        if (currentFocus == null) tiles[0].root.post { tiles[0].root.requestFocus() }
     }
 
     // Tiles are reused across rebinds, so a tile without a long-press must clear the
