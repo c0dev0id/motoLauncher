@@ -29,6 +29,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Visible back button on the app list screen for touch users.
 
 ### Changed
+- The "All Apps / Config" home tile is now labelled "All Apps"; it no longer leads to
+  a configuration screen.
 - The theme toggle, "Check for updates" and "Enable cellular indicator" buttons live in
   the All Apps header, to the right of a shorter search field, and are hidden while
   picking an app for a slot. Update results (latest build, update available, failure)
