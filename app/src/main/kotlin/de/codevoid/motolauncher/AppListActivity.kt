@@ -1,6 +1,7 @@
 package de.codevoid.motolauncher
 
 import android.Manifest
+import android.app.Application
 import android.content.ComponentName
 import android.content.Context
 import android.content.Intent
@@ -12,9 +13,12 @@ import android.text.TextWatcher
 import android.view.KeyEvent
 import android.view.View
 import androidx.activity.result.contract.ActivityResultContracts.RequestPermission
+import androidx.activity.viewModels
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.content.ContextCompat
+import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.lifecycleScope
+import androidx.lifecycle.viewModelScope
 import androidx.recyclerview.widget.GridLayoutManager
 import de.codevoid.motolauncher.data.AppEntry
 import de.codevoid.motolauncher.data.AppRepository
@@ -26,14 +30,16 @@ import de.codevoid.motolauncher.ui.TileItem
 import de.codevoid.motolauncher.ui.enableImmersiveMode
 import de.codevoid.motolauncher.ui.finishOnEscape
 import de.codevoid.motolauncher.ui.runUpdateFlow
+import kotlinx.coroutines.Deferred
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.async
 import kotlinx.coroutines.launch
-import kotlinx.coroutines.withContext
 
 class AppListActivity : AppCompatActivity() {
 
     private lateinit var binding: ActivityAppListBinding
     private lateinit var repository: AppRepository
+    private val viewModel: AppListViewModel by viewModels()
     private val adapter = AppTileAdapter(emptyList())
     private var allApps: List<AppEntry> = emptyList()
 
@@ -81,8 +87,9 @@ class AppListActivity : AppCompatActivity() {
         binding.headerConfig.visibility = if (pickMode) View.GONE else View.VISIBLE
 
         lifecycleScope.launch {
-            allApps = withContext(Dispatchers.IO) { repository.loadApps() }
-            render(allApps)
+            allApps = viewModel.apps.await()
+            // After a recreate the restored search text is already in the box; honour it.
+            render(AppRepository.filterApps(allApps, binding.searchBox.text.toString()))
             binding.appGrid.post {
                 binding.appGrid.layoutManager?.findViewByPosition(0)?.requestFocus()
             }
@@ -150,4 +157,12 @@ class AppListActivity : AppCompatActivity() {
         fun pickIntent(context: Context, slot: Int): Intent =
             Intent(context, AppListActivity::class.java).putExtra(EXTRA_PICK_SLOT, slot)
     }
+}
+
+// Enumerating and rasterising every installed app is the most expensive thing the app
+// does. Keeping the result in a ViewModel means the theme toggle's recreate() reuses it
+// instead of running it again.
+class AppListViewModel(app: Application) : AndroidViewModel(app) {
+    val apps: Deferred<List<AppEntry>> =
+        viewModelScope.async(Dispatchers.IO) { AppRepository(app).loadApps() }
 }
