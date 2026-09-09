@@ -92,9 +92,9 @@
   configuration, and that is intentional: the device is on a motorbike, configuration is
   a touch-only workflow. Empty "+" tiles and the tile menu's "Reassign app" open the
   picker for that slot directly, so favourites never need the Settings screen. Theme
-  toggle and update check sit in the All Apps header (hidden in pick mode); Settings
-  remains only for the cellular-permission ask and a slot overview, reached by
-  long-pressing "All Apps", and is to be retired in its current form.
+  toggle, update check, and the cellular-permission ask sit in the All Apps header
+  (hidden in pick mode); Settings is now only a slot overview reached by long-pressing
+  "All Apps", and is to be retired in its current form.
 
 - **Update UI: button label for progress, dialogs for outcomes.** The header row of the
   app list has no room for a status line, and a transient line is easy to miss on a
