@@ -20,7 +20,7 @@ data class ReleaseInfo(
 
 class UpdateChecker(private val context: Context) {
 
-    private val downloadDir get() = File(context.cacheDir, DOWNLOAD_DIR)
+    private val downloadDir = File(context.cacheDir, "updates")
 
     /** Returns release info if the published nightly differs from the installed build, else null. */
     suspend fun check(): ReleaseInfo? = withContext(Dispatchers.IO) {
@@ -31,16 +31,19 @@ class UpdateChecker(private val context: Context) {
     suspend fun download(release: ReleaseInfo): File = withContext(Dispatchers.IO) {
         val dir = downloadDir.apply { mkdirs() }
         val file = File(dir, release.apkName)
+        // The directory holds at most the download in progress.
+        dir.listFiles()?.filter { it != file }?.forEach { it.delete() }
         httpDownload(release.apkUrl, file)
         file
     }
 
     /**
-     * Deletes every downloaded APK. Called once per process start: an installed update
-     * restarts the launcher, so this is the earliest point the file is no longer needed.
+     * Deletes the APK of the build that is now running, i.e. the update that was just
+     * installed. Only that file: a different version might still be open in the system
+     * installer if this process was restarted to serve it through the FileProvider.
      */
-    fun clearDownloads() {
-        downloadDir.listFiles()?.forEach { it.delete() }
+    fun deleteInstalledUpdate() {
+        File(downloadDir, "$APK_PREFIX${BuildConfig.VERSION_NAME}.apk").delete()
     }
 
     fun installIntent(file: File): Intent {
@@ -89,7 +92,6 @@ class UpdateChecker(private val context: Context) {
         private const val USER_AGENT = "motoLauncher"
         private const val TIMEOUT_MS = 15_000
         private const val APK_PREFIX = "motoLauncher-"
-        private const val DOWNLOAD_DIR = "updates"
 
         fun isNewer(remote: ReleaseInfo, installedVersionName: String): Boolean =
             remote.versionName.isNotEmpty() && remote.versionName != installedVersionName

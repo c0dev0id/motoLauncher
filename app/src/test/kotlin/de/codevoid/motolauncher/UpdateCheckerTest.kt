@@ -40,22 +40,20 @@ class UpdateCheckerTest {
     }
 
     @Test
-    fun clearDownloadsRemovesEveryFileInTheUpdatesDir() {
+    fun deleteInstalledUpdateRemovesOnlyTheRunningBuildsApk() {
         val context = ApplicationProvider.getApplicationContext<android.content.Context>()
-        val dir = File(context.cacheDir, "updates").apply { mkdirs() }
-        File(dir, "motoLauncher-dev-old.apk").writeText("x")
-        File(dir, "motoLauncher-dev-new.apk").writeText("y")
+        val dir = File(context.cacheDir, "updates")
+        dir.deleteRecursively()
+        UpdateChecker(context).deleteInstalledUpdate() // missing dir is fine
 
-        UpdateChecker(context).clearDownloads()
+        dir.mkdirs()
+        val installed = File(dir, "motoLauncher-${BuildConfig.VERSION_NAME}.apk").apply { writeText("x") }
+        val pending = File(dir, "motoLauncher-dev-other.apk").apply { writeText("y") }
 
-        assertEquals(0, dir.listFiles().orEmpty().size)
-    }
+        UpdateChecker(context).deleteInstalledUpdate()
 
-    @Test
-    fun clearDownloadsToleratesMissingDir() {
-        val context = ApplicationProvider.getApplicationContext<android.content.Context>()
-        File(context.cacheDir, "updates").deleteRecursively()
-        UpdateChecker(context).clearDownloads()
+        assertFalse(installed.exists())
+        assertTrue(pending.exists())
     }
 
     @Test

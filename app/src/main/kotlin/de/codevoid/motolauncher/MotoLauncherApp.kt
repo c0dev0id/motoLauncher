@@ -10,10 +10,10 @@ class MotoLauncherApp : Application() {
         super.onCreate()
         // Re-apply the saved theme before any activity is created so the choice survives restarts.
         ThemeStore(this).applyNightMode()
-        // A downloaded update has served its purpose once the launcher comes back up
-        // after installing it. Process start, not activity resume, so an in-flight
-        // download can never be deleted underneath the installer. Off the main thread
-        // to keep it out of the cold-start path.
-        thread(name = "clear-updates") { UpdateChecker(this).clearDownloads() }
+        // The update that was just installed has served its purpose once the launcher
+        // comes back up. A plain thread rather than a coroutine: Home never loads
+        // kotlinx.coroutines, and this keeps a possibly cold cache-dir read off the
+        // first frame.
+        thread(name = "delete-installed-update") { UpdateChecker(this).deleteInstalledUpdate() }
     }
 }
