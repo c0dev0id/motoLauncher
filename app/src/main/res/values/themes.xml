@@ -21,4 +21,13 @@
         <item name="colorPrimary">@color/tile_focused</item>
         <item name="colorOnPrimary">@color/on_surface</item>
     </style>
+
+    <!-- Glove-sized header control; every button in a TouchOnlyRow header uses this so
+         the minimum touch target is stated once. -->
+    <style name="Widget.MotoLauncher.HeaderButton" parent="Widget.Material3.Button">
+        <item name="android:layout_width">wrap_content</item>
+        <item name="android:layout_height">wrap_content</item>
+        <item name="android:layout_marginStart">8dp</item>
+        <item name="android:minHeight">56dp</item>
+    </style>
 </resources>
