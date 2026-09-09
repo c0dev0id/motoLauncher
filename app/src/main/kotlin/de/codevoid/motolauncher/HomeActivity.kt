@@ -1,16 +1,18 @@
 package de.codevoid.motolauncher
 
 import android.content.Intent
+import android.graphics.drawable.Drawable
 import android.os.Bundle
 import android.view.KeyEvent
+import android.view.LayoutInflater
+import android.view.ViewGroup
+import android.widget.LinearLayout
 import androidx.activity.addCallback
 import androidx.appcompat.app.AppCompatActivity
-import androidx.recyclerview.widget.GridLayoutManager
 import de.codevoid.motolauncher.data.AppRepository
 import de.codevoid.motolauncher.data.FavoritesStore
 import de.codevoid.motolauncher.databinding.ActivityHomeBinding
-import de.codevoid.motolauncher.ui.AppTileAdapter
-import de.codevoid.motolauncher.ui.TileItem
+import de.codevoid.motolauncher.databinding.ItemAppTileBinding
 import de.codevoid.motolauncher.ui.enableImmersiveMode
 
 class HomeActivity : AppCompatActivity() {
@@ -18,7 +20,7 @@ class HomeActivity : AppCompatActivity() {
     private lateinit var binding: ActivityHomeBinding
     private lateinit var favorites: FavoritesStore
     private lateinit var repository: AppRepository
-    private val adapter = AppTileAdapter(emptyList())
+    private val tiles = ArrayList<ItemAppTileBinding>(COLUMNS * ROWS)
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -29,26 +31,40 @@ class HomeActivity : AppCompatActivity() {
         favorites = FavoritesStore(this)
         repository = AppRepository(this)
 
-        // The home grid is a fixed layout that must stay put; disabling scrolling stops the
-        // overscroll stretch on swipes. Dpad focus traversal is unaffected.
-        binding.homeGrid.layoutManager = object : GridLayoutManager(this, COLUMNS) {
-            override fun canScrollVertically() = false
-            override fun canScrollHorizontally() = false
-        }
-        binding.homeGrid.adapter = adapter
-
-        // Size each row to the grid's measured height so all three rows pack in without
-        // scrolling; the tiles' own margins are subtracted by the adapter. The listener
-        // runs on every layout pass because the first pass happens with the adapter empty
-        // (data arrives in onResume) — a one-shot callback would set the height too late,
-        // after tiles have already been laid out with their default XML height. The
-        // adapter's setter no-ops on an unchanged value, so recomputing every pass is cheap.
-        binding.homeGrid.addOnLayoutChangeListener { grid, _, _, _, _, _, _, _, _ ->
-            val usable = grid.height - grid.paddingTop - grid.paddingBottom
-            if (usable > 0) adapter.itemHeightPx = usable / ROWS
-        }
+        populateGrid()
 
         onBackPressedDispatcher.addCallback(this) { /* home is the root; swallow back */ }
+    }
+
+    // Weighted rows divide space during the layout pass, avoiding the RecyclerView
+    // first-frame race that briefly showed the third row cut off on cold start.
+    private fun populateGrid() {
+        val inflater = LayoutInflater.from(this)
+        repeat(ROWS) {
+            val row = LinearLayout(this).apply {
+                orientation = LinearLayout.HORIZONTAL
+                layoutParams = LinearLayout.LayoutParams(
+                    LinearLayout.LayoutParams.MATCH_PARENT, 0, 1f,
+                )
+            }
+            repeat(COLUMNS) {
+                val tile = ItemAppTileBinding.inflate(inflater, row, false)
+                val existing = tile.root.layoutParams as ViewGroup.MarginLayoutParams
+                tile.root.layoutParams = LinearLayout.LayoutParams(
+                    0, LinearLayout.LayoutParams.MATCH_PARENT, 1f,
+                ).apply {
+                    setMargins(
+                        existing.leftMargin,
+                        existing.topMargin,
+                        existing.rightMargin,
+                        existing.bottomMargin,
+                    )
+                }
+                row.addView(tile.root)
+                tiles.add(tile)
+            }
+            binding.homeGrid.addView(row)
+        }
     }
 
     override fun onResume() {
@@ -64,44 +80,58 @@ class HomeActivity : AppCompatActivity() {
     private fun buildGrid() {
         val slots = favorites.allSlots()
         val apps = repository.loadByComponents(slots.filterNotNull())
-        val tiles = ArrayList<TileItem>(COLUMNS * ROWS)
 
-        slots.forEach { component ->
+        slots.forEachIndexed { index, component ->
             val entry = component?.let { apps[it] }
             if (entry != null) {
-                tiles.add(
-                    TileItem(
-                        label = entry.label,
-                        icon = entry.icon,
-                        onClick = { repository.launch(entry.component) },
-                        onLongClick = { repository.openInfo(entry.component); true },
-                    )
+                bindTile(
+                    tile = tiles[index],
+                    label = entry.label,
+                    icon = entry.icon,
+                    iconRes = 0,
+                    onClick = { repository.launch(entry.component) },
+                    onLongClick = { repository.openInfo(entry.component); true },
                 )
             } else {
-                tiles.add(
-                    TileItem(
-                        label = getString(R.string.empty_slot),
-                        iconRes = R.drawable.ic_add,
-                        onClick = { openSettings() },
-                        onLongClick = { openSettings(); true },
-                    )
+                bindTile(
+                    tile = tiles[index],
+                    label = getString(R.string.empty_slot),
+                    icon = null,
+                    iconRes = R.drawable.ic_add,
+                    onClick = { openSettings() },
+                    onLongClick = { openSettings(); true },
                 )
             }
         }
 
-        tiles.add(
-            TileItem(
-                label = getString(R.string.all_apps),
-                iconRes = R.drawable.ic_all_apps,
-                onClick = { startActivity(Intent(this, AppListActivity::class.java)) },
-                onLongClick = { openSettings(); true },
-            )
+        bindTile(
+            tile = tiles[COLUMNS * ROWS - 1],
+            label = getString(R.string.all_apps),
+            icon = null,
+            iconRes = R.drawable.ic_all_apps,
+            onClick = { startActivity(Intent(this, AppListActivity::class.java)) },
+            onLongClick = { openSettings(); true },
         )
 
-        adapter.submit(tiles)
-        binding.homeGrid.post {
-            binding.homeGrid.layoutManager?.findViewByPosition(0)?.requestFocus()
+        tiles[0].root.post { tiles[0].root.requestFocus() }
+    }
+
+    private fun bindTile(
+        tile: ItemAppTileBinding,
+        label: String,
+        icon: Drawable?,
+        iconRes: Int,
+        onClick: () -> Unit,
+        onLongClick: () -> Boolean,
+    ) {
+        tile.appLabel.text = label
+        when {
+            icon != null -> tile.appIcon.setImageDrawable(icon)
+            iconRes != 0 -> tile.appIcon.setImageResource(iconRes)
+            else -> tile.appIcon.setImageDrawable(null)
         }
+        tile.root.setOnClickListener { onClick() }
+        tile.root.setOnLongClickListener { onLongClick() }
     }
 
     private fun openSettings() {
