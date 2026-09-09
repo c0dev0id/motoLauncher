@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <string name="app_name">motoLauncher</string>
-    <string name="all_apps">All Apps\n(Config)</string>
+    <string name="all_apps">All Apps / Config</string>
     <string name="settings_title">Configure Favorites</string>
     <string name="search_hint">Search apps…</string>
     <string name="empty_slot">Empty</string>
