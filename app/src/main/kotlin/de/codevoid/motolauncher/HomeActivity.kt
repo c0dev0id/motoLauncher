@@ -1,11 +1,7 @@
 package de.codevoid.motolauncher
 
-import android.content.ComponentName
-import android.content.Context
 import android.content.Intent
-import android.content.pm.LauncherApps
 import android.os.Bundle
-import android.os.Process
 import android.view.KeyEvent
 import androidx.activity.addCallback
 import androidx.appcompat.app.AppCompatActivity
@@ -21,7 +17,6 @@ class HomeActivity : AppCompatActivity() {
     private lateinit var binding: ActivityHomeBinding
     private lateinit var favorites: FavoritesStore
     private lateinit var repository: AppRepository
-    private lateinit var launcherApps: LauncherApps
     private val adapter = AppTileAdapter(emptyList())
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -31,7 +26,6 @@ class HomeActivity : AppCompatActivity() {
 
         favorites = FavoritesStore(this)
         repository = AppRepository(this)
-        launcherApps = getSystemService(Context.LAUNCHER_APPS_SERVICE) as LauncherApps
 
         binding.homeGrid.layoutManager = GridLayoutManager(this, COLUMNS)
         binding.homeGrid.adapter = adapter
@@ -42,8 +36,7 @@ class HomeActivity : AppCompatActivity() {
             if (usable > 0) adapter.itemHeightPx = usable / ROWS
         }
 
-        // Home is the root screen: Back/Escape must not exit to a blank screen.
-        onBackPressedDispatcher.addCallback(this) { /* stay on home */ }
+        onBackPressedDispatcher.addCallback(this) { /* home is the root; swallow back */ }
     }
 
     override fun onResume() {
@@ -52,18 +45,19 @@ class HomeActivity : AppCompatActivity() {
     }
 
     private fun buildGrid() {
-        val apps = repository.loadApps().associateBy { it.component }
+        val slots = favorites.allSlots()
+        val apps = repository.loadByComponents(slots.filterNotNull())
         val tiles = ArrayList<TileItem>(COLUMNS * ROWS)
 
-        favorites.allSlots().forEachIndexed { index, component ->
+        slots.forEach { component ->
             val entry = component?.let { apps[it] }
             if (entry != null) {
                 tiles.add(
                     TileItem(
                         label = entry.label,
                         icon = entry.icon,
-                        onClick = { launchApp(entry.component) },
-                        onLongClick = { openAppInfo(entry.component); true },
+                        onClick = { repository.launch(entry.component) },
+                        onLongClick = { repository.openInfo(entry.component); true },
                     )
                 )
             } else {
@@ -92,20 +86,11 @@ class HomeActivity : AppCompatActivity() {
         }
     }
 
-    private fun launchApp(component: ComponentName) {
-        launcherApps.startMainActivity(component, Process.myUserHandle(), null, null)
-    }
-
-    private fun openAppInfo(component: ComponentName) {
-        launcherApps.startAppDetailsActivity(component, Process.myUserHandle(), null, null)
-    }
-
     private fun openSettings() {
         startActivity(Intent(this, SettingsActivity::class.java))
     }
 
     override fun onKeyDown(keyCode: Int, event: KeyEvent): Boolean {
-        // Escape on the home screen is a no-op (there is nowhere "back" to go).
         if (keyCode == KeyEvent.KEYCODE_ESCAPE) return true
         return super.onKeyDown(keyCode, event)
     }

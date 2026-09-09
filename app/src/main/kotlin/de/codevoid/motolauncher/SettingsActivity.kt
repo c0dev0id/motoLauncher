@@ -3,6 +3,7 @@ package de.codevoid.motolauncher
 import android.content.ComponentName
 import android.content.Intent
 import android.os.Bundle
+import android.view.KeyEvent
 import android.view.View
 import androidx.activity.result.contract.ActivityResultContracts.StartActivityForResult
 import androidx.appcompat.app.AlertDialog
@@ -55,8 +56,9 @@ class SettingsActivity : AppCompatActivity() {
     }
 
     private fun renderSlots() {
-        val apps = repository.loadApps().associateBy { it.component }
-        val tiles = favorites.allSlots().mapIndexed { index, component ->
+        val slots = favorites.allSlots()
+        val apps = repository.loadByComponents(slots.filterNotNull())
+        val tiles = slots.mapIndexed { index, component ->
             val entry = component?.let { apps[it] }
             if (entry != null) {
                 TileItem(
@@ -97,8 +99,7 @@ class SettingsActivity : AppCompatActivity() {
                     promptInstall(release)
                 }
             } catch (e: Exception) {
-                binding.updateStatus.text =
-                    getString(R.string.update_failed, e.message ?: e.javaClass.simpleName)
+                showUpdateError(e)
             } finally {
                 binding.checkUpdateButton.isEnabled = true
             }
@@ -121,10 +122,22 @@ class SettingsActivity : AppCompatActivity() {
                 val file = updateChecker.download(release)
                 startActivity(updateChecker.installIntent(file))
             } catch (e: Exception) {
-                binding.updateStatus.text =
-                    getString(R.string.update_failed, e.message ?: e.javaClass.simpleName)
+                showUpdateError(e)
             }
         }
+    }
+
+    private fun showUpdateError(e: Exception) {
+        binding.updateStatus.text =
+            getString(R.string.update_failed, e.message ?: e.javaClass.simpleName)
+    }
+
+    override fun onKeyDown(keyCode: Int, event: KeyEvent): Boolean {
+        if (keyCode == KeyEvent.KEYCODE_ESCAPE) {
+            finish()
+            return true
+        }
+        return super.onKeyDown(keyCode, event)
     }
 
     companion object {

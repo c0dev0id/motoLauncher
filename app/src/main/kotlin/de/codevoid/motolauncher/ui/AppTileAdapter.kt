@@ -41,7 +41,7 @@ class AppTileAdapter(private var items: List<TileItem>) :
         val item = items[position]
         val binding = holder.binding
 
-        if (itemHeightPx > 0) {
+        if (itemHeightPx > 0 && binding.root.layoutParams.height != itemHeightPx) {
             binding.root.layoutParams = binding.root.layoutParams.apply { height = itemHeightPx }
         }
 

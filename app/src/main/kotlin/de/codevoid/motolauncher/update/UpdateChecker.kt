@@ -94,11 +94,8 @@ class UpdateChecker(private val context: Context) {
                 val asset = assets.getJSONObject(i)
                 val name = asset.optString("name")
                 if (!name.endsWith(".apk")) continue
-                val base = name.removeSuffix(".apk")
-                val versionName =
-                    if (base.startsWith(APK_PREFIX)) base.removePrefix(APK_PREFIX) else base
                 return ReleaseInfo(
-                    versionName = versionName,
+                    versionName = name.removeSuffix(".apk").removePrefix(APK_PREFIX),
                     apkUrl = asset.optString("browser_download_url"),
                     apkName = name,
                 )
