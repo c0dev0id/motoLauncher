@@ -15,6 +15,7 @@ import de.codevoid.motolauncher.data.AppRepository
 import de.codevoid.motolauncher.databinding.ActivityAppListBinding
 import de.codevoid.motolauncher.ui.AppTileAdapter
 import de.codevoid.motolauncher.ui.TileItem
+import de.codevoid.motolauncher.ui.enableImmersiveMode
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
@@ -31,8 +32,11 @@ class AppListActivity : AppCompatActivity() {
         super.onCreate(savedInstanceState)
         binding = ActivityAppListBinding.inflate(layoutInflater)
         setContentView(binding.root)
+        enableImmersiveMode()
 
         repository = AppRepository(this)
+
+        binding.backButton.setOnClickListener { finish() }
 
         binding.appGrid.layoutManager = GridLayoutManager(this, COLUMNS)
         binding.appGrid.adapter = adapter
@@ -85,6 +89,11 @@ class AppListActivity : AppCompatActivity() {
         } else {
             repository.launch(component)
         }
+    }
+
+    override fun onWindowFocusChanged(hasFocus: Boolean) {
+        super.onWindowFocusChanged(hasFocus)
+        if (hasFocus) enableImmersiveMode()
     }
 
     override fun onKeyDown(keyCode: Int, event: KeyEvent): Boolean {

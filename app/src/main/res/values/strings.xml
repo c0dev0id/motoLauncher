@@ -16,4 +16,5 @@
     <string name="update_download">Download &amp; install</string>
     <string name="update_failed">Update check failed: %1$s</string>
     <string name="downloading">Downloading update…</string>
+    <string name="back">Back</string>
 </resources>

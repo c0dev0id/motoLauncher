@@ -16,6 +16,7 @@ import de.codevoid.motolauncher.data.ThemeStore
 import de.codevoid.motolauncher.databinding.ActivitySettingsBinding
 import de.codevoid.motolauncher.ui.AppTileAdapter
 import de.codevoid.motolauncher.ui.TileItem
+import de.codevoid.motolauncher.ui.enableImmersiveMode
 import de.codevoid.motolauncher.update.ReleaseInfo
 import de.codevoid.motolauncher.update.UpdateChecker
 import kotlinx.coroutines.launch
@@ -44,6 +45,9 @@ class SettingsActivity : AppCompatActivity() {
         super.onCreate(savedInstanceState)
         binding = ActivitySettingsBinding.inflate(layoutInflater)
         setContentView(binding.root)
+        enableImmersiveMode()
+
+        binding.backButton.setOnClickListener { finish() }
 
         favorites = FavoritesStore(this)
         repository = AppRepository(this)
@@ -138,6 +142,11 @@ class SettingsActivity : AppCompatActivity() {
     private fun showUpdateError(e: Exception) {
         binding.updateStatus.text =
             getString(R.string.update_failed, e.message ?: e.javaClass.simpleName)
+    }
+
+    override fun onWindowFocusChanged(hasFocus: Boolean) {
+        super.onWindowFocusChanged(hasFocus)
+        if (hasFocus) enableImmersiveMode()
     }
 
     override fun onKeyDown(keyCode: Int, event: KeyEvent): Boolean {

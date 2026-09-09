@@ -11,6 +11,7 @@ import de.codevoid.motolauncher.data.FavoritesStore
 import de.codevoid.motolauncher.databinding.ActivityHomeBinding
 import de.codevoid.motolauncher.ui.AppTileAdapter
 import de.codevoid.motolauncher.ui.TileItem
+import de.codevoid.motolauncher.ui.enableImmersiveMode
 
 class HomeActivity : AppCompatActivity() {
 
@@ -23,6 +24,7 @@ class HomeActivity : AppCompatActivity() {
         super.onCreate(savedInstanceState)
         binding = ActivityHomeBinding.inflate(layoutInflater)
         setContentView(binding.root)
+        enableImmersiveMode()
 
         favorites = FavoritesStore(this)
         repository = AppRepository(this)
@@ -52,6 +54,11 @@ class HomeActivity : AppCompatActivity() {
     override fun onResume() {
         super.onResume()
         buildGrid()
+    }
+
+    override fun onWindowFocusChanged(hasFocus: Boolean) {
+        super.onWindowFocusChanged(hasFocus)
+        if (hasFocus) enableImmersiveMode()
     }
 
     private fun buildGrid() {
