@@ -1,14 +1,8 @@
 package de.codevoid.motolauncher
 
-import android.Manifest
-import android.content.pm.PackageManager
-import android.os.Build
 import android.os.Bundle
 import android.view.KeyEvent
-import android.view.View
-import androidx.activity.result.contract.ActivityResultContracts.RequestPermission
 import androidx.appcompat.app.AppCompatActivity
-import androidx.core.content.ContextCompat
 import androidx.recyclerview.widget.GridLayoutManager
 import de.codevoid.motolauncher.data.AppRepository
 import de.codevoid.motolauncher.data.FavoritesStore
@@ -25,9 +19,6 @@ class SettingsActivity : AppCompatActivity() {
     private lateinit var repository: AppRepository
     private val adapter = AppTileAdapter(emptyList())
 
-    private val cellularPermissionLauncher =
-        registerForActivityResult(RequestPermission()) { updateCellularPermissionButton() }
-
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         binding = ActivitySettingsBinding.inflate(layoutInflater)
@@ -41,26 +32,11 @@ class SettingsActivity : AppCompatActivity() {
 
         binding.slotGrid.layoutManager = GridLayoutManager(this, COLUMNS)
         binding.slotGrid.adapter = adapter
-
-        binding.enableCellularButton.setOnClickListener {
-            cellularPermissionLauncher.launch(Manifest.permission.READ_PHONE_STATE)
-        }
     }
 
     override fun onResume() {
         super.onResume()
         renderSlots()
-        updateCellularPermissionButton()
-    }
-
-    // The cellular indicator is optional: expose the ask only when the platform can
-    // deliver signal readings (API 31+) and the permission is still missing. Once
-    // granted, the button silently disappears — no toast, no dialog.
-    private fun updateCellularPermissionButton() {
-        val needsAsk = Build.VERSION.SDK_INT >= Build.VERSION_CODES.S &&
-            ContextCompat.checkSelfPermission(this, Manifest.permission.READ_PHONE_STATE) !=
-            PackageManager.PERMISSION_GRANTED
-        binding.enableCellularButton.visibility = if (needsAsk) View.VISIBLE else View.GONE
     }
 
     private fun renderSlots() {

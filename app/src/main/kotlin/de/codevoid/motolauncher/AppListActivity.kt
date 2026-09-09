@@ -1,15 +1,20 @@
 package de.codevoid.motolauncher
 
+import android.Manifest
 import android.content.ComponentName
 import android.content.Context
 import android.content.Intent
+import android.content.pm.PackageManager
+import android.os.Build
 import android.os.Bundle
 import android.text.Editable
 import android.text.TextWatcher
 import android.view.KeyEvent
 import android.view.View
+import androidx.activity.result.contract.ActivityResultContracts.RequestPermission
 import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
+import androidx.core.content.ContextCompat
 import androidx.lifecycle.lifecycleScope
 import androidx.recyclerview.widget.GridLayoutManager
 import de.codevoid.motolauncher.data.AppEntry
@@ -42,6 +47,9 @@ class AppListActivity : AppCompatActivity() {
     private val pickSlot by lazy { intent.getIntExtra(EXTRA_PICK_SLOT, NO_SLOT) }
     private val pickMode get() = pickSlot != NO_SLOT
 
+    private val cellularPermissionLauncher =
+        registerForActivityResult(RequestPermission()) { updateCellularPermissionButton() }
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         binding = ActivityAppListBinding.inflate(layoutInflater)
@@ -71,6 +79,9 @@ class AppListActivity : AppCompatActivity() {
         binding.themeButton.setText(if (themeStore.isDark) R.string.theme_dark else R.string.theme_light)
         binding.themeButton.setOnClickListener { themeStore.isDark = !themeStore.isDark }
         binding.checkUpdateButton.setOnClickListener { checkForUpdates() }
+        binding.enableCellularButton.setOnClickListener {
+            cellularPermissionLauncher.launch(Manifest.permission.READ_PHONE_STATE)
+        }
 
         // The picker is a single-purpose screen: no configuration controls while choosing.
         if (pickMode) {
@@ -85,6 +96,22 @@ class AppListActivity : AppCompatActivity() {
                 binding.appGrid.layoutManager?.findViewByPosition(0)?.requestFocus()
             }
         }
+    }
+
+    override fun onResume() {
+        super.onResume()
+        updateCellularPermissionButton()
+    }
+
+    // The cellular indicator is optional: expose the ask only when the platform can
+    // deliver signal readings (API 31+) and the permission is still missing. Once
+    // granted, the button silently disappears — no toast, no dialog.
+    private fun updateCellularPermissionButton() {
+        val needsAsk = !pickMode &&
+            Build.VERSION.SDK_INT >= Build.VERSION_CODES.S &&
+            ContextCompat.checkSelfPermission(this, Manifest.permission.READ_PHONE_STATE) !=
+            PackageManager.PERMISSION_GRANTED
+        binding.enableCellularButton.visibility = if (needsAsk) View.VISIBLE else View.GONE
     }
 
     private fun render(apps: List<AppEntry>) {
