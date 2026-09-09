@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">motoLauncher</string>
+    <string name="all_apps">All Apps</string>
+    <string name="all_apps_title">All Apps</string>
+    <string name="settings_title">Configure Favorites</string>
+    <string name="search_hint">Search apps…</string>
+    <string name="empty_slot">Empty</string>
+    <string name="add_favorite">Add favorite</string>
+    <string name="clear_slot">Clear</string>
+    <string name="cancel">Cancel</string>
+    <string name="settings">Settings</string>
+    <string name="check_for_updates">Check for updates</string>
+    <string name="checking_updates">Checking for updates…</string>
+    <string name="update_available">Update available: %1$s</string>
+    <string name="update_none">You are on the latest build.</string>
+    <string name="update_download">Download &amp; install</string>
+    <string name="update_failed">Update check failed: %1$s</string>
+    <string name="downloading">Downloading update…</string>
+    <string name="pick_app_for_slot">Pick an app for slot %1$d</string>
+</resources>
