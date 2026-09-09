@@ -32,15 +32,6 @@
             android:textStyle="bold" />
     </de.codevoid.motolauncher.ui.TouchOnlyRow>
 
-    <Button
-        android:id="@+id/enableCellularButton"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:layout_marginTop="8dp"
-        android:minHeight="56dp"
-        android:text="@string/enable_cellular_indicator"
-        android:visibility="gone" />
-
     <androidx.recyclerview.widget.RecyclerView
         android:id="@+id/slotGrid"
         android:layout_width="match_parent"
