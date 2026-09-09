@@ -5,8 +5,10 @@ import android.os.Bundle
 import android.view.KeyEvent
 import androidx.activity.addCallback
 import androidx.appcompat.app.AppCompatActivity
+import androidx.core.graphics.Insets
 import androidx.core.view.ViewCompat
 import androidx.core.view.WindowInsetsCompat
+import androidx.core.view.doOnLayout
 import androidx.core.view.updatePadding
 import androidx.recyclerview.widget.GridLayoutManager
 import de.codevoid.motolauncher.data.AppRepository
@@ -33,17 +35,17 @@ class HomeActivity : AppCompatActivity() {
         binding.homeGrid.layoutManager = GridLayoutManager(this, COLUMNS)
         binding.homeGrid.adapter = adapter
 
-        // The launcher window sits behind the status/navigation bars; inset the grid so its
-        // three rows are measured against the visible area instead of scrolling under them.
+        // The launcher window is drawn edge-to-edge behind the status/navigation bars. Inset
+        // the grid past them and size each row to the remaining visible height so all three
+        // rows fit without scrolling. doOnLayout guarantees the view is attached and measured,
+        // so the root window insets and the grid height are both available.
         val basePad = binding.homeGrid.paddingTop
-        ViewCompat.setOnApplyWindowInsetsListener(binding.homeGrid) { v, insets ->
-            val bars = insets.getInsets(WindowInsetsCompat.Type.systemBars())
-            v.updatePadding(top = basePad + bars.top, bottom = basePad + bars.bottom)
-            v.post {
-                val usable = v.height - v.paddingTop - v.paddingBottom
-                if (usable > 0) adapter.itemHeightPx = usable / ROWS
-            }
-            insets
+        binding.homeGrid.doOnLayout { grid ->
+            val bars = ViewCompat.getRootWindowInsets(grid)
+                ?.getInsets(WindowInsetsCompat.Type.systemBars()) ?: Insets.NONE
+            grid.updatePadding(top = basePad + bars.top, bottom = basePad + bars.bottom)
+            val usable = grid.height - grid.paddingTop - grid.paddingBottom
+            if (usable > 0) adapter.itemHeightPx = usable / ROWS
         }
 
         onBackPressedDispatcher.addCallback(this) { /* home is the root; swallow back */ }
