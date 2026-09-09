@@ -33,11 +33,7 @@ class AppTileAdapter(private var items: List<TileItem>) :
         val binding = holder.binding
 
         binding.appLabel.text = item.label
-        when {
-            item.icon != null -> binding.appIcon.setImageDrawable(item.icon)
-            item.iconRes != 0 -> binding.appIcon.setImageResource(item.iconRes)
-            else -> binding.appIcon.setImageDrawable(null)
-        }
+        binding.appIcon.setImageDrawable(item.icon)
 
         binding.root.setOnClickListener { item.onClick() }
         binding.root.setOnLongClickListener { item.onLongClick() }
