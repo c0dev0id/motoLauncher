@@ -40,29 +40,29 @@
             android:textSize="20sp"
             android:importantForAutofill="no" />
 
-        <Button
-            android:id="@+id/enableCellularButton"
+        <!-- Browse mode only; hidden as one group while picking an app for a slot. -->
+        <LinearLayout
+            android:id="@+id/headerConfig"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:layout_marginStart="8dp"
-            android:minHeight="56dp"
-            android:text="@string/enable_cellular_indicator"
-            android:visibility="gone" />
+            android:orientation="horizontal"
+            android:gravity="center_vertical">
 
-        <Button
-            android:id="@+id/themeButton"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:layout_marginStart="8dp"
-            android:minHeight="56dp" />
+            <Button
+                android:id="@+id/enableCellularButton"
+                style="@style/Widget.MotoLauncher.HeaderButton"
+                android:text="@string/enable_cellular_indicator"
+                android:visibility="gone" />
 
-        <Button
-            android:id="@+id/checkUpdateButton"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:layout_marginStart="8dp"
-            android:minHeight="56dp"
-            android:text="@string/check_for_updates" />
+            <Button
+                android:id="@+id/themeButton"
+                style="@style/Widget.MotoLauncher.HeaderButton" />
+
+            <Button
+                android:id="@+id/checkUpdateButton"
+                style="@style/Widget.MotoLauncher.HeaderButton"
+                android:text="@string/check_for_updates" />
+        </LinearLayout>
     </de.codevoid.motolauncher.ui.TouchOnlyRow>
 
     <androidx.recyclerview.widget.RecyclerView

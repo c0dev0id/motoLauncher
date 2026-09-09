@@ -84,10 +84,7 @@ class AppListActivity : AppCompatActivity() {
         }
 
         // The picker is a single-purpose screen: no configuration controls while choosing.
-        if (pickMode) {
-            binding.themeButton.visibility = View.GONE
-            binding.checkUpdateButton.visibility = View.GONE
-        }
+        binding.headerConfig.visibility = if (pickMode) View.GONE else View.VISIBLE
 
         lifecycleScope.launch {
             allApps = withContext(Dispatchers.IO) { repository.loadApps() }
@@ -100,15 +97,14 @@ class AppListActivity : AppCompatActivity() {
 
     override fun onResume() {
         super.onResume()
-        updateCellularPermissionButton()
+        if (!pickMode) updateCellularPermissionButton()
     }
 
     // The cellular indicator is optional: expose the ask only when the platform can
     // deliver signal readings (API 31+) and the permission is still missing. Once
     // granted, the button silently disappears — no toast, no dialog.
     private fun updateCellularPermissionButton() {
-        val needsAsk = !pickMode &&
-            Build.VERSION.SDK_INT >= Build.VERSION_CODES.S &&
+        val needsAsk = Build.VERSION.SDK_INT >= Build.VERSION_CODES.S &&
             ContextCompat.checkSelfPermission(this, Manifest.permission.READ_PHONE_STATE) !=
             PackageManager.PERMISSION_GRANTED
         binding.enableCellularButton.visibility = if (needsAsk) View.VISIBLE else View.GONE
