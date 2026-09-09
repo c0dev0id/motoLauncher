@@ -11,6 +11,7 @@ It is designed for glove use and handlebar remote operation.
 - Tile actions for app info, uninstall, and favourite reassignment
 - Manual update check and install prompt
 - Home status bar with time, Wi-Fi, cellular, and battery indicators
+- Usable with remote control keys dpad-left/right/up/dovwn, return and escape. 
 
 ## Screenshots
 
