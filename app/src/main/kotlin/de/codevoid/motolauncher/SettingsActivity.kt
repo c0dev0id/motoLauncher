@@ -12,6 +12,7 @@ import androidx.lifecycle.lifecycleScope
 import androidx.recyclerview.widget.GridLayoutManager
 import de.codevoid.motolauncher.data.AppRepository
 import de.codevoid.motolauncher.data.FavoritesStore
+import de.codevoid.motolauncher.data.ThemeStore
 import de.codevoid.motolauncher.databinding.ActivitySettingsBinding
 import de.codevoid.motolauncher.ui.AppTileAdapter
 import de.codevoid.motolauncher.ui.TileItem
@@ -25,6 +26,7 @@ class SettingsActivity : AppCompatActivity() {
     private lateinit var favorites: FavoritesStore
     private lateinit var repository: AppRepository
     private lateinit var updateChecker: UpdateChecker
+    private lateinit var themeStore: ThemeStore
     private val adapter = AppTileAdapter(emptyList())
     private var pickingSlot = -1
 
@@ -46,11 +48,17 @@ class SettingsActivity : AppCompatActivity() {
         favorites = FavoritesStore(this)
         repository = AppRepository(this)
         updateChecker = UpdateChecker(this)
+        themeStore = ThemeStore(this)
 
         binding.slotGrid.layoutManager = GridLayoutManager(this, COLUMNS)
         binding.slotGrid.adapter = adapter
 
         binding.checkUpdateButton.setOnClickListener { checkForUpdates() }
+
+        // Label shows the active theme; tapping flips it, which recreates the activity so
+        // the label refreshes on the way back in.
+        binding.themeButton.setText(if (themeStore.isDark) R.string.theme_dark else R.string.theme_light)
+        binding.themeButton.setOnClickListener { themeStore.isDark = !themeStore.isDark }
 
         renderSlots()
     }

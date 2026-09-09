@@ -22,6 +22,13 @@
             android:textStyle="bold" />
 
         <Button
+            android:id="@+id/themeButton"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginEnd="8dp"
+            android:minHeight="56dp" />
+
+        <Button
             android:id="@+id/checkUpdateButton"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"

@@ -1,9 +1,11 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <style name="Theme.MotoLauncher" parent="Theme.Material3.Dark.NoActionBar">
+    <style name="Theme.MotoLauncher" parent="Theme.Material3.DayNight.NoActionBar">
         <item name="android:windowBackground">@color/background</item>
         <item name="android:statusBarColor">@color/background</item>
         <item name="android:navigationBarColor">@color/background</item>
+        <item name="android:windowLightStatusBar">@bool/light_system_bars</item>
+        <item name="android:windowLightNavigationBar">@bool/light_system_bars</item>
         <item name="colorPrimary">@color/tile_focused</item>
         <item name="colorOnPrimary">@color/on_surface</item>
         <item name="android:colorBackground">@color/background</item>

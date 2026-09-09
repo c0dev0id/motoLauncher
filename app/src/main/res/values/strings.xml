@@ -7,6 +7,8 @@
     <string name="empty_slot">Empty</string>
     <string name="add_favorite">Add favorite</string>
     <string name="cancel">Cancel</string>
+    <string name="theme_dark">Dark</string>
+    <string name="theme_light">Light</string>
     <string name="check_for_updates">Check for updates</string>
     <string name="checking_updates">Checking for updates…</string>
     <string name="update_available">Update available: %1$s</string>
