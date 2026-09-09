@@ -112,16 +112,20 @@ class AppListActivity : AppCompatActivity() {
         binding.enableCellularButton.visibility = if (needsAsk) View.VISIBLE else View.GONE
     }
 
-    // In pick mode a "None" tile leads the grid, whatever the search says: choosing it
-    // clears the slot. It is the only way to empty a favourite.
     private fun render(apps: List<AppEntry>) {
-        val appTiles = apps.map { entry ->
+        val tiles = ArrayList<TileItem>(apps.size + 1)
+        // In pick mode a "None" tile leads the grid, whatever the search says: choosing it
+        // clears the slot. It is the only way to empty a favourite.
+        if (pickMode) tiles.add(noneTile)
+        apps.mapTo(tiles) { entry ->
             TileItem(
                 label = entry.label,
                 icon = entry.icon,
                 onClick = { onAppSelected(entry.component) },
                 onLongClick = {
-                    if (!pickMode) {
+                    if (pickMode) {
+                        false
+                    } else {
                         showTileActionsDialog(
                             context = this,
                             entry = entry,
@@ -129,23 +133,24 @@ class AppListActivity : AppCompatActivity() {
                             onUninstall = { repository.requestUninstall(entry.component) },
                         )
                         true
-                    } else {
-                        false
                     }
                 },
             )
         }
-        adapter.submit(if (pickMode) listOf(noneTile()) + appTiles else appTiles)
+        adapter.submit(tiles)
     }
 
-    private fun noneTile() = TileItem(
-        label = getString(R.string.pick_none),
-        icon = ContextCompat.getDrawable(this, R.drawable.ic_none)!!,
-        onClick = {
-            FavoritesStore(this).clearSlot(pickSlot)
-            finish()
-        },
-    )
+    // Built once: render() runs on every keystroke and this tile never changes.
+    private val noneTile by lazy {
+        TileItem(
+            label = getString(R.string.pick_none),
+            icon = ContextCompat.getDrawable(this, R.drawable.ic_none)!!,
+            onClick = {
+                FavoritesStore(this).clearSlot(pickSlot)
+                finish()
+            },
+        )
+    }
 
     private fun onAppSelected(component: ComponentName) {
         if (pickMode) {

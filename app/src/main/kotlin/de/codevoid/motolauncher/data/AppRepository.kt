@@ -3,9 +3,9 @@ package de.codevoid.motolauncher.data
 import android.content.ComponentName
 import android.content.Context
 import android.content.Intent
-import android.net.Uri
 import android.content.pm.LauncherActivityInfo
 import android.content.pm.LauncherApps
+import android.net.Uri
 import android.os.Process
 import android.os.UserManager
 
