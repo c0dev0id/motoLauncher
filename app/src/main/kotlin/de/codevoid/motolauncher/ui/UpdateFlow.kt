@@ -7,12 +7,18 @@ import androidx.lifecycle.lifecycleScope
 import de.codevoid.motolauncher.R
 import de.codevoid.motolauncher.update.ReleaseInfo
 import de.codevoid.motolauncher.update.UpdateChecker
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.launch
 
 // User-triggered update check driven from one button: the button label carries
 // progress ("Checking…", "Downloading…", disabled meanwhile) and each outcome — latest
 // build, update available with an install prompt, failure — is a dialog. This is an
 // off-bike, touch-only flow, so the stock alert buttons are acceptable here.
+//
+// lifecycleScope cancels at ON_DESTROY (theme toggle, Home press, low memory), and
+// CancellationException is an Exception, so a bare catch would run the error path
+// against a dead activity and crash on show(). Cancellation is rethrown, and every
+// dialog is gated on the activity still being alive.
 fun AppCompatActivity.runUpdateFlow(button: Button) {
     val checker = UpdateChecker(this)
 
@@ -21,13 +27,16 @@ fun AppCompatActivity.runUpdateFlow(button: Button) {
         button.setText(labelRes)
     }
 
-    fun showMessage(text: String) {
+    fun show(builder: AlertDialog.Builder) {
+        if (isFinishing || isDestroyed) return
+        builder.create().showImmersive()
+    }
+
+    fun showMessage(text: String) = show(
         AlertDialog.Builder(this)
             .setMessage(text)
             .setPositiveButton(R.string.ok, null)
-            .create()
-            .showImmersive()
-    }
+    )
 
     fun showError(e: Exception) =
         showMessage(getString(R.string.update_failed, e.message ?: e.javaClass.simpleName))
@@ -37,6 +46,8 @@ fun AppCompatActivity.runUpdateFlow(button: Button) {
         lifecycleScope.launch {
             try {
                 startActivity(checker.installIntent(checker.download(release)))
+            } catch (e: CancellationException) {
+                throw e
             } catch (e: Exception) {
                 showError(e)
             } finally {
@@ -45,20 +56,20 @@ fun AppCompatActivity.runUpdateFlow(button: Button) {
         }
     }
 
-    fun promptInstall(release: ReleaseInfo) {
+    fun promptInstall(release: ReleaseInfo) = show(
         AlertDialog.Builder(this)
             .setTitle(getString(R.string.update_available, release.versionName))
             .setPositiveButton(R.string.update_download) { _, _ -> downloadAndInstall(release) }
             .setNegativeButton(R.string.cancel, null)
-            .create()
-            .showImmersive()
-    }
+    )
 
     setButton(R.string.checking_updates, enabled = false)
     lifecycleScope.launch {
         try {
             val release = checker.check()
             if (release == null) showMessage(getString(R.string.update_none)) else promptInstall(release)
+        } catch (e: CancellationException) {
+            throw e
         } catch (e: Exception) {
             showError(e)
         } finally {
