@@ -97,14 +97,31 @@
   its grid in `onResume` — no `StartActivityForResult`, no result extra, no "which slot
   was I picking for" state in the caller. The earlier version carried that launcher and
   sentinel in both Home and the since-removed Settings screen.
-- **Escape on Home does nothing; slots are configured in place.** Home is the launcher
-  root — there is nothing for "back" to go to. A remote-only user has no route into any
-  configuration, and that is intentional: the device is on a motorbike, configuration is
+- **A short Escape on Home does nothing; slots are configured in place.** Home is the
+  launcher root — there is nothing for "back" to go to. A remote-only user has no route
+  into any configuration, and that is intentional: the device is on a motorbike, configuration is
   a touch-only workflow. Empty "+" tiles and the tile menu's "Reassign app" open the
   picker for that slot directly. Theme toggle, update check, and the cellular-permission
   ask sit in the All Apps header (hidden in pick mode). There is no separate settings
   screen any more — the earlier Configure Favorites activity duplicated all of this and
   was removed.
+- **Holding Escape launches the first favourite (`ui/KeyInput.kt`, `EscapeKeys`).** The
+  remote has one spare key and no spare gesture; ESC was already the only key that meant
+  anything outside a tile. A hold is the one input left that can be given a meaning
+  without making anything new dpad-reachable, and the meaning stays inside the rule that
+  the remote may only ever launch apps: it starts slot 0, the top-left tile, on both Home
+  and the app list, so the gesture means one thing wherever the remote is. Detection is
+  the framework's own tracking, not a timer of ours: `onKeyDown` claims the DOWN and calls
+  `event.startTracking()`, which is what makes Android deliver `onKeyLongPress` on the
+  first key repeat (~500 ms); returning true there marks the press consumed, so the
+  following UP arrives canceled. The cost is that the short press had to move from
+  `onKeyDown` to `onKeyUp` — at DOWN it isn't yet known whether the press will become a
+  long one — so the app list now closes on key release. An empty slot or an uninstalled
+  app is a silent no-op (`AppRepository.launchIfInstalled` resolves before launching,
+  because `startMainActivity` throws on a component that no longer exists): there is
+  nothing worth showing a rider wearing gloves. This depends on the remote reporting a
+  held key at all; a button that emits an instantaneous down/up pair can't produce a long
+  press, and then only the short press works.
 
 - **Update UI: button label for progress, dialogs for outcomes (`ui/UpdateFlow.kt`).**
   The header row of the app list has no room for a status line, and a transient line is
@@ -135,5 +152,6 @@
 - Fixed 4×3 favorites grid, remote- and glove-operable.
 - All-apps browser with touch search, theme toggle, and update check in its header.
 - Tap-to-launch; long-press on a favourite for a Reassign / App info menu.
+- Remote quick launch: holding Escape starts the first favourite from anywhere in the app.
 - Touch configuration of favorite slots.
 - User-triggered self-update from GitHub nightly.

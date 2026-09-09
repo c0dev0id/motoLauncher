@@ -3,6 +3,7 @@ package de.codevoid.motolauncher
 import android.content.Intent
 import android.graphics.drawable.Drawable
 import android.os.Bundle
+import android.view.KeyEvent
 import android.view.LayoutInflater
 import android.view.ViewGroup
 import android.widget.LinearLayout
@@ -12,8 +13,10 @@ import de.codevoid.motolauncher.data.AppRepository
 import de.codevoid.motolauncher.data.FavoritesStore
 import de.codevoid.motolauncher.databinding.ActivityHomeBinding
 import de.codevoid.motolauncher.databinding.ItemAppTileBinding
+import de.codevoid.motolauncher.ui.EscapeKeys
 import de.codevoid.motolauncher.ui.blockKeyLongPress
 import de.codevoid.motolauncher.ui.enableImmersiveMode
+import de.codevoid.motolauncher.ui.launchFirstFavorite
 import de.codevoid.motolauncher.ui.showTileActionsDialog
 
 class HomeActivity : AppCompatActivity() {
@@ -22,6 +25,11 @@ class HomeActivity : AppCompatActivity() {
     private lateinit var favorites: FavoritesStore
     private lateinit var repository: AppRepository
     private val tiles = ArrayList<ItemAppTileBinding>(COLUMNS * ROWS)
+
+    // A short ESC stays inert: Home is the launcher root, there is nowhere to go back to.
+    // Holding it launches the first favourite — still only a launch, so the remote gains
+    // no route into configuration.
+    private val escapeKeys = EscapeKeys(onLongPress = { launchFirstFavorite() })
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -81,6 +89,15 @@ class HomeActivity : AppCompatActivity() {
         super.onWindowFocusChanged(hasFocus)
         if (hasFocus) window.enableImmersiveMode()
     }
+
+    override fun onKeyDown(keyCode: Int, event: KeyEvent): Boolean =
+        escapeKeys.onKeyDown(keyCode, event) || super.onKeyDown(keyCode, event)
+
+    override fun onKeyLongPress(keyCode: Int, event: KeyEvent): Boolean =
+        escapeKeys.onKeyLongPress(keyCode, event) || super.onKeyLongPress(keyCode, event)
+
+    override fun onKeyUp(keyCode: Int, event: KeyEvent): Boolean =
+        escapeKeys.onKeyUp(keyCode, event) || super.onKeyUp(keyCode, event)
 
     private fun buildGrid() {
         val slots = favorites.allSlots()

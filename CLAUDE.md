@@ -40,10 +40,12 @@ These drive nearly every UI decision — violating them defeats the point of the
 - **The remote may only ever launch apps.** Everything that needs touch to get back out
   of (app info, the search field, the back/theme/update/cellular buttons) is deliberately
   unreachable from the remote: touch-only controls sit in a `TouchOnlyRow`, key-driven
-  long-press is blocked on every tile, and Escape on Home does nothing. Do not "fix" any
-  of these by making them dpad-reachable. Configuration is a touch workflow: empty "+"
-  tiles and "Reassign app" open the picker for that slot in place; theme toggle, update
-  check, and the cellular-permission ask live in the All Apps header. There is no
+  long-press is blocked on every tile, and a short Escape on Home does nothing. Do not
+  "fix" any of these by making them dpad-reachable. The one thing a held key may do is
+  launch: holding Escape starts the first favourite (see below), which adds no route into
+  configuration. Configuration itself is a touch workflow: empty "+" tiles and "Reassign
+  app" open the picker for that slot in place; theme toggle, update check, and the
+  cellular-permission ask live in the All Apps header. There is no
   settings screen — don't add one; put configuration where it is used.
 
 ## Required features
@@ -53,6 +55,8 @@ These drive nearly every UI decision — violating them defeats the point of the
 - **Short tap / Enter → launch** the app; **touch long press** → a tile-styled menu:
   App info / Uninstall / Reassign app on Home, App info / Uninstall in the app list
   (nothing in pick mode).
+- **Hold Escape → launch the first favourite** (slot 0, the top-left home tile), from
+  Home and from the app list alike. Empty or uninstalled slot: nothing happens.
 - **In-app update check** against the GitHub `dev` pre-release: compare installed build
   to latest pre-release, offer install if newer. Must be **user-triggered** (the device is
   mostly offline — never auto-poll the network).
@@ -75,8 +79,8 @@ Package layout under `de.codevoid.motolauncher`:
   Weighted layout divides space in the layout pass by construction, which is what fixed
   the cold-start "third row cut off" first-frame race. Touch long-press on an assigned
   tile calls `showTileActionsDialog`; "Reassign app" and empty "+" tiles start the app
-  list in pick mode for that slot. Back is swallowed; Escape is not handled at all. A
-  `StatusBarView` sits above the grid. Two consequences of reusing the same 12 views:
+  list in pick mode for that slot. Back is swallowed; a short Escape does nothing and a
+  held Escape quick-launches slot 0 (`EscapeKeys`). A `StatusBarView` sits above the grid. Two consequences of reusing the same 12 views:
   remote focus is seeded on tile 0 *once* in `onCreate` (Android keeps the focused view
   across rebinds and app switches — re-seeding in `onResume` would drag the remote back
   to the first tile after every launch), and `bindTile` must null the long-click listener
@@ -94,7 +98,9 @@ Package layout under `de.codevoid.motolauncher`:
   cellular indicator" button that requests `READ_PHONE_STATE` at runtime and hides itself
   once granted (API 31+ only). Header buttons use `Widget.MotoLauncher.HeaderButton`.
 - `data/AppRepository` — thin wrapper over `LauncherApps` (not `PackageManager`),
-  iterating all `UserManager` profiles. `launch` → `startMainActivity`, `openInfo` →
+  iterating all `UserManager` profiles. `launch` → `startMainActivity` (and
+  `launchIfInstalled` for a stored component, which resolves first because
+  `startMainActivity` throws on one that no longer exists), `openInfo` →
   `startAppDetailsActivity`, `requestUninstall` → `ACTION_DELETE` hand-off to the system
   uninstaller. `loadApps` walks every profile and skips the launcher's own package;
   `loadByComponents` resolves only the favorites' components
@@ -120,8 +126,13 @@ Package layout under `de.codevoid.motolauncher`:
   `alertDialogTheme` — never pass a theme id at a call site.
 - `ui/KeyInput.kt` — `View.blockKeyLongPress()` routes DPAD_CENTER/Enter through
   `performClick()` on key-up without arming the framework's long-press timer (touch
-  long-press still works). `Activity.finishOnEscape()` is how AppList maps Escape to
-  `finish()`, since Android doesn't route Escape to the back dispatcher.
+  long-press still works). `EscapeKeys` is the whole Escape contract — short press to
+  `onShortPress` (AppList: `finish()`, since Android doesn't route Escape to the back
+  dispatcher; Home: nothing), hold to `onLongPress` (both: `launchFirstFavorite()`).
+  Its three methods must all be wired from the activity: `onKeyDown` claiming the DOWN
+  and calling `startTracking()` is what makes the framework deliver `onKeyLongPress`,
+  and the short action runs on key-up precisely because a DOWN can still become a hold.
+  Whether a hold is reachable at all depends on the remote reporting a held key.
 - `ui/TouchOnlyRow` — a `LinearLayout` whose `addFocusables()` contributes nothing, so
   its children are invisible to dpad traversal but still take touch focus (an `EditText`
   inside it still opens the IME). `focusableInTouchMode` and
@@ -179,11 +190,14 @@ it is merged. Everything before a merge is verified by reading. Three parallel j
   `app/src/test/kotlin` (`isIncludeAndroidResources = true`, so real resources and view
   inflation work). Single test:
   `./gradlew testDebugUnitTest --tests "de.codevoid.motolauncher.AppRepositoryTest.sortsCaseInsensitively"`
-  Four classes, and the shape they set: `AppRepositoryTest` (the pure `sortApps` /
+  Five classes, and the shape they set: `AppRepositoryTest` (the pure `sortApps` /
   `filterApps`), `FavoritesStoreTest` (slot round-trip against real `SharedPreferences`),
   `UpdateCheckerTest` (`parseRelease` / `isNewer` / `deleteInstalledUpdate` over JSON
   fixtures and temp files), `TileActionsDialogTest` (inflates the dialog through the
-  handle `showTileActionsDialog` returns: row order, one callback per row, dismissal).
+  handle `showTileActionsDialog` returns: row order, one callback per row, dismissal),
+  `EscapeKeysTest` (short vs. held Escape, dispatched through a real
+  `KeyEvent.DispatcherState` so the framework's tracking rules are exercised rather than
+  assumed).
   Write new behaviour so it lands in that surface — a pure function, a store, or
   something a Robolectric activity can reach. No device is ever available to check it.
 - `./gradlew assembleRelease -PappVersionName=dev-<sha> -PappVersionCode=<run>` —

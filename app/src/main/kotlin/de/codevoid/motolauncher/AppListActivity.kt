@@ -26,9 +26,10 @@ import de.codevoid.motolauncher.data.FavoritesStore
 import de.codevoid.motolauncher.data.ThemeStore
 import de.codevoid.motolauncher.databinding.ActivityAppListBinding
 import de.codevoid.motolauncher.ui.AppTileAdapter
+import de.codevoid.motolauncher.ui.EscapeKeys
 import de.codevoid.motolauncher.ui.TileItem
 import de.codevoid.motolauncher.ui.enableImmersiveMode
-import de.codevoid.motolauncher.ui.finishOnEscape
+import de.codevoid.motolauncher.ui.launchFirstFavorite
 import de.codevoid.motolauncher.ui.runUpdateFlow
 import de.codevoid.motolauncher.ui.showTileActionsDialog
 import kotlinx.coroutines.Deferred
@@ -48,6 +49,13 @@ class AppListActivity : AppCompatActivity() {
     // activity finishes. NO_SLOT: browse mode — tap launches, long-press opens app info.
     private val pickSlot by lazy { intent.getIntExtra(EXTRA_PICK_SLOT, NO_SLOT) }
     private val pickMode get() = pickSlot != NO_SLOT
+
+    // ESC closes the screen; holding it launches the first favourite, the same quick
+    // launch Home offers, so the gesture means one thing wherever the remote is.
+    private val escapeKeys = EscapeKeys(
+        onLongPress = { launchFirstFavorite() },
+        onShortPress = { finish() },
+    )
 
     private val cellularPermissionLauncher =
         registerForActivityResult(RequestPermission()) { updateCellularPermissionButton() }
@@ -167,7 +175,13 @@ class AppListActivity : AppCompatActivity() {
     }
 
     override fun onKeyDown(keyCode: Int, event: KeyEvent): Boolean =
-        finishOnEscape(keyCode) || super.onKeyDown(keyCode, event)
+        escapeKeys.onKeyDown(keyCode, event) || super.onKeyDown(keyCode, event)
+
+    override fun onKeyLongPress(keyCode: Int, event: KeyEvent): Boolean =
+        escapeKeys.onKeyLongPress(keyCode, event) || super.onKeyLongPress(keyCode, event)
+
+    override fun onKeyUp(keyCode: Int, event: KeyEvent): Boolean =
+        escapeKeys.onKeyUp(keyCode, event) || super.onKeyUp(keyCode, event)
 
     companion object {
         private const val EXTRA_PICK_SLOT = "pick_slot"

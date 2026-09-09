@@ -1,8 +1,10 @@
 package de.codevoid.motolauncher.ui
 
-import android.app.Activity
+import android.content.Context
 import android.view.KeyEvent
 import android.view.View
+import de.codevoid.motolauncher.data.AppRepository
+import de.codevoid.motolauncher.data.FavoritesStore
 
 // Route DPAD_CENTER / ENTER through performClick() on ACTION_UP without arming the
 // framework's long-press timer. Touch long-press (setOnLongClickListener) still works;
@@ -33,13 +35,54 @@ fun View.blockKeyLongPress() {
     }
 }
 
-// ESC on the handlebar remote and on any USB/BT keyboard closes the current screen.
-// Android maps hardware BACK to onBackPressedDispatcher by default; ESC is not wired
-// to that path, so activities that want ESC to behave like BACK must translate it.
-fun Activity.finishOnEscape(keyCode: Int): Boolean {
-    if (keyCode == KeyEvent.KEYCODE_ESCAPE) {
-        finish()
+/**
+ * ESC from the handlebar remote (and any USB/BT keyboard): a short press runs
+ * [onShortPress] — the screen's own "back", since Android doesn't route ESC to the back
+ * dispatcher — while holding the key past the framework's key-repeat delay (~500 ms)
+ * runs [onLongPress] instead.
+ *
+ * The short action can only run on key-up: at ACTION_DOWN it isn't known yet whether the
+ * press will become a long one. [onKeyDown] claims the DOWN and calls `startTracking()`,
+ * which is what makes the framework deliver [onKeyLongPress] on the first repeat;
+ * returning true from there marks the press consumed, so the following UP arrives
+ * canceled and the short action skips itself. All three must be wired from the activity —
+ * with [onKeyDown] missing, the framework never tracks the key and the long press is
+ * never reported.
+ *
+ * Whether a long press is reachable at all is a property of the remote: a button that
+ * emits an instantaneous down/up pair instead of holding the key can't produce one. The
+ * short press works either way.
+ */
+class EscapeKeys(
+    private val onLongPress: () -> Unit,
+    private val onShortPress: () -> Unit = {},
+) {
+    fun onKeyDown(keyCode: Int, event: KeyEvent): Boolean {
+        if (keyCode != KeyEvent.KEYCODE_ESCAPE) return false
+        if (event.repeatCount == 0) event.startTracking()
         return true
     }
-    return false
+
+    fun onKeyLongPress(keyCode: Int, event: KeyEvent): Boolean {
+        if (keyCode != KeyEvent.KEYCODE_ESCAPE) return false
+        onLongPress()
+        return true
+    }
+
+    fun onKeyUp(keyCode: Int, event: KeyEvent): Boolean {
+        if (keyCode != KeyEvent.KEYCODE_ESCAPE) return false
+        // Not tracking: the DOWN went to someone else (the press started before this
+        // window had focus). Canceled: the long press already fired for this press.
+        if (event.isTracking && !event.isCanceled) onShortPress()
+        return true
+    }
+}
+
+// The remote's one action beyond launching a focused tile, and still only a launch:
+// holding ESC starts the app in the first favourite slot — the top-left home tile.
+// An empty slot, or one whose app has been uninstalled, is a silent no-op: there is
+// nothing worth showing someone riding with gloves on.
+fun Context.launchFirstFavorite() {
+    val component = FavoritesStore(this).getSlot(FavoritesStore.QUICK_LAUNCH_SLOT) ?: return
+    AppRepository(this).launchIfInstalled(component)
 }
