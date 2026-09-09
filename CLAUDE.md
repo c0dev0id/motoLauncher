@@ -19,91 +19,127 @@ project and only define the intent"*. Treat the constraints below as hard requir
 and the rest as your call to make well. This file is the durable home for that intent
 now that the live README no longer carries it.
 
+Two conventions the repo does follow, whatever the global preferences say: commits are
+authored as `c0dev0id <sh+git@codevoid.de>` with no trailers, and each change that
+affects behaviour or a load-bearing decision updates `CHANGELOG.md` (Keep a Changelog,
+under `[Unreleased]`) and `.github/development-journal.md` in the same task. Read the
+journal's *Key Decisions* before proposing structural changes — most of them were
+reached after a failed simpler attempt, and the journal records why.
+
 ## Hard UX constraints (glove + remote usage)
 
 These drive nearly every UI decision — violating them defeats the point of the app:
 
 - **No swipe gestures anywhere on primary flows.** Swiping is impractical with gloves.
 - **Large touch targets.** Precise touch is hard with gloves; buttons must be big.
-- **Landscape only**, designed for **1920x1080 on a 7" screen**.
-- **Home screen must be fully operable by remote**, using only these key events:
-  dpad-left, dpad-right, dpad-up, dpad-down, Enter, Escape. (These are the codes the
-  motorcycle remote emits.) The app list should also be remote-navigable (search excluded).
-  Configuration screens may rely on touch.
+- **Landscape only**, designed for **1920x1080 on a 7" screen**. System bars are hidden
+  app-wide (immersive mode); the launcher owns the whole canvas.
+- **Home and the app list must be operable by remote** using only the keys the remote
+  emits: dpad-left/right/up/down, Enter, Escape. Traversal is Android's native View
+  focus engine, not custom key handling — keep it that way.
+- **The remote may only ever launch apps.** Everything that needs touch to get back out
+  of (app info, Settings, the search field, the back/theme/update buttons) is deliberately
+  unreachable from the remote: touch-only controls sit in a `TouchOnlyRow`, key-driven
+  long-press is blocked on every tile, and Escape on Home does nothing. Do not "fix" any
+  of these by making them dpad-reachable. Configuration is a touch workflow reached via
+  the empty "+" tiles or a long-press on "All Apps".
 
 ## Required features
 
 - Configurable set of **favorite apps** pinned to the home screen permanently.
-- **App list** showing all installed apps (with a search filter).
-- **Short tap → launch** the app; **long press → open the app's info/settings screen.**
+- **App list** showing all installed apps (with a touch-only search filter).
+- **Short tap / Enter → launch** the app; **touch long press → app info/settings screen.**
 - **In-app update check** against the GitHub `dev` pre-release: compare installed build
   to latest pre-release, offer install if newer. Must be **user-triggered** (the device is
   mostly offline — never auto-poll the network).
 
 ## Architecture
 
-Kotlin, Android classic Views (no Compose), AppCompat + Material3, view binding,
-`RecyclerView` + `GridLayoutManager`. AGP 8.7.3, Kotlin 2.0.21, Gradle 8.9, JVM 17.
-`minSdk` 30 / `targetSdk` 34 / `compileSdk` 35. See `.github/development-journal.md`
-for the full stack and the rationale behind the load-bearing decisions (why Views over
-Compose, why `LauncherApps` over `PackageManager`, why search is intentionally
-touch-only, etc.). Read that before proposing structural changes.
+Kotlin, Android classic Views (no Compose), AppCompat + Material3, view binding.
+AGP 8.7.3, Kotlin 2.0.21, Gradle 8.9, JVM 17. `minSdk` 30 / `targetSdk` 34 /
+`compileSdk` 35. Coroutines via `lifecycleScope` only for update I/O. No networking
+library: `HttpURLConnection` + `org.json`.
 
 Package layout under `de.codevoid.motolauncher`:
 
 - `MotoLauncherApp` (`Application`) — re-applies the saved theme before any activity is
   created so restarts don't flash the wrong palette.
-- `HomeActivity` — the launcher entry (`category.HOME`). Fixed 4×3 grid: 11 favorite
-  slots + a pinned "All Apps" tile. Row height is computed from the RecyclerView's
-  post-layout size on every layout pass so all rows fit without scrolling; the layout
-  manager disables both scroll axes but leaves dpad focus intact. `Escape` opens
-  Settings (there is no spare tile once every slot is filled).
-- `AppListActivity` — full app list; also runs in "pick mode" (`EXTRA_PICK_MODE`) to
-  return a selected `ComponentName` to Settings via `StartActivityForResult`. The search
-  `EditText` is `focusableInTouchMode` so the dpad skips it by design — that's how the
-  "list navigable by remote, search touch-only" split is implemented, without custom key
-  handling.
-- `SettingsActivity` — slot picker (tap to pick, long-press to clear), theme toggle,
-  and user-triggered update check.
-- `data/AppRepository` — thin wrapper over `LauncherApps` (not `PackageManager`).
-  `startMainActivity` to launch, `startAppDetailsActivity` for long-press info.
-  `loadByComponents` resolves only the favorites' components, avoiding a full
-  enumeration and icon rasterization on every home draw.
-- `data/FavoritesStore` — 11 slots in `SharedPreferences` (`favorites`) as
-  `slot_<i>` → flattened `ComponentName`.
-- `data/ThemeStore` — dark/light preference; drives `AppCompatDelegate.setDefaultNightMode`.
-- `update/UpdateChecker` — one-shot `HttpURLConnection` + `org.json` (no OkHttp/Retrofit)
-  against the fixed `dev` release tag. `parseRelease` derives the version from the APK
-  filename (`motoLauncher-<versionName>.apk`) so it matches `BuildConfig.VERSION_NAME`
-  exactly. Install is a hand-off: writes to `cacheDir/updates/`, then `FileProvider` +
+- `HomeActivity` — the launcher entry (`category.HOME`, `singleTask`). Fixed 4×3 grid of
+  11 favorite slots + a pinned "All Apps" tile in the last cell. The grid is **not** a
+  RecyclerView: `populateGrid()` inflates `item_app_tile` 12 times into three weighted
+  `LinearLayout` rows once in `onCreate`, and `buildGrid()` rebinds them in `onResume`.
+  Weighted layout divides space in the layout pass by construction, which is what fixed
+  the cold-start "third row cut off" first-frame race. Back is swallowed; Escape is not
+  handled at all. A `StatusBarView` sits above the grid.
+- `AppListActivity` — full app list in a `RecyclerView` + `GridLayoutManager`. Also runs
+  in "pick mode" (`EXTRA_PICK_MODE`) to return a flattened `ComponentName`
+  (`RESULT_COMPONENT`) to Settings via `StartActivityForResult`. Loads apps on
+  `Dispatchers.IO`, filters with `AppRepository.filterApps` on every keystroke.
+- `SettingsActivity` — slot picker (tap to pick, long-press to clear), theme toggle
+  (flipping recreates the activity), user-triggered update check, and an "enable
+  cellular indicator" button that requests `READ_PHONE_STATE` at runtime and hides
+  itself once granted (API 31+ only).
+- `data/AppRepository` — thin wrapper over `LauncherApps` (not `PackageManager`),
+  iterating all `UserManager` profiles. `launch` → `startMainActivity`, `openInfo` →
+  `startAppDetailsActivity`. `loadByComponents` resolves only the favorites' components
+  so Home never enumerates or rasterizes every installed app. `sortApps` / `filterApps`
+  are pure companion functions — that's the unit-tested surface.
+- `data/FavoritesStore` — `SLOT_COUNT` = 11 slots in `SharedPreferences` (`favorites`)
+  as `slot_<i>` → flattened `ComponentName`.
+- `data/ThemeStore` — dark/light in `SharedPreferences` (`settings`), default dark;
+  drives `AppCompatDelegate.setDefaultNightMode`.
+- `update/UpdateChecker` — one-shot GET on the fixed `dev` release tag. `parseRelease`
+  takes the first `.apk` asset and derives the version from its filename
+  (`motoLauncher-<versionName>.apk`); `isNewer` is a plain string inequality against
+  `BuildConfig.VERSION_NAME`, so any differing published build counts as an update.
+  Install is a hand-off: download to `cacheDir/updates/`, then `FileProvider` +
   `ACTION_VIEW` to the system installer.
-- `ui/AppTileAdapter` + `ui/TileItem` — one generic adapter shared by all three grids;
-  callers compose a `List<TileItem>` (real apps, "All Apps", empty "+"). When
-  `itemHeightPx` is set (Home), tiles size themselves to fit exactly; when 0 (App list,
-  Settings), tiles keep the layout's default height so the grid scrolls.
+- `ui/AppTileAdapter` + `ui/TileItem` — the generic `RecyclerView` adapter used by the
+  app list and the Settings slot grid (not by Home). Callers compose a `List<TileItem>`;
+  the adapter stays dumb and calls `blockKeyLongPress()` once per view holder.
+- `ui/KeyInput.kt` — `View.blockKeyLongPress()` routes DPAD_CENTER/Enter through
+  `performClick()` on key-up without arming the framework's long-press timer (touch
+  long-press still works). `Activity.finishOnEscape()` is how AppList and Settings map
+  Escape to `finish()`, since Android doesn't route Escape to the back dispatcher.
+- `ui/TouchOnlyRow` — a `LinearLayout` whose `addFocusables()` contributes nothing, so
+  its children are invisible to dpad traversal but still take touch focus (an `EditText`
+  inside it still opens the IME). `focusableInTouchMode` and
+  `descendantFocusability="blocksDescendants"` were both tried and rejected; see the journal.
+- `ui/Immersive.kt` — `enableImmersiveMode()`, called in `onCreate` and again on
+  `onWindowFocusChanged(true)` because permission dialogs and the installer restore the bars.
+- `ui/StatusBarView` — self-contained Home top bar (time, Wi-Fi, cellular, battery).
+  Registers its receivers/callbacks in `onAttachedToWindow` and releases them in
+  `onDetachedFromWindow`; `HomeActivity` does no lifecycle wiring. Icons are
+  `<level-list>` drawables updated by `setImageLevel()`; the battery level encodes
+  charging in the number (0–4 idle, 5–9 plugged). Wi-Fi RSSI comes from
+  `NetworkCapabilities.transportInfo` to avoid needing location permission. Uses the
+  bundled Michroma font (`res/font/michroma.ttf`, OFL — see `MICHROMA-LICENSE.txt`).
 
 The manifest scopes package visibility to `MAIN`/`LAUNCHER` `<queries>` rather than
 requesting `QUERY_ALL_PACKAGES` — the launcher-appropriate approach. Keep it that way.
+Permissions in use: `INTERNET`, `REQUEST_INSTALL_PACKAGES`, `ACCESS_WIFI_STATE`,
+`ACCESS_NETWORK_STATE`, and runtime `READ_PHONE_STATE` (optional, cellular bars only).
 
 ## Build & CI
 
 **Do not attempt to build locally.** Android Studio / AGP are unavailable on this
-platform (OpenBSD) and the firewall blocks AGP — do not work around this. All builds
-run in CI. Correctness depends on careful API use and reading before writing.
+platform and the firewall blocks AGP — do not work around this. All builds run in CI.
+Correctness depends on careful API use and reading before writing.
 
-CI (`.github/workflows/build.yml`, modeled on
-`https://github.com/c0dev0id/androsnd/blob/main/.github/workflows/build.yml`) runs on
-push to `main` as three parallel jobs plus a follow-up release step:
+CI (`.github/workflows/build.yml`) runs **only on push to `main`** — a feature branch
+gets no CI until it is merged. Three parallel jobs plus a follow-up release step:
 
 - `./gradlew lint`
-- `./gradlew testDebugUnitTest` — JUnit4 + Robolectric JVM unit tests. Single test:
+- `./gradlew testDebugUnitTest` — JUnit4 + Robolectric JVM unit tests in
+  `app/src/test/kotlin`. Single test:
   `./gradlew testDebugUnitTest --tests "de.codevoid.motolauncher.AppRepositoryTest.sortsCaseInsensitively"`
 - `./gradlew assembleRelease -PappVersionName=dev-<sha> -PappVersionCode=<run>` —
-  signed via the `SIGNING_KEYSTORE_*` / `SIGNING_KEY_*` env vars (already configured on
-  the repo; do not add or commit signing material).
+  minified + shrunk, signed via the `SIGNING_KEYSTORE_*` / `SIGNING_KEY_*` env vars
+  (already configured on the repo; do not add or commit signing material). Without
+  those properties the version is `dev-local` / `1`.
 - `draft-release` deletes and recreates the `dev` pre-release with the fresh APK, so
   the update endpoint stays a single stable URL and "keep only the latest" needs no
   cleanup.
 
-Push, then read CI results (a `.gh_token`, if present, grants access to workflow
-output).
+Read CI results through the GitHub tooling available in the session (there is no
+`.gh_token` in the repo).
