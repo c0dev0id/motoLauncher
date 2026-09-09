@@ -1,29 +1,30 @@
 # motoLauncher
 
-A home screen for Android-based motorcycle navigation devices, designed to be
-operated with gloves and a handlebar remote while riding.
-
-## Purpose
-
-Riding gloves make precise touch and swiping impractical, and much of the
-interaction happens through the bike's remote rather than the screen.
-motoLauncher replaces the device's home screen with a simple, large-tiled
-layout built for exactly those conditions.
+motoLauncher is a home screen for Android-based motorcycle navigation devices.
+It is designed for glove use and handlebar remote operation.
 
 ## Features
 
-- **Favorites grid.** A fixed grid of large tiles for the apps you use most.
-  Tap a tile to launch its app; long-press to open that app's system settings.
-- **All apps.** A dedicated tile opens the full list of installed apps, with a
-  search field to narrow it down quickly.
-- **Remote friendly.** The home screen and app list can be navigated entirely
-  with the remote's direction pad and Enter key — no touch required to launch an
-  app. There are no swipe gestures anywhere in normal use.
-- **Configuration.** Assign, change, or clear the apps in your favorite tiles
-  from a settings screen, reachable from the home screen at any time.
-- **Updates.** Check for and install a newer version on demand. Because the
-  device is usually offline, updates are only ever checked when you ask.
+- Fixed home grid with configurable favourite apps
+- All Apps screen with search
+- Tap to launch apps from the home screen or app list
+- Tile actions for app info, uninstall, and favourite reassignment
+- Manual update check and install prompt
+- Home status bar with time, Wi-Fi, cellular, and battery indicators
 
-## Layout
+## Screenshots
 
-motoLauncher is built for landscape orientation on a 1920x1080, 7-inch screen.
+![Home screen](screenshots/main.png)
+Main screen favorite apps grid
+
+
+![Home tile action menu](screenshots/main-popup.png)
+Main screen long press popup
+
+
+![All apps screen](screenshots/all-apps.png)
+All Apps
+
+
+![Home screen in light theme](screenshots/main-light.png)
+Light theme
