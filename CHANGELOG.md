@@ -55,6 +55,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   Michroma is bundled under the SIL Open Font License 1.1 — see `MICHROMA-LICENSE.txt`.
 
 ### Fixed
+- GitHub Actions `lint`, `test`, and release builds no longer fail during resource
+  linking because the tile-actions dialog row style now opts out of Android's implicit
+  dotted-name parent lookup instead of inheriting from a non-existent
+  `Widget.MotoLauncher` base style.
 - The installer file of an update is deleted when the launcher starts after installing
   it, and any older download is removed when a new one begins, so update APKs no longer
   accumulate in the app cache.

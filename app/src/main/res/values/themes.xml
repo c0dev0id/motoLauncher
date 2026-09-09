@@ -44,7 +44,7 @@
     </style>
 
     <!-- One action row of the tile menu: a glove-sized tile-styled button. -->
-    <style name="Widget.MotoLauncher.DialogAction">
+    <style name="Widget.MotoLauncher.DialogAction" parent="">
         <item name="android:layout_width">match_parent</item>
         <item name="android:layout_height">72dp</item>
         <item name="android:layout_marginTop">12dp</item>
