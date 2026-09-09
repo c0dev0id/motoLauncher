@@ -27,8 +27,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Custom home status bar showing the current time on the left and Wi-Fi, cellular, and
   battery indicators on the right, aligned with the grid margins.
 - Visible back button on the app list screen for touch users.
+- Holding Escape on the remote launches the app in the first favourite slot (the top-left
+  home tile), from the home screen and from the app list. An empty slot, or one whose app
+  has been uninstalled, does nothing.
 
 ### Changed
+- A short Escape closes the app list on key release rather than on key press, so holding
+  the key can be told apart from tapping it.
 - The "All Apps / Config" home tile is now labelled "All Apps"; it no longer leads to
   a configuration screen.
 - The theme toggle, "Check for updates" and "Enable cellular indicator" buttons live in

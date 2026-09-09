@@ -49,6 +49,16 @@ class AppRepository(private val context: Context) {
         launcherApps.startMainActivity(component, Process.myUserHandle(), null, null)
     }
 
+    // A favourite outlives its app: the component stored in SharedPreferences may point
+    // at something since uninstalled, and startMainActivity on a component that no longer
+    // resolves throws. Callers that launch a stored component rather than a resolved
+    // AppEntry go through here; false means "not installed any more".
+    fun launchIfInstalled(component: ComponentName): Boolean {
+        if (!loadByComponents(listOf(component)).containsKey(component)) return false
+        launch(component)
+        return true
+    }
+
     fun openInfo(component: ComponentName) {
         launcherApps.startAppDetailsActivity(component, Process.myUserHandle(), null, null)
     }
