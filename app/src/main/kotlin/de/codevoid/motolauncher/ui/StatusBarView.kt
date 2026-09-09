@@ -18,18 +18,19 @@ import android.telephony.SignalStrength
 import android.telephony.TelephonyCallback
 import android.telephony.TelephonyManager
 import android.util.AttributeSet
+import android.view.Gravity
 import android.view.LayoutInflater
 import android.view.View
 import android.widget.LinearLayout
 import androidx.core.content.ContextCompat
+import de.codevoid.motolauncher.R
 import de.codevoid.motolauncher.databinding.ViewStatusBarBinding
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
 
-// Self-managed status bar: registers its own system broadcasts and telephony callbacks in
-// onAttachedToWindow, releases them in onDetachedFromWindow. HomeActivity owns no
-// lifecycle wiring for this — the view manages its own data streams.
+// Self-contained: HomeActivity does not wire this view's lifecycle. Broadcast and
+// callback registrations live in onAttachedToWindow / onDetachedFromWindow.
 class StatusBarView @JvmOverloads constructor(
     context: Context,
     attrs: AttributeSet? = null,
@@ -48,6 +49,15 @@ class StatusBarView @JvmOverloads constructor(
     private val telephonyManager =
         context.applicationContext.getSystemService(Context.TELEPHONY_SERVICE) as? TelephonyManager
 
+    // Cached once — maxSignalLevel is a fixed property that would otherwise cross the
+    // Binder on every capability callback (which fires many times per second on a
+    // fluctuating link).
+    private val wifiSignalSteps = (wifiManager.maxSignalLevel - 1).coerceAtLeast(1)
+
+    private var lastWifiLevel = -1
+    private var lastBatteryPercent = -1
+    private var lastCellularLevel = -1
+
     private val timeReceiver = object : BroadcastReceiver() {
         override fun onReceive(context: Context, intent: Intent) = updateTime()
     }
@@ -58,11 +68,16 @@ class StatusBarView @JvmOverloads constructor(
 
     private val networkCallback = object : ConnectivityManager.NetworkCallback() {
         override fun onCapabilitiesChanged(network: Network, caps: NetworkCapabilities) {
-            val info = caps.transportInfo as? WifiInfo
-            post { updateWifi(info?.rssi) }
+            // Runs on a Binder thread. Classify cheaply here and only hop to the main
+            // thread when the icon level actually changes.
+            val rssi = (caps.transportInfo as? WifiInfo)?.rssi ?: return
+            val level = scaleWifiLevel(rssi)
+            if (level == lastWifiLevel) return
+            post { applyWifiLevel(level) }
         }
         override fun onLost(network: Network) {
-            post { updateWifi(null) }
+            if (lastWifiLevel == 0) return
+            post { applyWifiLevel(0) }
         }
     }
 
@@ -70,7 +85,7 @@ class StatusBarView @JvmOverloads constructor(
 
     init {
         orientation = HORIZONTAL
-        gravity = android.view.Gravity.CENTER_VERTICAL
+        gravity = Gravity.CENTER_VERTICAL
     }
 
     override fun onAttachedToWindow() {
@@ -79,8 +94,8 @@ class StatusBarView @JvmOverloads constructor(
         updateTime()
         context.registerReceiver(timeReceiver, IntentFilter(Intent.ACTION_TIME_TICK))
 
-        // Sticky broadcast: registerReceiver returns the current state synchronously,
-        // so the initial percentage is available immediately without waiting for a change.
+        // Sticky broadcast: registerReceiver returns the current state synchronously so
+        // the initial percentage is available without waiting for a change event.
         val initialBattery = context.registerReceiver(
             batteryReceiver,
             IntentFilter(Intent.ACTION_BATTERY_CHANGED),
@@ -91,19 +106,16 @@ class StatusBarView @JvmOverloads constructor(
             .addTransportType(NetworkCapabilities.TRANSPORT_WIFI)
             .build()
         connectivityManager.registerNetworkCallback(wifiRequest, networkCallback)
-        updateWifi(null)
 
         registerCellular()
     }
 
     override fun onDetachedFromWindow() {
         super.onDetachedFromWindow()
-        runCatching { context.unregisterReceiver(timeReceiver) }
-        runCatching { context.unregisterReceiver(batteryReceiver) }
-        runCatching { connectivityManager.unregisterNetworkCallback(networkCallback) }
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
-            signalCallback?.let { telephonyManager?.unregisterTelephonyCallback(it) }
-        }
+        context.unregisterReceiver(timeReceiver)
+        context.unregisterReceiver(batteryReceiver)
+        connectivityManager.unregisterNetworkCallback(networkCallback)
+        signalCallback?.let { telephonyManager?.unregisterTelephonyCallback(it) }
         signalCallback = null
     }
 
@@ -115,14 +127,14 @@ class StatusBarView @JvmOverloads constructor(
         val level = intent.getIntExtra(BatteryManager.EXTRA_LEVEL, -1)
         val scale = intent.getIntExtra(BatteryManager.EXTRA_SCALE, 0)
         if (level < 0 || scale <= 0) return
-        binding.batteryText.text = context.getString(
-            de.codevoid.motolauncher.R.string.battery_percent,
-            level * 100 / scale,
-        )
+        val percent = level * 100 / scale
+        if (percent == lastBatteryPercent) return
+        lastBatteryPercent = percent
+        binding.batteryText.text = context.getString(R.string.battery_percent, percent)
     }
 
-    private fun updateWifi(rssi: Int?) {
-        val level = if (rssi == null) 0 else scaleWifiLevel(rssi)
+    private fun applyWifiLevel(level: Int) {
+        lastWifiLevel = level
         binding.wifiIcon.setImageLevel(level)
     }
 
@@ -131,8 +143,7 @@ class StatusBarView @JvmOverloads constructor(
     // regardless of what the platform reports as its maximum.
     private fun scaleWifiLevel(rssi: Int): Int {
         val raw = wifiManager.calculateSignalLevel(rssi)
-        val steps = (wifiManager.maxSignalLevel - 1).coerceAtLeast(1)
-        return ((raw * 4) / steps).coerceIn(0, 4)
+        return ((raw * 4) / wifiSignalSteps).coerceIn(0, 4)
     }
 
     private fun registerCellular() {
@@ -152,7 +163,10 @@ class StatusBarView @JvmOverloads constructor(
         binding.cellularIcon.visibility = View.VISIBLE
         val cb = object : TelephonyCallback(), TelephonyCallback.SignalStrengthsListener {
             override fun onSignalStrengthsChanged(signalStrength: SignalStrength) {
-                binding.cellularIcon.setImageLevel(signalStrength.level.coerceIn(0, 4))
+                val level = signalStrength.level.coerceIn(0, 4)
+                if (level == lastCellularLevel) return
+                lastCellularLevel = level
+                binding.cellularIcon.setImageLevel(level)
             }
         }
         signalCallback = cb
