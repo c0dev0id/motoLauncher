@@ -117,7 +117,7 @@
   following UP arrives canceled. The cost is that the short press had to move from
   `onKeyDown` to `onKeyUp` — at DOWN it isn't yet known whether the press will become a
   long one — so the app list now closes on key release. An empty slot or an uninstalled
-  app is a silent no-op (`AppRepository.launchIfInstalled` resolves before launching,
+  app is a silent no-op (`AppRepository.launchIfInstalled` gates on `isActivityEnabled`,
   because `startMainActivity` throws on a component that no longer exists): there is
   nothing worth showing a rider wearing gloves. This depends on the remote reporting a
   held key at all; a button that emits an instantaneous down/up pair can't produce a long
