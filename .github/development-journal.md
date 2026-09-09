@@ -91,14 +91,21 @@
   root — there is nothing for "back" to go to. A remote-only user has no route into any
   configuration, and that is intentional: the device is on a motorbike, configuration is
   a touch-only workflow. Empty "+" tiles and the tile menu's "Reassign app" open the
-  picker for that slot directly, so favourites never need the Settings screen. Settings
-  remains only for theme, update check, and the cellular-permission ask, reached by
-  long-pressing "All Apps"; the intent is to retire it in its current form.
+  picker for that slot directly, so favourites never need the Settings screen. Theme
+  toggle and update check sit in the All Apps header (hidden in pick mode); Settings
+  remains only for the cellular-permission ask and a slot overview, reached by
+  long-pressing "All Apps", and is to be retired in its current form.
+
+- **Update UI: button label for progress, dialogs for outcomes.** The header row of the
+  app list has no room for a status line, and a transient line is easy to miss on a
+  handlebar-mounted screen. The button itself shows "Checking…" / "Downloading…" while
+  disabled, and each result (latest build, update available with install prompt, error)
+  is an `AlertDialog` on `Theme.MotoLauncher.Dialog` via `showImmersive()`.
 
 ## Core Features
 
 - Fixed 4×3 favorites grid, remote- and glove-operable.
-- All-apps browser with touch search.
+- All-apps browser with touch search, theme toggle, and update check in its header.
 - Tap-to-launch; long-press on a favourite for a Reassign / App info menu.
 - Touch configuration of favorite slots.
 - User-triggered self-update from GitHub nightly.
