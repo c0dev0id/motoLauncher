@@ -80,12 +80,12 @@ Package layout under `de.codevoid.motolauncher`:
   in "pick mode" (`AppListActivity.pickIntent(context, slot)`): the chosen app is written
   to that `FavoritesStore` slot and the activity finishes; callers rebuild in `onResume`,
   so there is no result contract. Loads apps on `Dispatchers.IO`, filters with
-  `AppRepository.filterApps` on every keystroke. The header `TouchOnlyRow` also holds the
-  theme toggle (flipping recreates the activity), the user-triggered update check, and an
-  "enable cellular indicator" button that requests `READ_PHONE_STATE` at runtime and
-  hides itself once granted (API 31+ only); all three are hidden in pick mode. Update
-  progress shows on the button label, outcomes are `AlertDialog`s on
-  `Theme.MotoLauncher.Dialog`.
+  `AppRepository.filterApps` on every keystroke; `AppListViewModel` (same file) holds the
+  enumeration as a `Deferred` so the theme toggle's recreate reuses it. The header
+  `TouchOnlyRow` holds a `headerConfig` group, hidden in pick mode, with the theme toggle
+  (flipping recreates the activity), the update check (`runUpdateFlow`), and an "enable
+  cellular indicator" button that requests `READ_PHONE_STATE` at runtime and hides itself
+  once granted (API 31+ only). Header buttons use `Widget.MotoLauncher.HeaderButton`.
 - `data/AppRepository` — thin wrapper over `LauncherApps` (not `PackageManager`),
   iterating all `UserManager` profiles. `launch` → `startMainActivity`, `openInfo` →
   `startAppDetailsActivity`. `loadByComponents` resolves only the favorites' components
@@ -101,9 +101,13 @@ Package layout under `de.codevoid.motolauncher`:
   `BuildConfig.VERSION_NAME`, so any differing published build counts as an update.
   Install is a hand-off: download to `cacheDir/updates/`, then `FileProvider` +
   `ACTION_VIEW` to the system installer.
-- `ui/AppTileAdapter` + `ui/TileItem` — the generic `RecyclerView` adapter used by the
-  app list (not by Home). Callers compose a `List<TileItem>`;
-  the adapter stays dumb and calls `blockKeyLongPress()` once per view holder.
+- `ui/AppTileAdapter` + `ui/TileItem` — the `RecyclerView` adapter used by the app list
+  (not by Home). Callers compose a `List<TileItem>`; the adapter stays dumb and calls
+  `blockKeyLongPress()` once per view holder.
+- `ui/UpdateFlow.kt` — `AppCompatActivity.runUpdateFlow(button)`: the whole
+  check / prompt / download / error flow driven from one button; progress on the label,
+  outcomes as `AlertDialog`s. `AlertDialog.Builder(context)` gets the launcher look from
+  `alertDialogTheme` — never pass a theme id at a call site.
 - `ui/KeyInput.kt` — `View.blockKeyLongPress()` routes DPAD_CENTER/Enter through
   `performClick()` on key-up without arming the framework's long-press timer (touch
   long-press still works). `Activity.finishOnEscape()` is how AppList maps Escape to
@@ -115,7 +119,8 @@ Package layout under `de.codevoid.motolauncher`:
 - `ui/TileActionsDialog.kt` — `showTileActionsDialog()`: a plain `Dialog` on
   `Theme.MotoLauncher.Dialog` (not `AlertDialog`, whose Material3 look would override
   the palette) with `tile_background` buttons; dismisses itself before invoking the
-  chosen callback. Dialog chrome (background, min width) lives in that theme.
+  chosen callback. Dialog chrome (background, min width) lives in that theme and in the
+  `ThemeOverlay.MotoLauncher.Dialog.Alert` sibling that `alertDialogTheme` points at.
 - `ui/Immersive.kt` — `Window.enableImmersiveMode()`, called in `onCreate` and again on
   `onWindowFocusChanged(true)` because permission dialogs and the installer restore the
   bars, and `Dialog.showImmersive()`, which every dialog the app shows must use.

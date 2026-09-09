@@ -96,11 +96,24 @@
   screen any more — the earlier Configure Favorites activity duplicated all of this and
   was removed.
 
-- **Update UI: button label for progress, dialogs for outcomes.** The header row of the
-  app list has no room for a status line, and a transient line is easy to miss on a
-  handlebar-mounted screen. The button itself shows "Checking…" / "Downloading…" while
-  disabled, and each result (latest build, update available with install prompt, error)
-  is an `AlertDialog` on `Theme.MotoLauncher.Dialog` via `showImmersive()`.
+- **Update UI: button label for progress, dialogs for outcomes (`ui/UpdateFlow.kt`).**
+  The header row of the app list has no room for a status line, and a transient line is
+  easy to miss on a handlebar-mounted screen. `runUpdateFlow(button)` shows "Checking…" /
+  "Downloading…" on the button while disabled, and each result (latest build, update
+  available with install prompt, error) is an `AlertDialog`. Stock alert buttons are
+  acceptable here, unlike the tile menu, because updating is an off-bike, touch-only
+  task. `AlertDialog.Builder(context)` picks the launcher look up from
+  `alertDialogTheme` (`ThemeOverlay.MotoLauncher.Dialog.Alert`); no call site names a
+  theme.
+- **App list survives the theme toggle's recreate via a ViewModel.** Enumerating and
+  rasterising every installed app is the most expensive thing the app does. With the
+  theme toggle on the same screen, `AppCompatDelegate.setDefaultNightMode` recreates the
+  activity; `AppListViewModel` holds the load as a `Deferred`, so the recreated activity
+  awaits the same result instead of re-running it. The first render after a recreate
+  applies the restored search text.
+- **Header controls: one container, one style.** The All Apps header's config buttons
+  sit in a `headerConfig` group toggled once for pick mode, and share
+  `Widget.MotoLauncher.HeaderButton` so the 56dp glove target is stated once.
 
 ## Core Features
 

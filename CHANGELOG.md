@@ -15,10 +15,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - All-apps screen: scrollable, remote-navigable grid of every installed app, with a
   touch search field to filter long lists.
 - Short tap / Enter launches an app; long press opens its system app-info screen.
-- Settings screen to assign favorites: tap a slot to pick or change its app, long-press
-  to clear it. Reached from home via Escape (remote) or a long-press on the "All Apps"
-  tile (touch), so it stays accessible even when every slot is filled.
-- Dark/Light theme toggle on the settings screen (defaults to dark); the choice is saved
+- Favorites are configured in place: an empty "+" tile, or "Reassign app" from a
+  favourite's long-press menu, opens the app picker for that slot.
+- Dark/Light theme toggle in the All Apps header (defaults to dark); the choice is saved
   and restored on restart.
 - User-triggered update check against the repository's `dev` nightly pre-release, with
   download and hand-off to the system installer (no automatic polling — the device is
@@ -27,17 +26,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   self-replacing `dev` pre-release.
 - Custom home status bar showing the current time on the left and Wi-Fi, cellular, and
   battery indicators on the right, aligned with the grid margins.
-- Visible back button on the app list and settings screens for touch users.
+- Visible back button on the app list screen for touch users.
 
 ### Changed
-- The theme toggle and "Check for updates" button now live in the All Apps header, to
-  the right of a shorter search field, and are hidden while picking an app for a slot.
-  Update results (latest build, update available, failure) appear as dialogs instead of
-  a status line. The "Enable cellular indicator" button moved there too.
-
-### Removed
-- The Configure Favorites screen and the "All Apps" long-press that opened it. Slots are
-  assigned from the home grid; everything else is in the All Apps header.
+- The theme toggle, "Check for updates" and "Enable cellular indicator" buttons live in
+  the All Apps header, to the right of a shorter search field, and are hidden while
+  picking an app for a slot. Update results (latest build, update available, failure)
+  appear as dialogs. The separate Configure Favorites screen is gone, along with the
+  "All Apps" long-press that opened it.
 - Long-pressing an assigned favourite on the home screen now opens a tile-styled menu
   with two large buttons instead of jumping straight to the system app-info screen:
   **Reassign app** opens the app picker for that slot and stores the choice, **App info**
