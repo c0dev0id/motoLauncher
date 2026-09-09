@@ -2,6 +2,8 @@ package de.codevoid.motolauncher.data
 
 import android.content.ComponentName
 import android.content.Context
+import android.content.Intent
+import android.net.Uri
 import android.content.pm.LauncherActivityInfo
 import android.content.pm.LauncherApps
 import android.os.Process
@@ -49,6 +51,16 @@ class AppRepository(private val context: Context) {
 
     fun openInfo(component: ComponentName) {
         launcherApps.startAppDetailsActivity(component, Process.myUserHandle(), null, null)
+    }
+
+    // Hands off to the system uninstaller, which asks for confirmation itself. No
+    // permission needed for the ACTION_DELETE route; the favourite tile self-heals to
+    // "+" on the next resume because loadByComponents no longer resolves it.
+    fun requestUninstall(component: ComponentName) {
+        context.startActivity(
+            Intent(Intent.ACTION_DELETE, Uri.fromParts("package", component.packageName, null))
+                .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+        )
     }
 
     private fun toEntry(info: LauncherActivityInfo) = AppEntry(

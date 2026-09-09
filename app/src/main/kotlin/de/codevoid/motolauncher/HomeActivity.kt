@@ -95,8 +95,9 @@ class HomeActivity : AppCompatActivity() {
                         showTileActionsDialog(
                             context = this,
                             entry = entry,
-                            onReassign = { pickForSlot(index) },
                             onAppInfo = { repository.openInfo(entry.component) },
+                            onUninstall = { repository.requestUninstall(entry.component) },
+                            onReassign = { pickForSlot(index) },
                         )
                         true
                     },

@@ -6,6 +6,8 @@
     <string name="empty_slot">Empty</string>
     <string name="tile_action_reassign">Reassign app</string>
     <string name="tile_action_app_info">App info</string>
+    <string name="tile_action_uninstall">Uninstall</string>
+    <string name="pick_none">None</string>
     <string name="cancel">Cancel</string>
     <string name="ok">OK</string>
     <string name="theme_dark">Dark</string>

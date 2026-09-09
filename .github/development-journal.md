@@ -75,9 +75,10 @@
   each home tile and each AppList cell that routes DPAD_CENTER / ENTER through
   `performClick()` on ACTION_UP and never arms the framework's key long-press timer.
   `setOnLongClickListener` is untouched, so tapping and holding a tile still works.
-- **Home tile long-press opens a tile-styled menu (`TileActionsDialog`).** Reassigning a
-  favourite without the menu meant a detour through Settings; app info alone was not
-  worth a long-press. The menu is a plain `Dialog` with a custom layout, not an
+- **Home tile long-press opens a tile-styled menu (`TileActionsDialog`).** Rows in order:
+  App info, Uninstall (system uninstaller via `ACTION_DELETE`, no permission needed),
+  Reassign app. Reassigning a favourite without the menu meant a detour through
+  Settings; app info alone was not worth a long-press. The menu is a plain `Dialog` with a custom layout, not an
   `AlertDialog`: the Material3 dialog theme brings its own surface colours and small
   buttons, whereas the custom view reuses `tile_background` and the launcher palette so
   it reads as part of the grid and stays glove-sized; its chrome (background drawable,
@@ -86,7 +87,9 @@
   otherwise bring the system bars back while showing.
 - **The app picker writes the favourite slot itself.** Pick mode is
   `AppListActivity.pickIntent(context, slot)`: on selection the activity stores the
-  component in `FavoritesStore` and finishes. Home just `startActivity`s and rebuilds
+  component in `FavoritesStore` and finishes. A "None" tile leads the grid in pick mode
+  regardless of the search text; choosing it clears the slot — the only way to empty a
+  favourite, since there is no settings screen. Home just `startActivity`s and rebuilds
   its grid in `onResume` — no `StartActivityForResult`, no result extra, no "which slot
   was I picking for" state in the caller. The earlier version carried that launcher and
   sentinel in both Home and the since-removed Settings screen.
