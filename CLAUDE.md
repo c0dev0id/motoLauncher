@@ -48,7 +48,8 @@ These drive nearly every UI decision — violating them defeats the point of the
 
 - Configurable set of **favorite apps** pinned to the home screen permanently.
 - **App list** showing all installed apps (with a touch-only search filter).
-- **Short tap / Enter → launch** the app; **touch long press → app info/settings screen.**
+- **Short tap / Enter → launch** the app; **touch long press** → on Home a tile-styled
+  menu (Reassign app / App info), in the app list the app-info screen directly.
 - **In-app update check** against the GitHub `dev` pre-release: compare installed build
   to latest pre-release, offer install if newer. Must be **user-triggered** (the device is
   mostly offline — never auto-poll the network).
@@ -105,8 +106,12 @@ Package layout under `de.codevoid.motolauncher`:
   its children are invisible to dpad traversal but still take touch focus (an `EditText`
   inside it still opens the IME). `focusableInTouchMode` and
   `descendantFocusability="blocksDescendants"` were both tried and rejected; see the journal.
-- `ui/Immersive.kt` — `enableImmersiveMode()`, called in `onCreate` and again on
-  `onWindowFocusChanged(true)` because permission dialogs and the installer restore the bars.
+- `ui/TileActionsDialog` — plain `Dialog` (not `AlertDialog`, whose Material3 theme
+  would override the palette) with `tile_background` buttons; dismisses itself before
+  invoking the chosen callback.
+- `ui/Immersive.kt` — `enableImmersiveMode()` on `Window` and `AppCompatActivity`, called
+  in `onCreate`, again on `onWindowFocusChanged(true)` because permission dialogs and the
+  installer restore the bars, and on any dialog window the app shows.
 - `ui/StatusBarView` — self-contained Home top bar (time, Wi-Fi, cellular, battery).
   Registers its receivers/callbacks in `onAttachedToWindow` and releases them in
   `onDetachedFromWindow`; `HomeActivity` does no lifecycle wiring. Icons are
