@@ -30,6 +30,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Visible back button on the app list and settings screens for touch users.
 
 ### Changed
+- Long-pressing an assigned favourite on the home screen now opens a tile-styled menu
+  with two large buttons instead of jumping straight to the system app-info screen:
+  **Reassign app** opens the app picker for that slot and stores the choice, **App info**
+  opens the system screen as before. Back or Escape closes the menu.
 - The Android status bar and navigation bar are now hidden app-wide so the full screen
   is available for the launcher's own UI.
 - The custom home status bar now uses the Michroma display font, sits at larger sizes

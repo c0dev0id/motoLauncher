@@ -72,6 +72,16 @@
   each home tile and each AppList cell that routes DPAD_CENTER / ENTER through
   `performClick()` on ACTION_UP and never arms the framework's key long-press timer.
   `setOnLongClickListener` is untouched, so tapping and holding a tile still works.
+- **Home tile long-press opens a tile-styled menu (`TileActionsDialog`).** Reassigning a
+  favourite without the menu meant a detour through Settings; app info alone was not
+  worth a long-press. The menu is a plain `Dialog` with a custom layout, not an
+  `AlertDialog`: the Material3 dialog theme brings its own surface colours and small
+  buttons, whereas the custom view reuses `tile_background` and the launcher palette so
+  it reads as part of the grid and stays glove-sized. "Reassign app" launches
+  `AppListActivity` in pick mode straight from Home (same `StartActivityForResult`
+  contract Settings uses) and writes the result into the long-pressed slot. The dialog
+  window calls `enableImmersiveMode()` itself because a dialog is a separate window and
+  would otherwise bring the system bars back while showing.
 - **Escape on Home does nothing; Settings is reached via empty slots.** Home is the
   launcher root — there is nothing for "back" to go to. Once every favourite slot is
   filled a remote-only user has no route into Settings, but that is intentional: the
@@ -82,6 +92,6 @@
 
 - Fixed 4×3 favorites grid, remote- and glove-operable.
 - All-apps browser with touch search.
-- Tap-to-launch, long-press for app info.
+- Tap-to-launch; long-press on a favourite for a Reassign / App info menu.
 - Touch configuration of favorite slots.
 - User-triggered self-update from GitHub nightly.
