@@ -1,39 +1,35 @@
 # motoLauncher
 
-A home screen for Android-based motorcycle navigation devices, designed to be
-operated with gloves and a handlebar remote while riding.
+A clean home screen for Android-based motorcycle navigation devices, designed
+for quick access while riding with gloves and a handlebar remote.
 
-## Purpose
+## Overview
 
-Riding gloves make precise touch and swiping impractical, and much of the
-interaction happens through the bike's remote rather than the screen.
-motoLauncher replaces the device's home screen with a simple, large-tiled
-layout built for exactly those conditions.
+motoLauncher replaces the standard home screen with a simpler, more practical
+launcher experience for life on the bike. It focuses on large app tiles, clear
+information, and fast access to the apps you use most.
 
-## Features
+## Highlights
 
-- **Favorites grid.** A fixed grid of large tiles for the apps you use most.
-  Tap a tile to launch its app. Touch long-press opens a large action menu with
-  App info, Uninstall, and Reassign app.
-- **All apps.** A dedicated tile opens the full list of installed apps, with a
-  touch-only search field plus touch-only theme, update, and cellular-indicator
-  controls in the header.
-- **Remote friendly.** The home screen and app list can be navigated entirely
-  with the remote's direction pad, Enter, and Escape. Only app launching is
-  remote-accessible; touch-only controls are intentionally excluded from dpad
-  focus. There are no swipe gestures anywhere in normal use.
-- **Configuration.** Assign, change, or clear the apps in your favorite tiles
-  in place. Empty "+" tiles and the Reassign action open the picker directly for
-  that slot; there is no separate settings screen.
-- **Updates.** Check for and install a newer version on demand. Because the
-  device is usually offline, updates are only ever checked when you ask.
-- **Status bar.** The home screen includes a launcher-owned top bar with time,
-  Wi-Fi, cellular, and battery indicators.
+- **Favourite apps front and centre.** Keep your most important apps on the
+  home screen for immediate access.
+- **Full app list.** Browse all installed apps in one place and use search to
+  find what you need quickly.
+- **Simple customisation.** Change, clear, or reassign favourite slots directly
+  from the launcher.
+- **Made for riding.** The interface is designed for glove use and works well
+  with a handlebar remote.
+- **On-demand updates.** Check for new versions when convenient and install them
+  directly from the launcher.
+- **At-a-glance status.** See the time, Wi-Fi, cellular, and battery
+  information on the home screen.
 
-## Layout
+## Everyday use
 
-motoLauncher is built for landscape orientation on a 1920x1080, 7-inch screen.
-It runs in immersive mode so the launcher owns the full screen.
+Tap any favourite on the home screen to open it immediately. The dedicated
+**All Apps** tile opens the full app library, where you can browse, search, and
+launch any installed app. If you want to change your setup, favourite slots can
+be updated in place without leaving the launcher experience.
 
 ## Screenshots
 
