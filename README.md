@@ -14,18 +14,14 @@ It is designed for glove use and handlebar remote operation.
 
 ## Screenshots
 
-### Home
-
 ![Home screen](screenshots/main.png)
-
-### Home action menu
+Main screen favorite apps grid
 
 ![Home tile action menu](screenshots/main-popup.png)
-
-### All apps
+Main screen long press popup
 
 ![All apps screen](screenshots/all-apps.png)
-
-### Light theme
+All Apps
 
 ![Home screen in light theme](screenshots/main-light.png)
+Light theme
