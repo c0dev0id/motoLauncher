@@ -30,6 +30,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Visible back button on the app list and settings screens for touch users.
 
 ### Changed
+- The theme toggle and "Check for updates" button now live in the All Apps header, to
+  the right of a shorter search field, and are hidden while picking an app for a slot.
+  Update results (latest build, update available, failure) appear as dialogs instead of
+  a status line. The Configure Favorites screen keeps only the slot grid and the
+  cellular-indicator permission button.
 - Long-pressing an assigned favourite on the home screen now opens a tile-styled menu
   with two large buttons instead of jumping straight to the system app-info screen:
   **Reassign app** opens the app picker for that slot and stores the choice, **App info**

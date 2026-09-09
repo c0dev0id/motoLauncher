@@ -42,9 +42,9 @@ These drive nearly every UI decision — violating them defeats the point of the
   unreachable from the remote: touch-only controls sit in a `TouchOnlyRow`, key-driven
   long-press is blocked on every tile, and Escape on Home does nothing. Do not "fix" any
   of these by making them dpad-reachable. Configuration is a touch workflow: empty "+"
-  tiles and "Reassign app" open the picker for that slot in place; Settings (theme,
-  update, cellular ask) is reached only by long-pressing "All Apps" and is slated for
-  removal in its current form — don't grow it.
+  tiles and "Reassign app" open the picker for that slot in place; theme toggle and
+  update check live in the All Apps header; Settings (cellular ask, slot overview) is
+  reached only by long-pressing "All Apps" and is slated for removal — don't grow it.
 
 ## Required features
 
@@ -80,11 +80,13 @@ Package layout under `de.codevoid.motolauncher`:
   in "pick mode" (`AppListActivity.pickIntent(context, slot)`): the chosen app is written
   to that `FavoritesStore` slot and the activity finishes; callers rebuild in `onResume`,
   so there is no result contract. Loads apps on `Dispatchers.IO`, filters with
-  `AppRepository.filterApps` on every keystroke.
-- `SettingsActivity` — slot picker (tap to pick, long-press to clear), theme toggle
-  (flipping recreates the activity), user-triggered update check, and an "enable
+  `AppRepository.filterApps` on every keystroke. The header `TouchOnlyRow` also holds the
+  theme toggle (flipping recreates the activity) and the user-triggered update check;
+  both are hidden in pick mode. Update progress shows on the button label, outcomes are
+  `AlertDialog`s on `Theme.MotoLauncher.Dialog`.
+- `SettingsActivity` — slot grid (tap to pick, long-press to clear) and an "enable
   cellular indicator" button that requests `READ_PHONE_STATE` at runtime and hides
-  itself once granted (API 31+ only).
+  itself once granted (API 31+ only). Slated for removal.
 - `data/AppRepository` — thin wrapper over `LauncherApps` (not `PackageManager`),
   iterating all `UserManager` profiles. `launch` → `startMainActivity`, `openInfo` →
   `startAppDetailsActivity`. `loadByComponents` resolves only the favorites' components
