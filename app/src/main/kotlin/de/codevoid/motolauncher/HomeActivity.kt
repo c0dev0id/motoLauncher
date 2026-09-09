@@ -87,6 +87,7 @@ class HomeActivity : AppCompatActivity() {
                 label = getString(R.string.all_apps),
                 iconRes = R.drawable.ic_all_apps,
                 onClick = { startActivity(Intent(this, AppListActivity::class.java)) },
+                onLongClick = { openSettings(); true },
             )
         )
 
@@ -101,7 +102,12 @@ class HomeActivity : AppCompatActivity() {
     }
 
     override fun onKeyDown(keyCode: Int, event: KeyEvent): Boolean {
-        if (keyCode == KeyEvent.KEYCODE_ESCAPE) return true
+        // Home is the root, so Escape has nothing to go "back" to; use it as the remote's
+        // route into configuration (there is no spare tile once every slot is filled).
+        if (keyCode == KeyEvent.KEYCODE_ESCAPE) {
+            openSettings()
+            return true
+        }
         return super.onKeyDown(keyCode, event)
     }
 
