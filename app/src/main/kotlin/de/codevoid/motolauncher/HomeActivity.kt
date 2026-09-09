@@ -1,5 +1,6 @@
 package de.codevoid.motolauncher
 
+import android.content.ComponentName
 import android.content.Intent
 import android.graphics.drawable.Drawable
 import android.os.Bundle
@@ -7,11 +8,14 @@ import android.view.LayoutInflater
 import android.view.ViewGroup
 import android.widget.LinearLayout
 import androidx.activity.addCallback
+import androidx.activity.result.contract.ActivityResultContracts.StartActivityForResult
 import androidx.appcompat.app.AppCompatActivity
+import de.codevoid.motolauncher.data.AppEntry
 import de.codevoid.motolauncher.data.AppRepository
 import de.codevoid.motolauncher.data.FavoritesStore
 import de.codevoid.motolauncher.databinding.ActivityHomeBinding
 import de.codevoid.motolauncher.databinding.ItemAppTileBinding
+import de.codevoid.motolauncher.ui.TileActionsDialog
 import de.codevoid.motolauncher.ui.blockKeyLongPress
 import de.codevoid.motolauncher.ui.enableImmersiveMode
 
@@ -21,6 +25,18 @@ class HomeActivity : AppCompatActivity() {
     private lateinit var favorites: FavoritesStore
     private lateinit var repository: AppRepository
     private val tiles = ArrayList<ItemAppTileBinding>(COLUMNS * ROWS)
+    private var pickingSlot = -1
+
+    // "Reassign app" from the tile menu opens the same picker Settings uses; the result
+    // lands directly in the long-pressed slot. onResume rebuilds the grid afterwards.
+    private val pickLauncher = registerForActivityResult(StartActivityForResult()) { result ->
+        val flat = result.data?.getStringExtra(AppListActivity.RESULT_COMPONENT)
+        val component = flat?.let { ComponentName.unflattenFromString(it) }
+        if (result.resultCode == RESULT_OK && pickingSlot >= 0 && component != null) {
+            favorites.setSlot(pickingSlot, component)
+        }
+        pickingSlot = -1
+    }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -91,7 +107,7 @@ class HomeActivity : AppCompatActivity() {
                     icon = entry.icon,
                     iconRes = 0,
                     onClick = { repository.launch(entry.component) },
-                    onLongClick = { repository.openInfo(entry.component); true },
+                    onLongClick = { showTileActions(index, entry); true },
                 )
             } else {
                 bindTile(
@@ -133,6 +149,23 @@ class HomeActivity : AppCompatActivity() {
         }
         tile.root.setOnClickListener { onClick() }
         tile.root.setOnLongClickListener { onLongClick() }
+    }
+
+    private fun showTileActions(slot: Int, entry: AppEntry) {
+        TileActionsDialog.create(
+            context = this,
+            entry = entry,
+            onReassign = { pickForSlot(slot) },
+            onAppInfo = { repository.openInfo(entry.component) },
+        ).show()
+    }
+
+    private fun pickForSlot(slot: Int) {
+        pickingSlot = slot
+        pickLauncher.launch(
+            Intent(this, AppListActivity::class.java)
+                .putExtra(AppListActivity.EXTRA_PICK_MODE, true)
+        )
     }
 
     private fun openSettings() {

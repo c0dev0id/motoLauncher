@@ -6,6 +6,8 @@
     <string name="search_hint">Search apps…</string>
     <string name="empty_slot">Empty</string>
     <string name="add_favorite">Add favorite</string>
+    <string name="tile_action_reassign">Reassign app</string>
+    <string name="tile_action_app_info">App info</string>
     <string name="cancel">Cancel</string>
     <string name="theme_dark">Dark</string>
     <string name="theme_light">Light</string>
