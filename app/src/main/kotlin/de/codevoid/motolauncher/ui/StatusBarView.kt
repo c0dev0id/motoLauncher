@@ -56,6 +56,7 @@ class StatusBarView @JvmOverloads constructor(
 
     private var lastWifiLevel = -1
     private var lastBatteryPercent = -1
+    private var lastBatteryIconLevel = -1
     private var lastCellularLevel = -1
 
     private val timeReceiver = object : BroadcastReceiver() {
@@ -132,9 +133,20 @@ class StatusBarView @JvmOverloads constructor(
         val scale = intent.getIntExtra(BatteryManager.EXTRA_SCALE, 0)
         if (level < 0 || scale <= 0) return
         val percent = level * 100 / scale
-        if (percent == lastBatteryPercent) return
-        lastBatteryPercent = percent
-        binding.batteryText.text = context.getString(R.string.battery_percent, percent)
+        val plugged = intent.getIntExtra(BatteryManager.EXTRA_PLUGGED, 0) != 0
+        // 5 fill buckets [0..4] plus a +5 offset for the charging variants, matching the
+        // 10-item level-list in ic_battery.xml.
+        val bucket = (percent / 20).coerceIn(0, 4)
+        val iconLevel = bucket + if (plugged) 5 else 0
+
+        if (percent != lastBatteryPercent) {
+            lastBatteryPercent = percent
+            binding.batteryText.text = context.getString(R.string.battery_percent, percent)
+        }
+        if (iconLevel != lastBatteryIconLevel) {
+            lastBatteryIconLevel = iconLevel
+            binding.batteryIcon.setImageLevel(iconLevel)
+        }
     }
 
     private fun applyWifiLevel(level: Int) {

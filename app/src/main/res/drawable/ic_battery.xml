@@ -1,14 +1,67 @@
-<vector xmlns:android="http://schemas.android.com/apk/res/android"
-    android:width="24dp"
-    android:height="24dp"
-    android:viewportWidth="24"
-    android:viewportHeight="24">
-    <path
-        android:fillColor="@color/on_surface"
-        android:pathData="M9,3h6v3h-6z" />
-    <path
-        android:strokeColor="@color/on_surface"
-        android:strokeWidth="2"
-        android:fillColor="@android:color/transparent"
-        android:pathData="M5,7 h14 v14 h-14 z" />
-</vector>
+<level-list xmlns:android="http://schemas.android.com/apk/res/android">
+    <!-- levels 0..4: not charging, fill grows with percent bucket -->
+    <item android:maxLevel="0">
+        <layer-list>
+            <item android:drawable="@drawable/battery_frame" />
+        </layer-list>
+    </item>
+    <item android:maxLevel="1">
+        <layer-list>
+            <item android:drawable="@drawable/battery_frame" />
+            <item android:drawable="@drawable/battery_fill_1" />
+        </layer-list>
+    </item>
+    <item android:maxLevel="2">
+        <layer-list>
+            <item android:drawable="@drawable/battery_frame" />
+            <item android:drawable="@drawable/battery_fill_2" />
+        </layer-list>
+    </item>
+    <item android:maxLevel="3">
+        <layer-list>
+            <item android:drawable="@drawable/battery_frame" />
+            <item android:drawable="@drawable/battery_fill_3" />
+        </layer-list>
+    </item>
+    <item android:maxLevel="4">
+        <layer-list>
+            <item android:drawable="@drawable/battery_frame" />
+            <item android:drawable="@drawable/battery_fill_4" />
+        </layer-list>
+    </item>
+    <!-- levels 5..9: charging, same fills plus a bolt overlay -->
+    <item android:maxLevel="5">
+        <layer-list>
+            <item android:drawable="@drawable/battery_frame" />
+            <item android:drawable="@drawable/battery_bolt" />
+        </layer-list>
+    </item>
+    <item android:maxLevel="6">
+        <layer-list>
+            <item android:drawable="@drawable/battery_frame" />
+            <item android:drawable="@drawable/battery_fill_1" />
+            <item android:drawable="@drawable/battery_bolt" />
+        </layer-list>
+    </item>
+    <item android:maxLevel="7">
+        <layer-list>
+            <item android:drawable="@drawable/battery_frame" />
+            <item android:drawable="@drawable/battery_fill_2" />
+            <item android:drawable="@drawable/battery_bolt" />
+        </layer-list>
+    </item>
+    <item android:maxLevel="8">
+        <layer-list>
+            <item android:drawable="@drawable/battery_frame" />
+            <item android:drawable="@drawable/battery_fill_3" />
+            <item android:drawable="@drawable/battery_bolt" />
+        </layer-list>
+    </item>
+    <item android:maxLevel="9">
+        <layer-list>
+            <item android:drawable="@drawable/battery_frame" />
+            <item android:drawable="@drawable/battery_fill_4" />
+            <item android:drawable="@drawable/battery_bolt" />
+        </layer-list>
+    </item>
+</level-list>
