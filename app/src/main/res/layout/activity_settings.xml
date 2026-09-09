@@ -6,7 +6,7 @@
     android:background="@color/background"
     android:padding="16dp">
 
-    <LinearLayout
+    <de.codevoid.motolauncher.ui.TouchOnlyRow
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:orientation="horizontal"
@@ -45,7 +45,7 @@
             android:layout_height="wrap_content"
             android:minHeight="56dp"
             android:text="@string/check_for_updates" />
-    </LinearLayout>
+    </de.codevoid.motolauncher.ui.TouchOnlyRow>
 
     <Button
         android:id="@+id/enableCellularButton"
