@@ -5,11 +5,7 @@ import android.os.Bundle
 import android.view.KeyEvent
 import androidx.activity.addCallback
 import androidx.appcompat.app.AppCompatActivity
-import androidx.core.graphics.Insets
-import androidx.core.view.ViewCompat
-import androidx.core.view.WindowInsetsCompat
 import androidx.core.view.doOnLayout
-import androidx.core.view.updatePadding
 import androidx.recyclerview.widget.GridLayoutManager
 import de.codevoid.motolauncher.data.AppRepository
 import de.codevoid.motolauncher.data.FavoritesStore
@@ -35,15 +31,10 @@ class HomeActivity : AppCompatActivity() {
         binding.homeGrid.layoutManager = GridLayoutManager(this, COLUMNS)
         binding.homeGrid.adapter = adapter
 
-        // The launcher window is drawn edge-to-edge behind the status/navigation bars. Inset
-        // the grid past them and size each row to the remaining visible height so all three
-        // rows fit without scrolling. doOnLayout guarantees the view is attached and measured,
-        // so the root window insets and the grid height are both available.
-        val basePad = binding.homeGrid.paddingTop
+        // The grid already sits between the system bars, so size each row to its measured
+        // height (doOnLayout guarantees that is available) to pack all three rows without
+        // scrolling. The tiles' own margins are subtracted by the adapter.
         binding.homeGrid.doOnLayout { grid ->
-            val bars = ViewCompat.getRootWindowInsets(grid)
-                ?.getInsets(WindowInsetsCompat.Type.systemBars()) ?: Insets.NONE
-            grid.updatePadding(top = basePad + bars.top, bottom = basePad + bars.bottom)
             val usable = grid.height - grid.paddingTop - grid.paddingBottom
             if (usable > 0) adapter.itemHeightPx = usable / ROWS
         }
