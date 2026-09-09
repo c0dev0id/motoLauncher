@@ -50,7 +50,10 @@
   registers `ACTION_TIME_TICK`, `ACTION_BATTERY_CHANGED`, a Wi-Fi `NetworkCallback`, and
   (API 31+) `TelephonyCallback.SignalStrengthsListener` in `onAttachedToWindow`, and
   releases them in `onDetachedFromWindow` — no lifecycle wiring in `HomeActivity`.
-  Signal-strength icons are `<level-list>` drawables so updates are one `setImageLevel()`.
+  Signal-strength and battery icons are `<level-list>` drawables so updates are one
+  `setImageLevel()`. The battery level-list encodes charging state in the level number
+  itself (0–4 = idle, 5–9 = plugged, five fill buckets each), so plugging in and level
+  changes both flow through the same one-call update path.
 - **Wi-Fi via `NetworkCallback`, not `WifiManager.connectionInfo`.** Reading RSSI through
   `NetworkCapabilities.transportInfo` avoids `ACCESS_FINE_LOCATION`; only
   `ACCESS_WIFI_STATE` + `ACCESS_NETWORK_STATE` are needed.

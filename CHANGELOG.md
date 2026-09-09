@@ -35,3 +35,5 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 - Home grid no longer shows the bottom row cut off for the first frame on cold start.
+- The home status bar's battery icon now shows a fill level that tracks the percentage
+  (five buckets) and gains a lightning-bolt overlay while a charger is connected.
