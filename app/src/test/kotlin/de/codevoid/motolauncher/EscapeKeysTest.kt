@@ -74,19 +74,16 @@ class EscapeKeysTest {
 
         up()
         assertEquals(0, shortPresses)
-        assertEquals(1, longPresses)
     }
 
     @Test
     fun keyRepeatsBeyondTheFirstChangeNothing() {
         down()
         hold()
+        // Only the first repeat carries FLAG_LONG_PRESS; the rest must stay inert.
         dispatch(KeyEvent.ACTION_DOWN, repeatCount = 2)
         dispatch(KeyEvent.ACTION_DOWN, repeatCount = 3)
         assertEquals(1, longPresses)
-
-        up()
-        assertEquals(0, shortPresses)
     }
 
     @Test

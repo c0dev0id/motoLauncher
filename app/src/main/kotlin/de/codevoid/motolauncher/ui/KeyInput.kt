@@ -1,10 +1,7 @@
 package de.codevoid.motolauncher.ui
 
-import android.content.Context
 import android.view.KeyEvent
 import android.view.View
-import de.codevoid.motolauncher.data.AppRepository
-import de.codevoid.motolauncher.data.FavoritesStore
 
 // Route DPAD_CENTER / ENTER through performClick() on ACTION_UP without arming the
 // framework's long-press timer. Touch long-press (setOnLongClickListener) still works;
@@ -71,18 +68,9 @@ class EscapeKeys(
 
     fun onKeyUp(keyCode: Int, event: KeyEvent): Boolean {
         if (keyCode != KeyEvent.KEYCODE_ESCAPE) return false
-        // Not tracking: the DOWN went to someone else (the press started before this
-        // window had focus). Canceled: the long press already fired for this press.
+        // Not tracking: the DOWN went to someone else, so this UP ends a press that was
+        // never ours (it started before this window had focus).
         if (event.isTracking && !event.isCanceled) onShortPress()
         return true
     }
-}
-
-// The remote's one action beyond launching a focused tile, and still only a launch:
-// holding ESC starts the app in the first favourite slot — the top-left home tile.
-// An empty slot, or one whose app has been uninstalled, is a silent no-op: there is
-// nothing worth showing someone riding with gloves on.
-fun Context.launchFirstFavorite() {
-    val component = FavoritesStore(this).getSlot(FavoritesStore.QUICK_LAUNCH_SLOT) ?: return
-    AppRepository(this).launchIfInstalled(component)
 }

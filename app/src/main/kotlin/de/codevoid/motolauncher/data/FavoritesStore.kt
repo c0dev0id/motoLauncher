@@ -28,9 +28,5 @@ class FavoritesStore(context: Context) {
         // Home grid is 4x3 = 12 cells; the last cell is the fixed "All Apps" tile,
         // leaving 11 configurable favorite slots.
         const val SLOT_COUNT = 11
-
-        // The top-left tile. Holding ESC on the remote launches whatever is in it, so
-        // the slot is named rather than spelled 0 at the call site.
-        const val QUICK_LAUNCH_SLOT = 0
     }
 }

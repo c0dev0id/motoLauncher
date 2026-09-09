@@ -99,7 +99,7 @@ Package layout under `de.codevoid.motolauncher`:
   once granted (API 31+ only). Header buttons use `Widget.MotoLauncher.HeaderButton`.
 - `data/AppRepository` — thin wrapper over `LauncherApps` (not `PackageManager`),
   iterating all `UserManager` profiles. `launch` → `startMainActivity` (and
-  `launchIfInstalled` for a stored component, which resolves first because
+  `launchIfInstalled` for a stored component, gated on `isActivityEnabled` because
   `startMainActivity` throws on one that no longer exists), `openInfo` →
   `startAppDetailsActivity`, `requestUninstall` → `ACTION_DELETE` hand-off to the system
   uninstaller. `loadApps` walks every profile and skips the launcher's own package;
@@ -132,7 +132,12 @@ Package layout under `de.codevoid.motolauncher`:
   Its three methods must all be wired from the activity: `onKeyDown` claiming the DOWN
   and calling `startTracking()` is what makes the framework deliver `onKeyLongPress`,
   and the short action runs on key-up precisely because a DOWN can still become a hold.
-  Whether a hold is reachable at all depends on the remote reporting a held key.
+  Whether a hold is reachable at all depends on the remote reporting a held key. The file
+  stays pure key plumbing — the action itself lives in `ui/QuickLaunch.kt`.
+- `ui/QuickLaunch.kt` — `Context.launchFirstFavorite()`: slot 0 out of `FavoritesStore`,
+  launched through `AppRepository.launchIfInstalled`. Shared by both activities so the
+  held-Escape gesture means one thing wherever the remote is; empty or uninstalled slot
+  is a silent no-op.
 - `ui/TouchOnlyRow` — a `LinearLayout` whose `addFocusables()` contributes nothing, so
   its children are invisible to dpad traversal but still take touch focus (an `EditText`
   inside it still opens the IME). `focusableInTouchMode` and
