@@ -49,10 +49,13 @@
 - **Wi-Fi via `NetworkCallback`, not `WifiManager.connectionInfo`.** Reading RSSI through
   `NetworkCapabilities.transportInfo` avoids `ACCESS_FINE_LOCATION`; only
   `ACCESS_WIFI_STATE` + `ACCESS_NETWORK_STATE` are needed.
-- **Back button via `focusableInTouchMode`.** The `AppList` and `Settings` activities gain
-  a visible back button now that the Android nav bar is gone. Marking it
-  `focusableInTouchMode` reuses the same pattern the search box uses: touch users tap it,
-  dpad users skip it and rely on Escape — no custom key handling.
+- **Back button uses `focusable="false"`, not `focusableInTouchMode`.** The `AppList` and
+  `Settings` activities gain a visible back button now that the Android nav bar is gone.
+  `focusableInTouchMode` was tried first (to mirror the search box), but on an
+  `ImageButton` the first tap only acquired focus — the click needed a second tap.
+  `View.performClick` doesn't require focus, so `focusable="false"` is the right knob:
+  dpad skips it, touch activates on the first tap, Escape still finishes the activity for
+  remote users.
 
 ## Core Features
 
