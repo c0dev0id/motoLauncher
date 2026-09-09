@@ -13,17 +13,29 @@ layout built for exactly those conditions.
 ## Features
 
 - **Favorites grid.** A fixed grid of large tiles for the apps you use most.
-  Tap a tile to launch its app; long-press to open that app's system settings.
+  Tap a tile to launch its app. Touch long-press opens a large action menu with
+  App info, Uninstall, and Reassign app.
 - **All apps.** A dedicated tile opens the full list of installed apps, with a
-  search field to narrow it down quickly.
+  touch-only search field plus touch-only theme, update, and cellular-indicator
+  controls in the header.
 - **Remote friendly.** The home screen and app list can be navigated entirely
-  with the remote's direction pad and Enter key — no touch required to launch an
-  app. There are no swipe gestures anywhere in normal use.
+  with the remote's direction pad, Enter, and Escape. Only app launching is
+  remote-accessible; touch-only controls are intentionally excluded from dpad
+  focus. There are no swipe gestures anywhere in normal use.
 - **Configuration.** Assign, change, or clear the apps in your favorite tiles
-  from a settings screen, reachable from the home screen at any time.
+  in place. Empty "+" tiles and the Reassign action open the picker directly for
+  that slot; there is no separate settings screen.
 - **Updates.** Check for and install a newer version on demand. Because the
   device is usually offline, updates are only ever checked when you ask.
+- **Status bar.** The home screen includes a launcher-owned top bar with time,
+  Wi-Fi, cellular, and battery indicators.
 
 ## Layout
 
 motoLauncher is built for landscape orientation on a 1920x1080, 7-inch screen.
+It runs in immersive mode so the launcher owns the full screen.
+
+## Screenshots
+
+The repository's `/screenshots` directory currently contains no screenshot
+assets to embed here yet.
