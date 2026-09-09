@@ -7,6 +7,6 @@ class MotoLauncherApp : Application() {
     override fun onCreate() {
         super.onCreate()
         // Re-apply the saved theme before any activity is created so the choice survives restarts.
-        ThemeStore(this).apply()
+        ThemeStore(this).applyNightMode()
     }
 }

@@ -11,14 +11,12 @@ class ThemeStore(context: Context) {
         get() = prefs.getBoolean(KEY_DARK, true)
         set(value) {
             prefs.edit().putBoolean(KEY_DARK, value).apply()
-            apply(value)
+            applyNightMode()
         }
 
-    fun apply() = apply(isDark)
-
-    private fun apply(dark: Boolean) {
+    fun applyNightMode() {
         AppCompatDelegate.setDefaultNightMode(
-            if (dark) AppCompatDelegate.MODE_NIGHT_YES else AppCompatDelegate.MODE_NIGHT_NO
+            if (isDark) AppCompatDelegate.MODE_NIGHT_YES else AppCompatDelegate.MODE_NIGHT_NO
         )
     }
 
