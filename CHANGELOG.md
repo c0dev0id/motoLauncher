@@ -15,8 +15,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - All-apps screen: scrollable, remote-navigable grid of every installed app, with a
   touch search field to filter long lists.
 - Short tap / Enter launches an app; long press opens its system app-info screen.
-- Settings screen to assign favorites; tapping an assigned slot offers changing or
-  clearing it. Reached from home via Escape (remote) or a long-press on the "All Apps"
+- Settings screen to assign favorites: tap a slot to pick or change its app, long-press
+  to clear it. Reached from home via Escape (remote) or a long-press on the "All Apps"
   tile (touch), so it stays accessible even when every slot is filled.
 - User-triggered update check against the repository's `dev` nightly pre-release, with
   download and hand-off to the system installer (no automatic polling — the device is

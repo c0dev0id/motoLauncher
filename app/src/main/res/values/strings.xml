@@ -6,8 +6,6 @@
     <string name="search_hint">Search apps…</string>
     <string name="empty_slot">Empty</string>
     <string name="add_favorite">Add favorite</string>
-    <string name="change_favorite">Change app</string>
-    <string name="clear_favorite">Clear favorite</string>
     <string name="cancel">Cancel</string>
     <string name="check_for_updates">Check for updates</string>
     <string name="checking_updates">Checking for updates…</string>
