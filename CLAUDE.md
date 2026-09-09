@@ -76,8 +76,14 @@ Package layout under `de.codevoid.motolauncher`:
   the cold-start "third row cut off" first-frame race. Touch long-press on an assigned
   tile calls `showTileActionsDialog`; "Reassign app" and empty "+" tiles start the app
   list in pick mode for that slot. Back is swallowed; Escape is not handled at all. A
-  `StatusBarView` sits above the grid.
-- `AppListActivity` — full app list in a `RecyclerView` + `GridLayoutManager`. Also runs
+  `StatusBarView` sits above the grid. Two consequences of reusing the same 12 views:
+  remote focus is seeded on tile 0 *once* in `onCreate` (Android keeps the focused view
+  across rebinds and app switches — re-seeding in `onResume` would drag the remote back
+  to the first tile after every launch), and `bindTile` must null the long-click listener
+  and drop `isLongClickable` for a tile that has no long-press, or the framework keeps
+  arming the timer from the tile's previous binding.
+- `AppListActivity` — full app list in a `RecyclerView` + `GridLayoutManager` (5
+  columns; focus is seeded on the first cell once the load resolves). Also runs
   in "pick mode" (`AppListActivity.pickIntent(context, slot)`): a leading "None" tile
   clears the slot, any app tile is written to that `FavoritesStore` slot, and the
   activity finishes; callers rebuild in `onResume`, so there is no result contract. Loads apps on `Dispatchers.IO`, filters with
@@ -90,9 +96,10 @@ Package layout under `de.codevoid.motolauncher`:
 - `data/AppRepository` — thin wrapper over `LauncherApps` (not `PackageManager`),
   iterating all `UserManager` profiles. `launch` → `startMainActivity`, `openInfo` →
   `startAppDetailsActivity`, `requestUninstall` → `ACTION_DELETE` hand-off to the system
-  uninstaller. `loadByComponents` resolves only the favorites' components
+  uninstaller. `loadApps` walks every profile and skips the launcher's own package;
+  `loadByComponents` resolves only the favorites' components
   so Home never enumerates or rasterizes every installed app. `sortApps` / `filterApps`
-  are pure companion functions — that's the unit-tested surface.
+  are pure companion functions, deliberately free of `Context`.
 - `data/FavoritesStore` — `SLOT_COUNT` = 11 slots in `SharedPreferences` (`favorites`)
   as `slot_<i>` → flattened `ComponentName`.
 - `data/ThemeStore` — dark/light in `SharedPreferences` (`settings`), default dark;
@@ -136,6 +143,22 @@ Package layout under `de.codevoid.motolauncher`:
   `NetworkCapabilities.transportInfo` to avoid needing location permission. Uses the
   bundled Michroma font (`res/font/michroma.ttf`, OFL — see `MICHROMA-LICENSE.txt`).
 
+## Resources & styling
+
+- The palette lives in `values/colors.xml` (light) with dark overrides in
+  `values-night/colors.xml`; a colour that is the same in both modes is defined once, in
+  the light file. Layouts reference tokens (`background`, `surface`, `tile_default`,
+  `tile_focused`, `tile_pressed`, `on_surface`, `on_surface_muted`), never literals — the
+  theme toggle works purely by resource qualifier, with no colour logic in code. Same for
+  system-bar icon polarity: `@bool/light_system_bars`.
+- **A dotted style name that is meant to be a root must set `parent=""`.** AAPT reads
+  `Widget.MotoLauncher.DialogAction` as inheriting from a `Widget.MotoLauncher` style that
+  doesn't exist and fails resource linking — a CI-only failure, so it costs a full round
+  trip. `Widget.MotoLauncher.HeaderButton` (parent `Widget.Material3.Button`) and
+  `Widget.MotoLauncher.DialogAction` (`parent=""`) are the two shapes in use.
+- Glove sizing is stated in styles, not per view: 56dp minimum height for header buttons,
+  72dp rows in the tile menu, 480dp minimum dialog width.
+
 The manifest scopes package visibility to `MAIN`/`LAUNCHER` `<queries>` rather than
 requesting `QUERY_ALL_PACKAGES` — the launcher-appropriate approach. Keep it that way.
 Permissions in use: `INTERNET`, `REQUEST_INSTALL_PACKAGES`, `ACCESS_WIFI_STATE`,
@@ -147,13 +170,22 @@ Permissions in use: `INTERNET`, `REQUEST_INSTALL_PACKAGES`, `ACCESS_WIFI_STATE`,
 platform and the firewall blocks AGP — do not work around this. All builds run in CI.
 Correctness depends on careful API use and reading before writing.
 
-CI (`.github/workflows/build.yml`) runs **only on push to `main`** — a feature branch
-gets no CI until it is merged. Three parallel jobs plus a follow-up release step:
+CI (`.github/workflows/build.yml`) runs **only on push to `main`** — there is no
+`workflow_dispatch`, so a feature branch cannot be built on demand and gets no CI until
+it is merged. Everything before a merge is verified by reading. Three parallel jobs plus a follow-up release step:
 
 - `./gradlew lint`
 - `./gradlew testDebugUnitTest` — JUnit4 + Robolectric JVM unit tests in
-  `app/src/test/kotlin`. Single test:
+  `app/src/test/kotlin` (`isIncludeAndroidResources = true`, so real resources and view
+  inflation work). Single test:
   `./gradlew testDebugUnitTest --tests "de.codevoid.motolauncher.AppRepositoryTest.sortsCaseInsensitively"`
+  Four classes, and the shape they set: `AppRepositoryTest` (the pure `sortApps` /
+  `filterApps`), `FavoritesStoreTest` (slot round-trip against real `SharedPreferences`),
+  `UpdateCheckerTest` (`parseRelease` / `isNewer` / `deleteInstalledUpdate` over JSON
+  fixtures and temp files), `TileActionsDialogTest` (inflates the dialog through the
+  handle `showTileActionsDialog` returns: row order, one callback per row, dismissal).
+  Write new behaviour so it lands in that surface — a pure function, a store, or
+  something a Robolectric activity can reach. No device is ever available to check it.
 - `./gradlew assembleRelease -PappVersionName=dev-<sha> -PappVersionCode=<run>` —
   minified + shrunk, signed via the `SIGNING_KEYSTORE_*` / `SIGNING_KEY_*` env vars
   (already configured on the repo; do not add or commit signing material). Without
