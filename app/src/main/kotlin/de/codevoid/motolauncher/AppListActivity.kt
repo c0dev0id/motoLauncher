@@ -7,17 +7,23 @@ import android.os.Bundle
 import android.text.Editable
 import android.text.TextWatcher
 import android.view.KeyEvent
+import android.view.View
+import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
 import androidx.lifecycle.lifecycleScope
 import androidx.recyclerview.widget.GridLayoutManager
 import de.codevoid.motolauncher.data.AppEntry
 import de.codevoid.motolauncher.data.AppRepository
 import de.codevoid.motolauncher.data.FavoritesStore
+import de.codevoid.motolauncher.data.ThemeStore
 import de.codevoid.motolauncher.databinding.ActivityAppListBinding
 import de.codevoid.motolauncher.ui.AppTileAdapter
 import de.codevoid.motolauncher.ui.TileItem
 import de.codevoid.motolauncher.ui.enableImmersiveMode
 import de.codevoid.motolauncher.ui.finishOnEscape
+import de.codevoid.motolauncher.ui.showImmersive
+import de.codevoid.motolauncher.update.ReleaseInfo
+import de.codevoid.motolauncher.update.UpdateChecker
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
@@ -26,8 +32,11 @@ class AppListActivity : AppCompatActivity() {
 
     private lateinit var binding: ActivityAppListBinding
     private lateinit var repository: AppRepository
+    private lateinit var themeStore: ThemeStore
+    private lateinit var updateChecker: UpdateChecker
     private val adapter = AppTileAdapter(emptyList())
     private var allApps: List<AppEntry> = emptyList()
+
     // >= 0: pick mode — the chosen app is written to that favourite slot and the
     // activity finishes. NO_SLOT: browse mode — tap launches, long-press opens app info.
     private val pickSlot by lazy { intent.getIntExtra(EXTRA_PICK_SLOT, NO_SLOT) }
@@ -40,6 +49,8 @@ class AppListActivity : AppCompatActivity() {
         window.enableImmersiveMode()
 
         repository = AppRepository(this)
+        themeStore = ThemeStore(this)
+        updateChecker = UpdateChecker(this)
 
         binding.backButton.setOnClickListener { finish() }
 
@@ -54,6 +65,18 @@ class AppListActivity : AppCompatActivity() {
             override fun beforeTextChanged(s: CharSequence?, a: Int, b: Int, c: Int) {}
             override fun onTextChanged(s: CharSequence?, a: Int, b: Int, c: Int) {}
         })
+
+        // Label shows the active theme; tapping flips it, which recreates the activity so
+        // the label refreshes on the way back in.
+        binding.themeButton.setText(if (themeStore.isDark) R.string.theme_dark else R.string.theme_light)
+        binding.themeButton.setOnClickListener { themeStore.isDark = !themeStore.isDark }
+        binding.checkUpdateButton.setOnClickListener { checkForUpdates() }
+
+        // The picker is a single-purpose screen: no configuration controls while choosing.
+        if (pickMode) {
+            binding.themeButton.visibility = View.GONE
+            binding.checkUpdateButton.visibility = View.GONE
+        }
 
         lifecycleScope.launch {
             allApps = withContext(Dispatchers.IO) { repository.loadApps() }
@@ -91,6 +114,67 @@ class AppListActivity : AppCompatActivity() {
         } else {
             repository.launch(component)
         }
+    }
+
+    // Progress shows on the button itself; outcomes are dialogs, so the header row
+    // never needs a status line.
+    private fun checkForUpdates() {
+        setUpdateBusy(R.string.checking_updates)
+        lifecycleScope.launch {
+            try {
+                val release = updateChecker.check()
+                if (release == null) showMessage(getString(R.string.update_none)) else promptInstall(release)
+            } catch (e: Exception) {
+                showUpdateError(e)
+            } finally {
+                setUpdateIdle()
+            }
+        }
+    }
+
+    private fun promptInstall(release: ReleaseInfo) {
+        AlertDialog.Builder(this, R.style.Theme_MotoLauncher_Dialog)
+            .setTitle(getString(R.string.update_available, release.versionName))
+            .setPositiveButton(R.string.update_download) { _, _ -> downloadAndInstall(release) }
+            .setNegativeButton(R.string.cancel, null)
+            .create()
+            .showImmersive()
+    }
+
+    private fun downloadAndInstall(release: ReleaseInfo) {
+        setUpdateBusy(R.string.downloading)
+        lifecycleScope.launch {
+            try {
+                val file = updateChecker.download(release)
+                startActivity(updateChecker.installIntent(file))
+            } catch (e: Exception) {
+                showUpdateError(e)
+            } finally {
+                setUpdateIdle()
+            }
+        }
+    }
+
+    private fun setUpdateBusy(labelRes: Int) {
+        binding.checkUpdateButton.isEnabled = false
+        binding.checkUpdateButton.setText(labelRes)
+    }
+
+    private fun setUpdateIdle() {
+        binding.checkUpdateButton.isEnabled = true
+        binding.checkUpdateButton.setText(R.string.check_for_updates)
+    }
+
+    private fun showUpdateError(e: Exception) {
+        showMessage(getString(R.string.update_failed, e.message ?: e.javaClass.simpleName))
+    }
+
+    private fun showMessage(text: String) {
+        AlertDialog.Builder(this, R.style.Theme_MotoLauncher_Dialog)
+            .setMessage(text)
+            .setPositiveButton(android.R.string.ok, null)
+            .create()
+            .showImmersive()
     }
 
     override fun onWindowFocusChanged(hasFocus: Boolean) {
