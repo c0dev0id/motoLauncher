@@ -7,31 +7,22 @@ import android.os.Bundle
 import android.view.KeyEvent
 import android.view.View
 import androidx.activity.result.contract.ActivityResultContracts.RequestPermission
-import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.content.ContextCompat
-import androidx.lifecycle.lifecycleScope
 import androidx.recyclerview.widget.GridLayoutManager
 import de.codevoid.motolauncher.data.AppRepository
 import de.codevoid.motolauncher.data.FavoritesStore
-import de.codevoid.motolauncher.data.ThemeStore
 import de.codevoid.motolauncher.databinding.ActivitySettingsBinding
 import de.codevoid.motolauncher.ui.AppTileAdapter
 import de.codevoid.motolauncher.ui.TileItem
 import de.codevoid.motolauncher.ui.enableImmersiveMode
 import de.codevoid.motolauncher.ui.finishOnEscape
-import de.codevoid.motolauncher.ui.showImmersive
-import de.codevoid.motolauncher.update.ReleaseInfo
-import de.codevoid.motolauncher.update.UpdateChecker
-import kotlinx.coroutines.launch
 
 class SettingsActivity : AppCompatActivity() {
 
     private lateinit var binding: ActivitySettingsBinding
     private lateinit var favorites: FavoritesStore
     private lateinit var repository: AppRepository
-    private lateinit var updateChecker: UpdateChecker
-    private lateinit var themeStore: ThemeStore
     private val adapter = AppTileAdapter(emptyList())
 
     private val cellularPermissionLauncher =
@@ -47,18 +38,9 @@ class SettingsActivity : AppCompatActivity() {
 
         favorites = FavoritesStore(this)
         repository = AppRepository(this)
-        updateChecker = UpdateChecker(this)
-        themeStore = ThemeStore(this)
 
         binding.slotGrid.layoutManager = GridLayoutManager(this, COLUMNS)
         binding.slotGrid.adapter = adapter
-
-        binding.checkUpdateButton.setOnClickListener { checkForUpdates() }
-
-        // Label shows the active theme; tapping flips it, which recreates the activity so
-        // the label refreshes on the way back in.
-        binding.themeButton.setText(if (themeStore.isDark) R.string.theme_dark else R.string.theme_light)
-        binding.themeButton.setOnClickListener { themeStore.isDark = !themeStore.isDark }
 
         binding.enableCellularButton.setOnClickListener {
             cellularPermissionLauncher.launch(Manifest.permission.READ_PHONE_STATE)
@@ -106,53 +88,6 @@ class SettingsActivity : AppCompatActivity() {
 
     private fun pickForSlot(index: Int) {
         startActivity(AppListActivity.pickIntent(this, index))
-    }
-
-    private fun checkForUpdates() {
-        binding.updateStatus.visibility = View.VISIBLE
-        binding.updateStatus.text = getString(R.string.checking_updates)
-        binding.checkUpdateButton.isEnabled = false
-        lifecycleScope.launch {
-            try {
-                val release = updateChecker.check()
-                if (release == null) {
-                    binding.updateStatus.text = getString(R.string.update_none)
-                } else {
-                    promptInstall(release)
-                }
-            } catch (e: Exception) {
-                showUpdateError(e)
-            } finally {
-                binding.checkUpdateButton.isEnabled = true
-            }
-        }
-    }
-
-    private fun promptInstall(release: ReleaseInfo) {
-        binding.updateStatus.text = getString(R.string.update_available, release.versionName)
-        AlertDialog.Builder(this)
-            .setTitle(getString(R.string.update_available, release.versionName))
-            .setPositiveButton(R.string.update_download) { _, _ -> downloadAndInstall(release) }
-            .setNegativeButton(R.string.cancel, null)
-            .create()
-            .showImmersive()
-    }
-
-    private fun downloadAndInstall(release: ReleaseInfo) {
-        binding.updateStatus.text = getString(R.string.downloading)
-        lifecycleScope.launch {
-            try {
-                val file = updateChecker.download(release)
-                startActivity(updateChecker.installIntent(file))
-            } catch (e: Exception) {
-                showUpdateError(e)
-            }
-        }
-    }
-
-    private fun showUpdateError(e: Exception) {
-        binding.updateStatus.text =
-            getString(R.string.update_failed, e.message ?: e.javaClass.simpleName)
     }
 
     override fun onWindowFocusChanged(hasFocus: Boolean) {

@@ -39,6 +39,21 @@
             android:textColorHint="@color/on_surface_muted"
             android:textSize="20sp"
             android:importantForAutofill="no" />
+
+        <Button
+            android:id="@+id/themeButton"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="8dp"
+            android:minHeight="56dp" />
+
+        <Button
+            android:id="@+id/checkUpdateButton"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="8dp"
+            android:minHeight="56dp"
+            android:text="@string/check_for_updates" />
     </de.codevoid.motolauncher.ui.TouchOnlyRow>
 
     <androidx.recyclerview.widget.RecyclerView
