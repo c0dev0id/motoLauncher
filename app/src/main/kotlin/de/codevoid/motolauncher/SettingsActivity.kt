@@ -64,8 +64,8 @@ class SettingsActivity : AppCompatActivity() {
                 TileItem(
                     label = entry.label,
                     icon = entry.icon,
-                    onClick = { pickForSlot(index) },
-                    onLongClick = { favorites.clearSlot(index); renderSlots(); true },
+                    onClick = { showSlotOptions(index, entry.label) },
+                    onLongClick = { showSlotOptions(index, entry.label); true },
                 )
             } else {
                 TileItem(
@@ -76,6 +76,21 @@ class SettingsActivity : AppCompatActivity() {
             }
         }
         adapter.submit(tiles)
+    }
+
+    private fun showSlotOptions(index: Int, label: String) {
+        AlertDialog.Builder(this)
+            .setTitle(label)
+            .setItems(
+                arrayOf(getString(R.string.change_favorite), getString(R.string.clear_favorite))
+            ) { _, which ->
+                when (which) {
+                    0 -> pickForSlot(index)
+                    1 -> { favorites.clearSlot(index); renderSlots() }
+                }
+            }
+            .setNegativeButton(R.string.cancel, null)
+            .show()
     }
 
     private fun pickForSlot(index: Int) {
