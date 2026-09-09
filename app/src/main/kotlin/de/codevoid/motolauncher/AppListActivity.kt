@@ -37,7 +37,7 @@ class AppListActivity : AppCompatActivity() {
         super.onCreate(savedInstanceState)
         binding = ActivityAppListBinding.inflate(layoutInflater)
         setContentView(binding.root)
-        enableImmersiveMode()
+        window.enableImmersiveMode()
 
         repository = AppRepository(this)
 
@@ -95,7 +95,7 @@ class AppListActivity : AppCompatActivity() {
 
     override fun onWindowFocusChanged(hasFocus: Boolean) {
         super.onWindowFocusChanged(hasFocus)
-        if (hasFocus) enableImmersiveMode()
+        if (hasFocus) window.enableImmersiveMode()
     }
 
     override fun onKeyDown(keyCode: Int, event: KeyEvent): Boolean =

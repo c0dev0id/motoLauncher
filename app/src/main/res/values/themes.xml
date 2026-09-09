@@ -10,4 +10,15 @@
         <item name="colorOnPrimary">@color/on_surface</item>
         <item name="android:colorBackground">@color/background</item>
     </style>
+
+    <!-- Dialog chrome lives here, not in code, so every dialog the app shows gets the
+         launcher palette and a glove-sized minimum width. -->
+    <style name="Theme.MotoLauncher.Dialog" parent="Theme.Material3.DayNight.Dialog">
+        <item name="android:windowBackground">@drawable/dialog_background</item>
+        <item name="android:windowMinWidthMajor">480dp</item>
+        <item name="android:windowMinWidthMinor">480dp</item>
+        <item name="android:colorBackground">@color/background</item>
+        <item name="colorPrimary">@color/tile_focused</item>
+        <item name="colorOnPrimary">@color/on_surface</item>
+    </style>
 </resources>

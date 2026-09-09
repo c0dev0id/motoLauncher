@@ -7,36 +7,30 @@ import de.codevoid.motolauncher.R
 import de.codevoid.motolauncher.data.AppEntry
 import de.codevoid.motolauncher.databinding.DialogTileActionsBinding
 
-// Touch long-press menu for an assigned home tile. Built on a plain Dialog rather than
-// AlertDialog so the surface uses the launcher's own palette and tile-style buttons
-// instead of the Material3 dialog theme. Back / Escape dismiss it without choosing.
-object TileActionsDialog {
+// Touch long-press menu for an assigned home tile. A plain Dialog on the app's own
+// dialog theme rather than an AlertDialog, so the surface keeps the launcher palette and
+// tile-style buttons instead of the Material3 dialog look. Back / Escape dismiss it
+// without choosing. Returns the shown dialog (tests use the handle).
+fun showTileActionsDialog(
+    context: Context,
+    entry: AppEntry,
+    onReassign: () -> Unit,
+    onAppInfo: () -> Unit,
+): Dialog {
+    val binding = DialogTileActionsBinding.inflate(LayoutInflater.from(context))
+    binding.appIcon.setImageDrawable(entry.icon)
+    binding.appLabel.text = entry.label
 
-    fun create(
-        context: Context,
-        entry: AppEntry,
-        onReassign: () -> Unit,
-        onAppInfo: () -> Unit,
-    ): Dialog {
-        val binding = DialogTileActionsBinding.inflate(LayoutInflater.from(context))
-        binding.appIcon.setImageDrawable(entry.icon)
-        binding.appLabel.text = entry.label
-
-        val dialog = Dialog(context)
-        dialog.setContentView(binding.root)
-        dialog.window?.apply {
-            setBackgroundDrawableResource(R.drawable.dialog_background)
-            enableImmersiveMode()
-        }
-
-        binding.actionReassign.setOnClickListener {
-            dialog.dismiss()
-            onReassign()
-        }
-        binding.actionAppInfo.setOnClickListener {
-            dialog.dismiss()
-            onAppInfo()
-        }
-        return dialog
+    val dialog = Dialog(context, R.style.Theme_MotoLauncher_Dialog)
+    dialog.setContentView(binding.root)
+    binding.actionReassign.setOnClickListener {
+        dialog.dismiss()
+        onReassign()
     }
+    binding.actionAppInfo.setOnClickListener {
+        dialog.dismiss()
+        onAppInfo()
+    }
+    dialog.showImmersive()
+    return dialog
 }

@@ -20,6 +20,7 @@ import de.codevoid.motolauncher.ui.AppTileAdapter
 import de.codevoid.motolauncher.ui.TileItem
 import de.codevoid.motolauncher.ui.enableImmersiveMode
 import de.codevoid.motolauncher.ui.finishOnEscape
+import de.codevoid.motolauncher.ui.showImmersive
 import de.codevoid.motolauncher.update.ReleaseInfo
 import de.codevoid.motolauncher.update.UpdateChecker
 import kotlinx.coroutines.launch
@@ -40,7 +41,7 @@ class SettingsActivity : AppCompatActivity() {
         super.onCreate(savedInstanceState)
         binding = ActivitySettingsBinding.inflate(layoutInflater)
         setContentView(binding.root)
-        enableImmersiveMode()
+        window.enableImmersiveMode()
 
         binding.backButton.setOnClickListener { finish() }
 
@@ -133,7 +134,8 @@ class SettingsActivity : AppCompatActivity() {
             .setTitle(getString(R.string.update_available, release.versionName))
             .setPositiveButton(R.string.update_download) { _, _ -> downloadAndInstall(release) }
             .setNegativeButton(R.string.cancel, null)
-            .show()
+            .create()
+            .showImmersive()
     }
 
     private fun downloadAndInstall(release: ReleaseInfo) {
@@ -155,7 +157,7 @@ class SettingsActivity : AppCompatActivity() {
 
     override fun onWindowFocusChanged(hasFocus: Boolean) {
         super.onWindowFocusChanged(hasFocus)
-        if (hasFocus) enableImmersiveMode()
+        if (hasFocus) window.enableImmersiveMode()
     }
 
     override fun onKeyDown(keyCode: Int, event: KeyEvent): Boolean =
