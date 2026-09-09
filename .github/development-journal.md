@@ -19,9 +19,18 @@
   focus highlighting, and keeps the APK small — a better fit than Compose here.
 - **`LauncherApps` (not `PackageManager`).** The launcher-appropriate API for enumerating,
   launching (`startMainActivity`), and opening app info (`startAppDetailsActivity`).
-- **Search is touch-only by design.** The `EditText` is `focusableInTouchMode`, so the
-  remote's dpad skips it — satisfying "app list is remote-navigable, search is not" with
-  no custom key handling.
+- **Touch-only controls are hidden from dpad via a `TouchOnlyRow` container.** The
+  search field, back button, theme and update buttons in the settings header, and every
+  keyboard-only affordance in general must not be dpad-reachable — a rider on the road
+  can't type or navigate away from a screen without a keyboard. Earlier attempts using
+  `focusableInTouchMode` on the `EditText` did not achieve this: an EditText with
+  `focusableInTouchMode=true` is also `focusable=true`, and the FocusFinder's dpad path
+  ignores the touch-mode flag, so the search field remained a valid dpad target.
+  `descendantFocusability="blocksDescendants"` on the container blocks touch focus as
+  well (View.requestFocus checks the ancestor chain for that flag) — so the EditText
+  would stop opening the IME on tap. `TouchOnlyRow` overrides `addFocusables()` to
+  contribute nothing to the focus finder; touch focus keeps working because
+  `View.requestFocus()` never consults `addFocusables`.
 - **Shared `AppTileAdapter` + `TileItem` for scrollable lists.** The all-apps and settings
   screens compose a `List<TileItem>` (apps, "All Apps", empty slots); the adapter stays
   dumb. Home doesn't use it — see the next entry.
@@ -57,13 +66,23 @@
 - **Wi-Fi via `NetworkCallback`, not `WifiManager.connectionInfo`.** Reading RSSI through
   `NetworkCapabilities.transportInfo` avoids `ACCESS_FINE_LOCATION`; only
   `ACCESS_WIFI_STATE` + `ACCESS_NETWORK_STATE` are needed.
-- **Back button uses `focusable="false"`, not `focusableInTouchMode`.** The `AppList` and
-  `Settings` activities gain a visible back button now that the Android nav bar is gone.
-  `focusableInTouchMode` was tried first (to mirror the search box), but on an
-  `ImageButton` the first tap only acquired focus — the click needed a second tap.
-  `View.performClick` doesn't require focus, so `focusable="false"` is the right knob:
-  dpad skips it, touch activates on the first tap, Escape still finishes the activity for
-  remote users.
+- **Back button uses `focusable="false"`.** The `AppList` and `Settings` activities gain
+  a visible back button now that the Android nav bar is gone. `focusableInTouchMode` was
+  tried first, but on an `ImageButton` the first tap only acquired focus — the click
+  needed a second tap. `View.performClick` doesn't require focus, so `focusable="false"`
+  is the right knob: touch activates on the first tap, Escape still finishes the
+  activity for remote users (the surrounding `TouchOnlyRow` already keeps dpad away).
+- **Key-driven long-press is blocked; touch long-press is not.** Long-press opens app
+  info / the settings picker — both touch-only destinations a rider can't back out of
+  without touching the screen. `View.blockKeyLongPress()` sets an `OnKeyListener` on
+  each home tile and each AppList cell that routes DPAD_CENTER / ENTER through
+  `performClick()` on ACTION_UP and never arms the framework's key long-press timer.
+  `setOnLongClickListener` is untouched, so tapping and holding a tile still works.
+- **Escape on Home does nothing; Settings is reached via empty slots.** Home is the
+  launcher root — there is nothing for "back" to go to. Once every favourite slot is
+  filled a remote-only user has no route into Settings, but that is intentional: the
+  device is on a motorbike, configuration is a touch-only workflow. On first-time setup
+  the empty "+" tiles route to Settings, which is enough to bootstrap.
 
 ## Core Features
 

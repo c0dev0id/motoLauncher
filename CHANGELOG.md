@@ -40,3 +40,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Home grid no longer shows the bottom row cut off for the first frame on cold start.
 - The home status bar's battery icon now shows a fill level that tracks the percentage
   (five buckets) and gains a lightning-bolt overlay while a charger is connected.
+- The dpad can no longer land on the app-list search field or the back / theme / update
+  buttons in the header rows — those controls are touch-only. Touch focus and text entry
+  in the search field still work as before.
+- Holding Enter (or the handlebar remote's centre button) on a home tile or app-list
+  cell no longer triggers a long-press, so keyboard users can't accidentally reach the
+  app-info screen or the settings picker from which the remote has no way back.
+  Long-pressing a tile with a finger still works.
+- Escape on the home screen no longer opens Settings. Configuration is a touch-only
+  workflow reached by tapping the empty "+" tiles on first-time setup, or by
+  long-pressing "All Apps" once every slot is filled. Escape from All Apps and Settings
+  still returns to the home screen.
