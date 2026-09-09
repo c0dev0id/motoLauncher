@@ -124,6 +124,11 @@
 - **Header controls: one container, one style.** The All Apps header's config buttons
   sit in a `headerConfig` group toggled once for pick mode, and share
   `Widget.MotoLauncher.HeaderButton` so the 56dp glove target is stated once.
+- **Dotted style names that are roots must set `parent=""`.** Android treats
+  `Widget.MotoLauncher.Foo` as inheriting from `Widget.MotoLauncher` unless an explicit
+  parent is given. `Widget.MotoLauncher.DialogAction` is intentionally a root style for
+  the tile-action rows, so it must opt out with `parent=""` or AAPT fails resource
+  linking looking for a non-existent `Widget.MotoLauncher` base style.
 
 ## Core Features
 
