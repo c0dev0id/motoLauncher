@@ -120,7 +120,7 @@ class HomeActivity : AppCompatActivity() {
             icon = null,
             iconRes = R.drawable.ic_all_apps,
             onClick = { startActivity(Intent(this, AppListActivity::class.java)) },
-            onLongClick = { openSettings(); true },
+            onLongClick = { false },
         )
 
         tiles[0].root.post { tiles[0].root.requestFocus() }
@@ -147,10 +147,6 @@ class HomeActivity : AppCompatActivity() {
     // The picker writes the slot itself; onResume rebuilds the grid on return.
     private fun pickForSlot(slot: Int) {
         startActivity(AppListActivity.pickIntent(this, slot))
-    }
-
-    private fun openSettings() {
-        startActivity(Intent(this, SettingsActivity::class.java))
     }
 
     companion object {

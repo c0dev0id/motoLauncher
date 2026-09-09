@@ -2,10 +2,8 @@
 <resources>
     <string name="app_name">motoLauncher</string>
     <string name="all_apps">All Apps / Config</string>
-    <string name="settings_title">Configure Favorites</string>
     <string name="search_hint">Search apps…</string>
     <string name="empty_slot">Empty</string>
-    <string name="add_favorite">Add favorite</string>
     <string name="tile_action_reassign">Reassign app</string>
     <string name="tile_action_app_info">App info</string>
     <string name="cancel">Cancel</string>
