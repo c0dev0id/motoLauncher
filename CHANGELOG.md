@@ -32,6 +32,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Changed
 - The Android status bar and navigation bar are now hidden app-wide so the full screen
   is available for the launcher's own UI.
+- The custom home status bar now uses the Michroma display font, sits at larger sizes
+  (time 28sp, battery 24sp), and aligns its text with the favourites grid columns.
+  Michroma is bundled under the SIL Open Font License 1.1 — see `MICHROMA-LICENSE.txt`.
 
 ### Fixed
 - Home grid no longer shows the bottom row cut off for the first frame on cold start.
