@@ -28,7 +28,12 @@ class HomeActivity : AppCompatActivity() {
         favorites = FavoritesStore(this)
         repository = AppRepository(this)
 
-        binding.homeGrid.layoutManager = GridLayoutManager(this, COLUMNS)
+        // The home grid is a fixed layout that must stay put; disabling scrolling stops the
+        // overscroll stretch on swipes. Dpad focus traversal is unaffected.
+        binding.homeGrid.layoutManager = object : GridLayoutManager(this, COLUMNS) {
+            override fun canScrollVertically() = false
+            override fun canScrollHorizontally() = false
+        }
         binding.homeGrid.adapter = adapter
 
         // The grid already sits between the system bars, so size each row to its measured
