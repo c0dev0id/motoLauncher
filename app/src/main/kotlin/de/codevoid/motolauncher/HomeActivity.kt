@@ -119,7 +119,10 @@ class HomeActivity : AppCompatActivity() {
             onClick = { startActivity(Intent(this, AppListActivity::class.java)) },
         )
 
-        tiles[0].root.post { tiles[0].root.requestFocus() }
+        // Seed focus only when nothing holds it (first launch). The tile views are reused
+        // across rebinds, so coming back from an app keeps focus on the tile it was
+        // launched from instead of jumping to the top-left corner.
+        if (currentFocus == null) tiles[0].root.post { tiles[0].root.requestFocus() }
     }
 
     // Tiles are reused across rebinds, so a tile without a long-press must clear the
