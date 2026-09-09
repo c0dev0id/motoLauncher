@@ -27,8 +27,9 @@ class HomeActivity : AppCompatActivity() {
     private val tiles = ArrayList<ItemAppTileBinding>(COLUMNS * ROWS)
     private var pickingSlot = -1
 
-    // "Reassign app" from the tile menu opens the same picker Settings uses; the result
-    // lands directly in the long-pressed slot. onResume rebuilds the grid afterwards.
+    // Empty "+" tiles and "Reassign app" open the picker for that slot directly; the
+    // result lands in the slot and onResume rebuilds the grid. Settings (theme, update,
+    // cellular) is only reachable via long-press on "All Apps" and is slated for removal.
     private val pickLauncher = registerForActivityResult(StartActivityForResult()) { result ->
         val flat = result.data?.getStringExtra(AppListActivity.RESULT_COMPONENT)
         val component = flat?.let { ComponentName.unflattenFromString(it) }
@@ -115,8 +116,8 @@ class HomeActivity : AppCompatActivity() {
                     label = getString(R.string.empty_slot),
                     icon = null,
                     iconRes = R.drawable.ic_add,
-                    onClick = { openSettings() },
-                    onLongClick = { openSettings(); true },
+                    onClick = { pickForSlot(index) },
+                    onLongClick = { pickForSlot(index); true },
                 )
             }
         }
