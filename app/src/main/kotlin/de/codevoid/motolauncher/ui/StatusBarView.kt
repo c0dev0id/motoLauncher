@@ -115,7 +115,11 @@ class StatusBarView @JvmOverloads constructor(
         context.unregisterReceiver(timeReceiver)
         context.unregisterReceiver(batteryReceiver)
         connectivityManager.unregisterNetworkCallback(networkCallback)
-        signalCallback?.let { telephonyManager?.unregisterTelephonyCallback(it) }
+        // signalCallback is only ever set when SDK >= S (see registerCellular), but lint
+        // needs the explicit check because it doesn't cross-reference the two call sites.
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+            signalCallback?.let { telephonyManager?.unregisterTelephonyCallback(it) }
+        }
         signalCallback = null
     }
 
