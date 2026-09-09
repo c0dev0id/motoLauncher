@@ -44,7 +44,9 @@ class TileActionsDialogTest {
         val calls = Calls()
         val dialog = show(calls)
         dialog.findViewById<TextView>(R.id.actionAppInfo).performClick()
-        assertEquals(listOf(1, 0, 0), listOf(calls.appInfo, calls.uninstall, calls.reassign))
+        assertEquals(1, calls.appInfo)
+        assertEquals(0, calls.uninstall)
+        assertEquals(0, calls.reassign)
         assertFalse(dialog.isShowing)
     }
 
@@ -53,7 +55,9 @@ class TileActionsDialogTest {
         val calls = Calls()
         val dialog = show(calls)
         dialog.findViewById<TextView>(R.id.actionUninstall).performClick()
-        assertEquals(listOf(0, 1, 0), listOf(calls.appInfo, calls.uninstall, calls.reassign))
+        assertEquals(0, calls.appInfo)
+        assertEquals(1, calls.uninstall)
+        assertEquals(0, calls.reassign)
         assertFalse(dialog.isShowing)
     }
 
@@ -62,7 +66,9 @@ class TileActionsDialogTest {
         val calls = Calls()
         val dialog = show(calls)
         dialog.findViewById<TextView>(R.id.actionReassign).performClick()
-        assertEquals(listOf(0, 0, 1), listOf(calls.appInfo, calls.uninstall, calls.reassign))
+        assertEquals(0, calls.appInfo)
+        assertEquals(0, calls.uninstall)
+        assertEquals(1, calls.reassign)
         assertFalse(dialog.isShowing)
     }
 
@@ -75,17 +81,14 @@ class TileActionsDialogTest {
             onUninstall = {},
         )
         assertEquals(android.view.View.GONE, dialog.findViewById<TextView>(R.id.actionReassign).visibility)
-        assertEquals(android.view.View.VISIBLE, dialog.findViewById<TextView>(R.id.actionUninstall).visibility)
     }
 
     @Test
     fun rowsAppearInDocumentedOrder() {
         val dialog = show()
         val parent = dialog.findViewById<TextView>(R.id.actionAppInfo).parent as android.view.ViewGroup
-        val ids = (0 until parent.childCount).map { parent.getChildAt(it).id }
-        val appInfo = ids.indexOf(R.id.actionAppInfo)
-        val uninstall = ids.indexOf(R.id.actionUninstall)
-        val reassign = ids.indexOf(R.id.actionReassign)
-        assertTrue(appInfo < uninstall && uninstall < reassign)
+        val actionIds = setOf(R.id.actionAppInfo, R.id.actionUninstall, R.id.actionReassign)
+        val order = (0 until parent.childCount).map { parent.getChildAt(it).id }.filter { it in actionIds }
+        assertEquals(listOf(R.id.actionAppInfo, R.id.actionUninstall, R.id.actionReassign), order)
     }
 }

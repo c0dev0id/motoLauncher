@@ -42,4 +42,17 @@
         <item name="android:layout_marginStart">8dp</item>
         <item name="android:minHeight">56dp</item>
     </style>
+
+    <!-- One action row of the tile menu: a glove-sized tile-styled button. -->
+    <style name="Widget.MotoLauncher.DialogAction">
+        <item name="android:layout_width">match_parent</item>
+        <item name="android:layout_height">72dp</item>
+        <item name="android:layout_marginTop">12dp</item>
+        <item name="android:background">@drawable/tile_background</item>
+        <item name="android:gravity">center</item>
+        <item name="android:focusable">true</item>
+        <item name="android:clickable">true</item>
+        <item name="android:textColor">@color/on_surface</item>
+        <item name="android:textSize">22sp</item>
+    </style>
 </resources>

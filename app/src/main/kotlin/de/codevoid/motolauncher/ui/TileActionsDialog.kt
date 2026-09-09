@@ -12,8 +12,6 @@ import de.codevoid.motolauncher.databinding.DialogTileActionsBinding
 // the app's own dialog theme rather than an AlertDialog, so the surface keeps the
 // launcher palette and tile-style buttons instead of the Material3 dialog look. Back /
 // Escape dismiss it without choosing. Returns the shown dialog (tests use the handle).
-// onReassign is null where there is no slot to reassign (the app list); the row is
-// then left out.
 fun showTileActionsDialog(
     context: Context,
     entry: AppEntry,
@@ -35,13 +33,11 @@ fun showTileActionsDialog(
         dialog.dismiss()
         onUninstall()
     }
-    if (onReassign == null) {
-        binding.actionReassign.visibility = View.GONE
-    } else {
-        binding.actionReassign.setOnClickListener {
-            dialog.dismiss()
-            onReassign()
-        }
+    // No slot to reassign (the app list): drop the row.
+    if (onReassign == null) binding.actionReassign.visibility = View.GONE
+    binding.actionReassign.setOnClickListener {
+        dialog.dismiss()
+        onReassign?.invoke()
     }
     dialog.showImmersive()
     return dialog
