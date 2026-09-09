@@ -33,8 +33,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - The theme toggle and "Check for updates" button now live in the All Apps header, to
   the right of a shorter search field, and are hidden while picking an app for a slot.
   Update results (latest build, update available, failure) appear as dialogs instead of
-  a status line. The "Enable cellular indicator" button moved there too. The Configure
-  Favorites screen keeps only the slot grid.
+  a status line. The "Enable cellular indicator" button moved there too.
+
+### Removed
+- The Configure Favorites screen and the "All Apps" long-press that opened it. Slots are
+  assigned from the home grid; everything else is in the All Apps header.
 - Long-pressing an assigned favourite on the home screen now opens a tile-styled menu
   with two large buttons instead of jumping straight to the system app-info screen:
   **Reassign app** opens the app picker for that slot and stores the choice, **App info**

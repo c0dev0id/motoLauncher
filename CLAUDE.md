@@ -38,14 +38,13 @@ These drive nearly every UI decision — violating them defeats the point of the
   emits: dpad-left/right/up/down, Enter, Escape. Traversal is Android's native View
   focus engine, not custom key handling — keep it that way.
 - **The remote may only ever launch apps.** Everything that needs touch to get back out
-  of (app info, Settings, the search field, the back/theme/update buttons) is deliberately
+  of (app info, the search field, the back/theme/update/cellular buttons) is deliberately
   unreachable from the remote: touch-only controls sit in a `TouchOnlyRow`, key-driven
   long-press is blocked on every tile, and Escape on Home does nothing. Do not "fix" any
   of these by making them dpad-reachable. Configuration is a touch workflow: empty "+"
   tiles and "Reassign app" open the picker for that slot in place; theme toggle, update
-  check, and the cellular-permission ask live in the All Apps header; Settings (slot
-  overview only) is reached by long-pressing "All Apps" and is slated for removal —
-  don't grow it.
+  check, and the cellular-permission ask live in the All Apps header. There is no
+  settings screen — don't add one; put configuration where it is used.
 
 ## Required features
 
@@ -87,8 +86,6 @@ Package layout under `de.codevoid.motolauncher`:
   hides itself once granted (API 31+ only); all three are hidden in pick mode. Update
   progress shows on the button label, outcomes are `AlertDialog`s on
   `Theme.MotoLauncher.Dialog`.
-- `SettingsActivity` — slot grid only (tap to pick, long-press to clear). Slated for
-  removal.
 - `data/AppRepository` — thin wrapper over `LauncherApps` (not `PackageManager`),
   iterating all `UserManager` profiles. `launch` → `startMainActivity`, `openInfo` →
   `startAppDetailsActivity`. `loadByComponents` resolves only the favorites' components
@@ -105,12 +102,12 @@ Package layout under `de.codevoid.motolauncher`:
   Install is a hand-off: download to `cacheDir/updates/`, then `FileProvider` +
   `ACTION_VIEW` to the system installer.
 - `ui/AppTileAdapter` + `ui/TileItem` — the generic `RecyclerView` adapter used by the
-  app list and the Settings slot grid (not by Home). Callers compose a `List<TileItem>`;
+  app list (not by Home). Callers compose a `List<TileItem>`;
   the adapter stays dumb and calls `blockKeyLongPress()` once per view holder.
 - `ui/KeyInput.kt` — `View.blockKeyLongPress()` routes DPAD_CENTER/Enter through
   `performClick()` on key-up without arming the framework's long-press timer (touch
-  long-press still works). `Activity.finishOnEscape()` is how AppList and Settings map
-  Escape to `finish()`, since Android doesn't route Escape to the back dispatcher.
+  long-press still works). `Activity.finishOnEscape()` is how AppList maps Escape to
+  `finish()`, since Android doesn't route Escape to the back dispatcher.
 - `ui/TouchOnlyRow` — a `LinearLayout` whose `addFocusables()` contributes nothing, so
   its children are invisible to dpad traversal but still take touch focus (an `EditText`
   inside it still opens the IME). `focusableInTouchMode` and

@@ -20,7 +20,7 @@
 - **`LauncherApps` (not `PackageManager`).** The launcher-appropriate API for enumerating,
   launching (`startMainActivity`), and opening app info (`startAppDetailsActivity`).
 - **Touch-only controls are hidden from dpad via a `TouchOnlyRow` container.** The
-  search field, back button, theme and update buttons in the settings header, and every
+  search field, back button, theme / update / cellular buttons in the All Apps header, and every
   keyboard-only affordance in general must not be dpad-reachable — a rider on the road
   can't type or navigate away from a screen without a keyboard. Earlier attempts using
   `focusableInTouchMode` on the `EditText` did not achieve this: an EditText with
@@ -31,9 +31,9 @@
   would stop opening the IME on tap. `TouchOnlyRow` overrides `addFocusables()` to
   contribute nothing to the focus finder; touch focus keeps working because
   `View.requestFocus()` never consults `addFocusables`.
-- **Shared `AppTileAdapter` + `TileItem` for scrollable lists.** The all-apps and settings
-  screens compose a `List<TileItem>` (apps, "All Apps", empty slots); the adapter stays
-  dumb. Home doesn't use it — see the next entry.
+- **`AppTileAdapter` + `TileItem` for the scrollable app list.** The all-apps screen
+  composes a `List<TileItem>`; the adapter stays dumb. Home doesn't use it — see the
+  next entry.
 - **Home grid: weighted `LinearLayout`, not `RecyclerView`.** 12 tiles, always visible,
   never scrolling — the RecyclerView lifecycle is the wrong shape. The adapter binds
   before the parent's final size is known, so on cold start the first frame lays tiles
@@ -67,7 +67,7 @@
   `NetworkCapabilities.transportInfo` avoids `ACCESS_FINE_LOCATION`; only
   `ACCESS_WIFI_STATE` + `ACCESS_NETWORK_STATE` are needed.
 - **Key-driven long-press is blocked; touch long-press is not.** Long-press opens app
-  info / the settings picker — both touch-only destinations a rider can't back out of
+  info / the slot picker — both touch-only destinations a rider can't back out of
   without touching the screen. `View.blockKeyLongPress()` sets an `OnKeyListener` on
   each home tile and each AppList cell that routes DPAD_CENTER / ENTER through
   `performClick()` on ACTION_UP and never arms the framework's key long-press timer.
@@ -83,18 +83,18 @@
   otherwise bring the system bars back while showing.
 - **The app picker writes the favourite slot itself.** Pick mode is
   `AppListActivity.pickIntent(context, slot)`: on selection the activity stores the
-  component in `FavoritesStore` and finishes. Home and Settings just `startActivity` and
-  rebuild their grid in `onResume` — no `StartActivityForResult`, no result extra, no
-  "which slot was I picking for" state in the caller. The earlier version carried that
-  launcher and sentinel in both activities.
+  component in `FavoritesStore` and finishes. Home just `startActivity`s and rebuilds
+  its grid in `onResume` — no `StartActivityForResult`, no result extra, no "which slot
+  was I picking for" state in the caller. The earlier version carried that launcher and
+  sentinel in both Home and the since-removed Settings screen.
 - **Escape on Home does nothing; slots are configured in place.** Home is the launcher
   root — there is nothing for "back" to go to. A remote-only user has no route into any
   configuration, and that is intentional: the device is on a motorbike, configuration is
   a touch-only workflow. Empty "+" tiles and the tile menu's "Reassign app" open the
-  picker for that slot directly, so favourites never need the Settings screen. Theme
-  toggle, update check, and the cellular-permission ask sit in the All Apps header
-  (hidden in pick mode); Settings is now only a slot overview reached by long-pressing
-  "All Apps", and is to be retired in its current form.
+  picker for that slot directly. Theme toggle, update check, and the cellular-permission
+  ask sit in the All Apps header (hidden in pick mode). There is no separate settings
+  screen any more — the earlier Configure Favorites activity duplicated all of this and
+  was removed.
 
 - **Update UI: button label for progress, dialogs for outcomes.** The header row of the
   app list has no room for a status line, and a transient line is easy to miss on a
