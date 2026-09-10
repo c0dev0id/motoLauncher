@@ -21,6 +21,7 @@ import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.lifecycleScope
 import androidx.lifecycle.viewModelScope
 import androidx.recyclerview.widget.GridLayoutManager
+import de.codevoid.motolauncher.BuildConfig
 import de.codevoid.motolauncher.data.AppEntry
 import de.codevoid.motolauncher.data.AppRepository
 import de.codevoid.motolauncher.data.FavoritesStore
@@ -160,17 +161,17 @@ class AppListActivity : AppCompatActivity() {
         val tiles = mutableListOf<TileItem>()
 
         tiles.add(TileItem(
-            label = getString(if (themeStore.isDark) R.string.theme_dark else R.string.theme_light),
+            label = getString(R.string.theme_label),
+            subtitle = getString(if (themeStore.isDark) R.string.theme_dark else R.string.theme_light),
             onClick = { themeStore.isDark = !themeStore.isDark },
         ))
 
-        // While checking, the tile label changes and its click is a no-op — guarding
+        // While checking, the subtitle changes and the click is a no-op — guarding
         // against a double-tap while the network call is in flight.
         val isChecking = viewModel.isCheckingUpdate
         tiles.add(TileItem(
-            label = getString(
-                if (isChecking) R.string.checking_updates else R.string.check_for_updates
-            ),
+            label = getString(R.string.check_for_updates),
+            subtitle = if (isChecking) getString(R.string.checking_updates) else BuildConfig.VERSION_NAME,
             onClick = if (isChecking) ({}) else ({
                 viewModel.isCheckingUpdate = true
                 settingsTilesCache = null
@@ -196,7 +197,8 @@ class AppListActivity : AppCompatActivity() {
             PackageManager.PERMISSION_GRANTED
         if (needsCellular) {
             tiles.add(TileItem(
-                label = getString(R.string.enable_cellular_indicator),
+                label = getString(R.string.cellular_indicator),
+                subtitle = getString(R.string.permission_required),
                 onClick = {
                     cellularPermissionLauncher.launch(Manifest.permission.READ_PHONE_STATE)
                 },

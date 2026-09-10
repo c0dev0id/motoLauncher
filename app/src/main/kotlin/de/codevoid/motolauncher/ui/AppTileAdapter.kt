@@ -34,13 +34,20 @@ class AppTileAdapter(private var items: List<TileItem>) :
         val binding = holder.binding
 
         binding.appLabel.text = item.label
-        // ViewHolder reuse: restore VISIBLE before binding, then hide for icon-less tiles.
+        // ViewHolder reuse: restore VISIBLE before binding, then hide for icon-less/subtitle-less tiles.
         val icon = item.icon
         if (icon != null) {
             binding.appIcon.setImageDrawable(icon)
             binding.appIcon.visibility = View.VISIBLE
         } else {
             binding.appIcon.visibility = View.GONE
+        }
+        val subtitle = item.subtitle
+        if (subtitle != null) {
+            binding.appSubtitle.text = subtitle
+            binding.appSubtitle.visibility = View.VISIBLE
+        } else {
+            binding.appSubtitle.visibility = View.GONE
         }
 
         binding.root.setOnClickListener { item.onClick() }
