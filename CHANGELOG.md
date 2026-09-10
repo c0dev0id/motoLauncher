@@ -17,11 +17,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Short tap / Enter launches an app; long press opens its system app-info screen.
 - Favorites are configured in place: an empty "+" tile, or "Reassign app" from a
   favourite's long-press menu, opens the app picker for that slot.
-- Dark/Light theme toggle in the All Apps header (defaults to dark); the choice is saved
-  and restored on restart.
-- User-triggered update check against the repository's `dev` nightly pre-release, with
-  download and hand-off to the system installer (no automatic polling — the device is
-  mostly offline).
+- Dark/Light theme toggle accessible from the All Apps settings mode (defaults to dark);
+  the choice is saved and restored on restart.
+- User-triggered update check from the All Apps settings mode, with download and hand-off
+  to the system installer (no automatic polling — the device is mostly offline).
+- **Settings mode** in the All Apps screen: tapping the "Settings" toggle switches the
+  RecyclerView from the app grid to a settings tile grid (theme, update check, cellular
+  permission), hiding the search field and showing settings tiles instead. Tapping
+  "Apps" or pressing Escape returns to app browse mode. Settings mode state survives the
+  activity recreation triggered by the theme tile.
 - GitHub Actions build: parallel lint and unit tests, signed release APK, and a
   self-replacing `dev` pre-release.
 - Custom home status bar showing the current time on the left and Wi-Fi, cellular, and
@@ -42,11 +46,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   the key can be told apart from tapping it.
 - The "All Apps / Config" home tile is now labelled "All Apps"; it no longer leads to
   a configuration screen.
-- The theme toggle, "Check for updates" and "Enable cellular indicator" buttons live in
-  the All Apps header, to the right of a shorter search field, and are hidden while
-  picking an app for a slot. Update results (latest build, update available, failure)
-  appear as dialogs. The separate Configure Favorites screen is gone, along with the
-  "All Apps" long-press that opened it.
+- Theme toggle, update check, and the cellular-permission ask moved from dedicated header
+  buttons to tile-sized controls in the All Apps settings mode. The separate Configure
+  Favorites screen is gone, along with the "All Apps" long-press that opened it.
 - Long-pressing an assigned favourite on the home screen now opens a tile-styled menu
   with three large buttons instead of jumping straight to the system app-info screen:
   **App info** opens the system screen as before, **Uninstall** hands the app to the

@@ -210,9 +210,20 @@
   activity; `AppListViewModel` holds the load as a `Deferred`, so the recreated activity
   awaits the same result instead of re-running it. The first render after a recreate
   applies the restored search text.
-- **Header controls: one container, one style.** The All Apps header's config buttons
-  sit in a `headerConfig` group toggled once for pick mode, and share
-  `Widget.MotoLauncher.HeaderButton` so the 56dp glove target is stated once.
+- **Settings mode: modal RecyclerView, ViewModel-persisted state.** Theme toggle, update
+  check, and the cellular-permission ask were header buttons in the All Apps screen. As the
+  number of settings grew, more buttons would have eaten into the search field and become
+  unglove-sized. The solution reuses the existing RecyclerView: a "Settings" toggle switches
+  `isSettingsMode` in `AppListViewModel`, hides the search box, and replaces the app tiles
+  with text-only settings tiles; "Apps" or a short Escape flips back. Because `AppListViewModel`
+  outlives `recreate()`, the theme tile's immediate recreation (via
+  `AppCompatDelegate.setDefaultNightMode`) restores settings mode instead of dropping
+  the user back to the app grid. The short Escape exit means: first press → apps mode, second
+  press → finish the activity, matching the intuition that Escape walks up the modal stack.
+  `TileItem.icon` is nullable so settings tiles can omit the icon view (`View.GONE`); the
+  adapter restores `VISIBLE` on rebind to prevent ViewHolder reuse from carrying the stale
+  `GONE` into the next app tile. The header row retains a single `settingsButton` (touch-only,
+  hidden in pick mode); `Widget.MotoLauncher.HeaderButton` still governs its sizing.
 - **Dotted style names that are roots must set `parent=""`.** Android treats
   `Widget.MotoLauncher.Foo` as inheriting from `Widget.MotoLauncher` unless an explicit
   parent is given. `Widget.MotoLauncher.DialogAction` is intentionally a root style for
@@ -222,7 +233,7 @@
 ## Core Features
 
 - Fixed 4×3 favorites grid, remote- and glove-operable.
-- All-apps browser with touch search, theme toggle, and update check in its header.
+- All-apps browser with touch search; settings mode (same screen) for theme toggle, update check, and cellular permission.
 - Tap-to-launch; long-press on a favourite for a Reassign / App info menu.
 - Remote quick launch: holding Escape starts the first favourite from anywhere in the app.
 - Touch configuration of favorite slots.
