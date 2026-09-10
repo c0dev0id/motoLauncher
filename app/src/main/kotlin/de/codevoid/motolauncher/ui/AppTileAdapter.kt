@@ -44,6 +44,12 @@ class AppTileAdapter(private var items: List<TileItem>) :
         }
 
         binding.root.setOnClickListener { item.onClick() }
-        binding.root.setOnLongClickListener { item.onLongClick() }
+        val onLongClick = item.onLongClick
+        if (onLongClick != null) {
+            binding.root.setOnLongClickListener { onLongClick() }
+        } else {
+            binding.root.setOnLongClickListener(null)
+            binding.root.isLongClickable = false
+        }
     }
 }

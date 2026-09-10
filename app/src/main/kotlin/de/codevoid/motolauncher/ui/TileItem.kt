@@ -6,5 +6,5 @@ data class TileItem(
     val label: String,
     val icon: Drawable? = null,
     val onClick: () -> Unit = {},
-    val onLongClick: () -> Boolean = { false },
+    val onLongClick: (() -> Boolean)? = null,
 )

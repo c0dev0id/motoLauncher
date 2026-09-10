@@ -43,6 +43,7 @@ class AppListActivity : AppCompatActivity() {
     private lateinit var repository: AppRepository
     private val viewModel: AppListViewModel by viewModels()
     private val adapter = AppTileAdapter(emptyList())
+    private val themeStore by lazy { ThemeStore(this) }
     private var allApps: List<AppEntry> = emptyList()
 
     // >= 0: pick mode — the chosen app is written to that favourite slot and the
@@ -145,7 +146,7 @@ class AppListActivity : AppCompatActivity() {
             binding.searchBox.visibility = View.GONE
             adapter.submit(settingsTiles())
         } else {
-            binding.settingsButton.setText(R.string.settings)
+            if (!pickMode) binding.settingsButton.setText(R.string.settings)
             binding.searchBox.visibility = View.VISIBLE
             render(AppRepository.filterApps(allApps, binding.searchBox.text.toString()))
         }
@@ -155,7 +156,6 @@ class AppListActivity : AppCompatActivity() {
     // icon): the label is the action, and these tiles have enough vertical room to read.
     private fun settingsTiles(): List<TileItem> {
         val tiles = mutableListOf<TileItem>()
-        val themeStore = ThemeStore(this)
 
         tiles.add(TileItem(
             label = getString(if (themeStore.isDark) R.string.theme_dark else R.string.theme_light),
@@ -173,7 +173,6 @@ class AppListActivity : AppCompatActivity() {
                 viewModel.isCheckingUpdate = true
                 adapter.submit(settingsTiles())
                 runUpdateFlow(
-                    setLabel = {},
                     setClickable = { enabled ->
                         // setClickable(true) is the "done" signal from runUpdateFlow.
                         if (enabled) {
@@ -213,19 +212,15 @@ class AppListActivity : AppCompatActivity() {
                 label = entry.label,
                 icon = entry.icon,
                 onClick = { onAppSelected(entry.component) },
-                onLongClick = {
-                    if (pickMode) {
-                        false
-                    } else {
-                        showTileActionsDialog(
-                            context = this,
-                            entry = entry,
-                            onAppInfo = { repository.openInfo(entry.component) },
-                            onUninstall = { repository.requestUninstall(entry.component) },
-                        )
-                        true
-                    }
-                },
+                onLongClick = if (pickMode) null else ({
+                    showTileActionsDialog(
+                        context = this,
+                        entry = entry,
+                        onAppInfo = { repository.openInfo(entry.component) },
+                        onUninstall = { repository.requestUninstall(entry.component) },
+                    )
+                    true
+                }),
             )
         }
         adapter.submit(tiles)

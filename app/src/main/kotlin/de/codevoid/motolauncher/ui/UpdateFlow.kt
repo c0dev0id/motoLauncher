@@ -9,24 +9,18 @@ import de.codevoid.motolauncher.update.UpdateChecker
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.launch
 
-// User-triggered update check driven from one button: the button label carries
-// progress ("Checking…", "Downloading…", disabled meanwhile) and each outcome — latest
-// build, update available with an install prompt, failure — is a dialog. This is an
-// off-bike, touch-only flow, so the stock alert buttons are acceptable here.
+// User-triggered update check: the caller is disabled while the flow is in flight
+// (setClickable false → true) and each outcome — latest build, update available with an
+// install prompt, failure — is a dialog. Off-bike, touch-only flow, so stock alert
+// buttons are acceptable.
 //
 // CancellationException is an Exception, so the catches rethrow it: a job cancelled
 // at ON_DESTROY must complete as cancelled, not as "handled". Dialogs reached after
 // the activity is gone are dropped by showImmersive().
 fun AppCompatActivity.runUpdateFlow(
-    setLabel: (Int) -> Unit,
     setClickable: (Boolean) -> Unit = {},
 ) {
     val checker = UpdateChecker(this)
-
-    fun setButton(labelRes: Int, enabled: Boolean) {
-        setLabel(labelRes)
-        setClickable(enabled)
-    }
 
     fun showMessage(text: String) {
         AlertDialog.Builder(this)
@@ -40,7 +34,7 @@ fun AppCompatActivity.runUpdateFlow(
         showMessage(getString(R.string.update_failed, e.message ?: e.javaClass.simpleName))
 
     fun downloadAndInstall(release: ReleaseInfo) {
-        setButton(R.string.downloading, enabled = false)
+        setClickable(false)
         lifecycleScope.launch {
             try {
                 startActivity(checker.installIntent(checker.download(release)))
@@ -49,7 +43,7 @@ fun AppCompatActivity.runUpdateFlow(
             } catch (e: Exception) {
                 showError(e)
             } finally {
-                setButton(R.string.check_for_updates, enabled = true)
+                setClickable(true)
             }
         }
     }
@@ -63,7 +57,7 @@ fun AppCompatActivity.runUpdateFlow(
             .showImmersive()
     }
 
-    setButton(R.string.checking_updates, enabled = false)
+    setClickable(false)
     lifecycleScope.launch {
         try {
             val release = checker.check()
@@ -73,7 +67,7 @@ fun AppCompatActivity.runUpdateFlow(
         } catch (e: Exception) {
             showError(e)
         } finally {
-            setButton(R.string.check_for_updates, enabled = true)
+            setClickable(true)
         }
     }
 }
