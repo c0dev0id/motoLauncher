@@ -1,6 +1,5 @@
 package de.codevoid.motolauncher.ui
 
-import android.widget.Button
 import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
 import androidx.lifecycle.lifecycleScope
@@ -18,12 +17,15 @@ import kotlinx.coroutines.launch
 // CancellationException is an Exception, so the catches rethrow it: a job cancelled
 // at ON_DESTROY must complete as cancelled, not as "handled". Dialogs reached after
 // the activity is gone are dropped by showImmersive().
-fun AppCompatActivity.runUpdateFlow(button: Button) {
+fun AppCompatActivity.runUpdateFlow(
+    setLabel: (Int) -> Unit,
+    setClickable: (Boolean) -> Unit = {},
+) {
     val checker = UpdateChecker(this)
 
     fun setButton(labelRes: Int, enabled: Boolean) {
-        button.isEnabled = enabled
-        button.setText(labelRes)
+        setLabel(labelRes)
+        setClickable(enabled)
     }
 
     fun showMessage(text: String) {
