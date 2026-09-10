@@ -174,7 +174,12 @@ Package layout under `de.codevoid.motolauncher`:
   signal"), and
   `calculateSignalLevel`'s rating — which spans `[0, maxSignalLevel]` **inclusive** — is
   mapped onto the five icon states by the pure `wifiIconLevel`. Cellular takes
-  `SignalStrength.level` (0..4) straight through. Uses the
+  `SignalStrength.level` (0..4) straight through, and hides on the same principle behind a
+  second gate: no telephony / API < 31 / no `READ_PHONE_STATE` means nothing is watched and
+  the meter never appears, and beyond that it shows only while a mobile-data network
+  exists. That request asks for `NET_CAPABILITY_INTERNET` as well as `TRANSPORT_CELLULAR`,
+  or an IMS/VoLTE connection kept up with data switched off would count as "cellular is
+  there". Uses the
   bundled Michroma font (`res/font/michroma.ttf`, OFL — see `MICHROMA-LICENSE.txt`).
 
 ## Resources & styling

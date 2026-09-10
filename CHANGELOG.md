@@ -35,6 +35,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - The home status bar hides the Wi-Fi indicator entirely when no Wi-Fi network is
   connected. An empty meter previously stood for both "no Wi-Fi at all" and "connected,
   signal gone".
+- The cellular indicator follows the same rule: it is hidden unless a mobile-data network
+  exists, so switching mobile data off (or flight mode, no SIM, or no coverage) removes it
+  from the bar instead of leaving an empty meter behind.
 - A short Escape closes the app list on key release rather than on key press, so holding
   the key can be told apart from tapping it.
 - The "All Apps / Config" home tile is now labelled "All Apps"; it no longer leads to
