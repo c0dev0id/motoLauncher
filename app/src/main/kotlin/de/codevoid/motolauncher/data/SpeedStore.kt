@@ -5,7 +5,7 @@ import android.content.Context
 class SpeedStore(context: Context) {
     private val prefs = context.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
 
-    var speedEnabled: Boolean
+    var enabled: Boolean
         get() = prefs.getBoolean(KEY_SPEED_ENABLED, false)
         set(value) { prefs.edit().putBoolean(KEY_SPEED_ENABLED, value).apply() }
 

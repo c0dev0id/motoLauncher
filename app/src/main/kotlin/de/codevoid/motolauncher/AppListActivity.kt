@@ -87,7 +87,7 @@ class AppListActivity : AppCompatActivity() {
 
     private val gpsPermissionLauncher =
         registerForActivityResult(RequestPermission()) { granted ->
-            if (granted) speedStore.speedEnabled = true
+            if (granted) speedStore.enabled = true
             settingsTilesCache = null
             renderCurrentMode()
         }
@@ -204,35 +204,18 @@ class AppListActivity : AppCompatActivity() {
             }),
         ))
 
-        // Tapping "Off" requests the permission; if granted the tile flips to "On".
-        // Tapping "On" disables immediately. If the permission is already granted, the
-        // system skips the dialog and the launcher callback fires with granted=true at once.
-        tiles.add(TileItem(
+        tiles.add(permissionToggleTile(
             label = getString(R.string.cellular_indicator),
-            subtitle = getString(if (cellularStore.enabled) R.string.setting_on else R.string.setting_off),
-            onClick = {
-                if (cellularStore.enabled) {
-                    cellularStore.enabled = false
-                    settingsTilesCache = null
-                    renderCurrentMode()
-                } else {
-                    cellularPermissionLauncher.launch(Manifest.permission.READ_PHONE_STATE)
-                }
-            },
+            enabled = cellularStore.enabled,
+            onDisable = { cellularStore.enabled = false },
+            onEnable = { cellularPermissionLauncher.launch(Manifest.permission.READ_PHONE_STATE) },
         ))
 
-        tiles.add(TileItem(
+        tiles.add(permissionToggleTile(
             label = getString(R.string.gps_speed),
-            subtitle = getString(if (speedStore.speedEnabled) R.string.setting_on else R.string.setting_off),
-            onClick = {
-                if (speedStore.speedEnabled) {
-                    speedStore.speedEnabled = false
-                    settingsTilesCache = null
-                    renderCurrentMode()
-                } else {
-                    gpsPermissionLauncher.launch(Manifest.permission.ACCESS_FINE_LOCATION)
-                }
-            },
+            enabled = speedStore.enabled,
+            onDisable = { speedStore.enabled = false },
+            onEnable = { gpsPermissionLauncher.launch(Manifest.permission.ACCESS_FINE_LOCATION) },
         ))
 
         tiles.add(TileItem(
@@ -243,6 +226,28 @@ class AppListActivity : AppCompatActivity() {
 
         return tiles
     }
+
+    // Tapping "Off" launches the permission request; if granted the launcher callback sets
+    // enabled=true and re-renders. If already granted the system skips the dialog.
+    // Tapping "On" disables directly without a permission check.
+    private fun permissionToggleTile(
+        label: String,
+        enabled: Boolean,
+        onDisable: () -> Unit,
+        onEnable: () -> Unit,
+    ): TileItem = TileItem(
+        label = label,
+        subtitle = getString(if (enabled) R.string.setting_on else R.string.setting_off),
+        onClick = {
+            if (enabled) {
+                onDisable()
+                settingsTilesCache = null
+                renderCurrentMode()
+            } else {
+                onEnable()
+            }
+        },
+    )
 
     private fun render(apps: List<AppEntry>) {
         val tiles = ArrayList<TileItem>(apps.size + 1)

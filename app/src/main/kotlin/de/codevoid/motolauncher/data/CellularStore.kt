@@ -10,7 +10,7 @@ class CellularStore(context: Context) {
         set(value) { prefs.edit().putBoolean(KEY_CELLULAR_ENABLED, value).apply() }
 
     companion object {
-        const val PREFS = "settings"
+        private const val PREFS = "settings"
         const val KEY_CELLULAR_ENABLED = "cellular_enabled"
     }
 }

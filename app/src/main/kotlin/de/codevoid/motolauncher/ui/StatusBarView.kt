@@ -117,23 +117,20 @@ class StatusBarView @JvmOverloads constructor(
 
     private val locationListener = LocationListener { location ->
         if (!location.hasSpeed()) return@LocationListener
-        val speedMs = location.speed
-        val displaySpeed = if (speedStore.isMetric) (speedMs * 3.6).toInt() else (speedMs * 2.237).toInt()
-        val unit = context.getString(if (speedStore.isMetric) R.string.units_kmh else R.string.units_mph)
-        binding.speedText.text = "$displaySpeed $unit"
+        val metric = speedStore.isMetric
+        val displaySpeed = if (metric) (location.speed * 3.6).toInt() else (location.speed * 2.237).toInt()
+        binding.speedText.text = "$displaySpeed ${speedUnitString(metric)}"
     }
 
     private val prefsListener = SharedPreferences.OnSharedPreferenceChangeListener { _, key ->
         when (key) {
             CellularStore.KEY_CELLULAR_ENABLED ->
                 if (cellularStore.enabled) registerCellular() else unregisterCellular()
-            SpeedStore.KEY_SPEED_ENABLED -> if (speedStore.speedEnabled) registerGps() else unregisterGps()
+            SpeedStore.KEY_SPEED_ENABLED -> if (speedStore.enabled) registerGps() else unregisterGps()
             SpeedStore.KEY_SPEED_METRIC -> {
-                // If speed is visible, reset the placeholder so the unit updates immediately;
-                // the real value arrives with the next GPS fix (within ~1 second).
+                // Next GPS fix (~1 s) will overwrite this; just update the unit in the placeholder.
                 if (binding.speedText.visibility == View.VISIBLE) {
-                    val unit = context.getString(if (speedStore.isMetric) R.string.units_kmh else R.string.units_mph)
-                    binding.speedText.text = "-- $unit"
+                    binding.speedText.text = "-- ${speedUnitString(speedStore.isMetric)}"
                 }
             }
         }
@@ -271,18 +268,15 @@ class StatusBarView @JvmOverloads constructor(
         signalCallback = null
     }
 
-    // Same two-gate pattern as registerCellular: speedEnabled must be true and
-    // ACCESS_FINE_LOCATION must be granted, or nothing is registered and the widget stays hidden.
     private fun registerGps() {
         binding.speedText.visibility = View.GONE
-        if (!speedStore.speedEnabled) return
+        if (!speedStore.enabled) return
         if (ContextCompat.checkSelfPermission(context, Manifest.permission.ACCESS_FINE_LOCATION)
             != PackageManager.PERMISSION_GRANTED) return
         locationManager.requestLocationUpdates(
             LocationManager.GPS_PROVIDER, 1000L, 0f, locationListener, context.mainLooper
         )
-        val unit = context.getString(if (speedStore.isMetric) R.string.units_kmh else R.string.units_mph)
-        binding.speedText.text = "-- $unit"
+        binding.speedText.text = "-- ${speedUnitString(speedStore.isMetric)}"
         binding.speedText.visibility = View.VISIBLE
     }
 
@@ -290,6 +284,9 @@ class StatusBarView @JvmOverloads constructor(
         locationManager.removeUpdates(locationListener)
         binding.speedText.visibility = View.GONE
     }
+
+    private fun speedUnitString(metric: Boolean): String =
+        context.getString(if (metric) R.string.units_kmh else R.string.units_mph)
 
     private fun watchCellularNetwork() {
         val callback = object : ConnectivityManager.NetworkCallback() {
