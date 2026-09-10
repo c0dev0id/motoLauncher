@@ -2,6 +2,7 @@ package de.codevoid.motolauncher.ui
 
 import android.annotation.SuppressLint
 import android.view.LayoutInflater
+import android.view.View
 import android.view.ViewGroup
 import androidx.recyclerview.widget.RecyclerView
 import de.codevoid.motolauncher.databinding.ItemAppTileBinding
@@ -33,7 +34,14 @@ class AppTileAdapter(private var items: List<TileItem>) :
         val binding = holder.binding
 
         binding.appLabel.text = item.label
-        binding.appIcon.setImageDrawable(item.icon)
+        // ViewHolder reuse: restore VISIBLE before binding, then hide for icon-less tiles.
+        val icon = item.icon
+        if (icon != null) {
+            binding.appIcon.setImageDrawable(icon)
+            binding.appIcon.visibility = View.VISIBLE
+        } else {
+            binding.appIcon.visibility = View.GONE
+        }
 
         binding.root.setOnClickListener { item.onClick() }
         binding.root.setOnLongClickListener { item.onLongClick() }
