@@ -5,7 +5,10 @@ import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
 import android.content.IntentFilter
+import android.content.SharedPreferences
 import android.content.pm.PackageManager
+import android.location.LocationListener
+import android.location.LocationManager
 import android.net.ConnectivityManager
 import android.net.Network
 import android.net.NetworkCapabilities
@@ -24,6 +27,7 @@ import android.view.View
 import android.widget.LinearLayout
 import androidx.core.content.ContextCompat
 import de.codevoid.motolauncher.R
+import de.codevoid.motolauncher.data.SpeedStore
 import de.codevoid.motolauncher.databinding.ViewStatusBarBinding
 import java.text.SimpleDateFormat
 import java.util.Date
@@ -48,6 +52,12 @@ class StatusBarView @JvmOverloads constructor(
         context.applicationContext.getSystemService(Context.CONNECTIVITY_SERVICE) as ConnectivityManager
     private val telephonyManager =
         context.applicationContext.getSystemService(Context.TELEPHONY_SERVICE) as? TelephonyManager
+    private val locationManager =
+        context.getSystemService(Context.LOCATION_SERVICE) as LocationManager
+
+    private val speedStore = SpeedStore(context)
+    private val settingsPrefs =
+        context.getSharedPreferences(SpeedStore.PREFS, Context.MODE_PRIVATE)
 
     // Cached once — maxSignalLevel is a fixed property that would otherwise cross the
     // Binder on every capability callback (which fires many times per second on a
@@ -103,6 +113,28 @@ class StatusBarView @JvmOverloads constructor(
 
     private var signalCallback: TelephonyCallback? = null
 
+    private val locationListener = LocationListener { location ->
+        if (!location.hasSpeed()) return@LocationListener
+        val speedMs = location.speed
+        val displaySpeed = if (speedStore.isMetric) (speedMs * 3.6).toInt() else (speedMs * 2.237).toInt()
+        val unit = context.getString(if (speedStore.isMetric) R.string.units_kmh else R.string.units_mph)
+        binding.speedText.text = "$displaySpeed $unit"
+    }
+
+    private val prefsListener = SharedPreferences.OnSharedPreferenceChangeListener { _, key ->
+        when (key) {
+            SpeedStore.KEY_SPEED_ENABLED -> if (speedStore.speedEnabled) registerGps() else unregisterGps()
+            SpeedStore.KEY_SPEED_METRIC -> {
+                // If speed is visible, reset the placeholder so the unit updates immediately;
+                // the real value arrives with the next GPS fix (within ~1 second).
+                if (binding.speedText.visibility == View.VISIBLE) {
+                    val unit = context.getString(if (speedStore.isMetric) R.string.units_kmh else R.string.units_mph)
+                    binding.speedText.text = "-- $unit"
+                }
+            }
+        }
+    }
+
     // Same idea as the Wi-Fi set, for the mobile-data network. The meter is about data:
     // with mobile data switched off there is nothing for it to report, so it leaves the
     // bar rather than sitting at zero bars, which would read as "data on, no coverage".
@@ -137,6 +169,9 @@ class StatusBarView @JvmOverloads constructor(
         connectivityManager.registerNetworkCallback(wifiRequest, networkCallback)
 
         registerCellular()
+
+        settingsPrefs.registerOnSharedPreferenceChangeListener(prefsListener)
+        registerGps()
     }
 
     override fun onDetachedFromWindow() {
@@ -156,6 +191,9 @@ class StatusBarView @JvmOverloads constructor(
             signalCallback?.let { telephonyManager?.unregisterTelephonyCallback(it) }
         }
         signalCallback = null
+
+        settingsPrefs.unregisterOnSharedPreferenceChangeListener(prefsListener)
+        locationManager.removeUpdates(locationListener)
     }
 
     private fun updateTime() {
@@ -228,6 +266,26 @@ class StatusBarView @JvmOverloads constructor(
         signalCallback = cb
         tm.registerTelephonyCallback(context.mainExecutor, cb)
         watchCellularNetwork()
+    }
+
+    // Same two-gate pattern as registerCellular: speedEnabled must be true and
+    // ACCESS_FINE_LOCATION must be granted, or nothing is registered and the widget stays hidden.
+    private fun registerGps() {
+        binding.speedText.visibility = View.GONE
+        if (!speedStore.speedEnabled) return
+        if (ContextCompat.checkSelfPermission(context, Manifest.permission.ACCESS_FINE_LOCATION)
+            != PackageManager.PERMISSION_GRANTED) return
+        locationManager.requestLocationUpdates(
+            LocationManager.GPS_PROVIDER, 1000L, 0f, locationListener, context.mainLooper
+        )
+        val unit = context.getString(if (speedStore.isMetric) R.string.units_kmh else R.string.units_mph)
+        binding.speedText.text = "-- $unit"
+        binding.speedText.visibility = View.VISIBLE
+    }
+
+    private fun unregisterGps() {
+        locationManager.removeUpdates(locationListener)
+        binding.speedText.visibility = View.GONE
     }
 
     private fun watchCellularNetwork() {

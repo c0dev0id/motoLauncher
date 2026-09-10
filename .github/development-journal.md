@@ -230,11 +230,33 @@
   the tile-action rows, so it must opt out with `parent=""` or AAPT fails resource
   linking looking for a non-existent `Widget.MotoLauncher` base style.
 
+- **GPS speed widget follows the same two-gate pattern as the cellular meter.** Both
+  `speedEnabled` (a `SpeedStore` preference in the shared `"settings"` SharedPreferences
+  file) and `ACCESS_FINE_LOCATION` must be true, or nothing is registered and the widget
+  stays `GONE`. `StatusBarView` watches the `"settings"` SharedPreferences for changes via
+  `OnSharedPreferenceChangeListener` — registered in `onAttachedToWindow`, unregistered in
+  `onDetachedFromWindow` — so toggling GPS Speed or the unit in AppListActivity is
+  immediately reflected in the running status bar without any HomeActivity lifecycle
+  wiring. When speed is enabled and permission granted, `LocationManager.requestLocationUpdates`
+  is called with `GPS_PROVIDER`, 1 second minimum interval, on the main Looper. The speed
+  widget shows "-- km/h" (or mph) until the first fix arrives. Unit changes reset the
+  placeholder immediately; the real value updates with the next GPS fix (~1 s). The
+  permission-grant path is the same as cellular: granting permission mid-session causes the
+  GPS speed to activate on the next `StatusBarView` reattach (launcher restart), not
+  instantly — consistent with cellular.
+- **`layout_weight` center position.** `speedText` sits between `timeText` and the status
+  icons in the `view_status_bar.xml` `<merge>`. Both text views have `layout_weight="1"`;
+  the icons are `wrap_content`. When speed is `GONE`, its weight is dropped and `timeText`
+  reclaims all remaining space — current behavior is preserved. When speed is `VISIBLE`,
+  the two texts split remaining space equally, placing the speed roughly in the center of
+  the bar (slightly left of true center because the icons occupy fixed space on the right).
+
 ## Core Features
 
 - Fixed 4×3 favorites grid, remote- and glove-operable.
-- All-apps browser with touch search; settings mode (same screen) for theme toggle, update check, and cellular permission.
+- All-apps browser with touch search; settings mode (same screen) for theme toggle, update check, cellular permission, GPS speed toggle, and unit selection.
 - Tap-to-launch; long-press on a favourite for a Reassign / App info menu.
 - Remote quick launch: holding Escape starts the first favourite from anywhere in the app.
 - Touch configuration of favorite slots.
 - User-triggered self-update from GitHub nightly.
+- GPS speed widget in the home screen status bar (optional, defaults off), with metric/imperial selection.

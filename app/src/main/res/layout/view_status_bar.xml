@@ -14,6 +14,18 @@
         android:textSize="28sp"
         tools:text="12:34" />
 
+    <TextView
+        android:id="@+id/speedText"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:layout_weight="1"
+        android:gravity="center"
+        android:fontFamily="@font/michroma"
+        android:textColor="@color/on_surface"
+        android:textSize="28sp"
+        android:visibility="gone"
+        tools:text="87 km/h" />
+
     <ImageView
         android:id="@+id/wifiIcon"
         android:layout_width="28dp"

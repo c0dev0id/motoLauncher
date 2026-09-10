@@ -25,6 +25,7 @@ import de.codevoid.motolauncher.BuildConfig
 import de.codevoid.motolauncher.data.AppEntry
 import de.codevoid.motolauncher.data.AppRepository
 import de.codevoid.motolauncher.data.FavoritesStore
+import de.codevoid.motolauncher.data.SpeedStore
 import de.codevoid.motolauncher.data.ThemeStore
 import de.codevoid.motolauncher.databinding.ActivityAppListBinding
 import de.codevoid.motolauncher.ui.AppTileAdapter
@@ -46,9 +47,10 @@ class AppListActivity : AppCompatActivity() {
     private val viewModel: AppListViewModel by viewModels()
     private val adapter = AppTileAdapter(emptyList())
     private val themeStore by lazy { ThemeStore(this) }
+    private val speedStore by lazy { SpeedStore(this) }
     private var defaultSettingsTint: ColorStateList? = null
     private var activeSettingsTint: ColorStateList? = null
-    // Invalidated when isCheckingUpdate or the cellular permission state changes.
+    // Invalidated when isCheckingUpdate, cellular permission, or GPS permission state changes.
     private var settingsTilesCache: List<TileItem>? = null
     private var allApps: List<AppEntry> = emptyList()
 
@@ -75,6 +77,9 @@ class AppListActivity : AppCompatActivity() {
     )
 
     private val cellularPermissionLauncher =
+        registerForActivityResult(RequestPermission()) { settingsTilesCache = null; renderCurrentMode() }
+
+    private val gpsPermissionLauncher =
         registerForActivityResult(RequestPermission()) { settingsTilesCache = null; renderCurrentMode() }
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -201,6 +206,31 @@ class AppListActivity : AppCompatActivity() {
                 subtitle = getString(R.string.permission_required),
                 onClick = {
                     cellularPermissionLauncher.launch(Manifest.permission.READ_PHONE_STATE)
+                },
+            ))
+        }
+
+        tiles.add(TileItem(
+            label = getString(R.string.gps_speed),
+            subtitle = getString(if (speedStore.speedEnabled) R.string.gps_speed_on else R.string.gps_speed_off),
+            onClick = { settingsTilesCache = null; speedStore.speedEnabled = !speedStore.speedEnabled },
+        ))
+
+        tiles.add(TileItem(
+            label = getString(R.string.units),
+            subtitle = getString(if (speedStore.isMetric) R.string.units_kmh else R.string.units_mph),
+            onClick = { settingsTilesCache = null; speedStore.isMetric = !speedStore.isMetric },
+        ))
+
+        val needsGps = speedStore.speedEnabled &&
+            ContextCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION) !=
+            PackageManager.PERMISSION_GRANTED
+        if (needsGps) {
+            tiles.add(TileItem(
+                label = getString(R.string.gps_location_permission),
+                subtitle = getString(R.string.permission_required),
+                onClick = {
+                    gpsPermissionLauncher.launch(Manifest.permission.ACCESS_FINE_LOCATION)
                 },
             ))
         }

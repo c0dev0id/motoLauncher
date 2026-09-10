@@ -28,6 +28,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   activity recreation triggered by the theme tile.
 - GitHub Actions build: parallel lint and unit tests, signed release APK, and a
   self-replacing `dev` pre-release.
+- **GPS Speed display** in the home screen status bar, center-aligned between the clock
+  and the status icons. Defaults to disabled. Enabled from the settings mode in the
+  All Apps screen; a location-permission tile appears when GPS Speed is on but
+  `ACCESS_FINE_LOCATION` has not yet been granted.
+- **Units setting** (Metric / Imperial) in the All Apps settings mode, shown as the
+  current unit (`km/h` or `mph`); controls the unit displayed by the GPS speed widget.
 - Custom home status bar showing the current time on the left and Wi-Fi, cellular, and
   battery indicators on the right, aligned with the grid margins.
 - Visible back button on the app list screen for touch users.
