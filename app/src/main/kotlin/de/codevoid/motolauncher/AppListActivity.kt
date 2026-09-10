@@ -45,7 +45,10 @@ class AppListActivity : AppCompatActivity() {
     private val viewModel: AppListViewModel by viewModels()
     private val adapter = AppTileAdapter(emptyList())
     private val themeStore by lazy { ThemeStore(this) }
-    private val defaultSettingsTint by lazy { binding.settingsButton.backgroundTintList }
+    private var defaultSettingsTint: ColorStateList? = null
+    private var activeSettingsTint: ColorStateList? = null
+    // Invalidated when isCheckingUpdate or the cellular permission state changes.
+    private var settingsTilesCache: List<TileItem>? = null
     private var allApps: List<AppEntry> = emptyList()
 
     // >= 0: pick mode — the chosen app is written to that favourite slot and the
@@ -71,13 +74,16 @@ class AppListActivity : AppCompatActivity() {
     )
 
     private val cellularPermissionLauncher =
-        registerForActivityResult(RequestPermission()) { renderCurrentMode() }
+        registerForActivityResult(RequestPermission()) { settingsTilesCache = null; renderCurrentMode() }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         binding = ActivityAppListBinding.inflate(layoutInflater)
         setContentView(binding.root)
         window.enableImmersiveMode()
+
+        defaultSettingsTint = binding.settingsButton.backgroundTintList
+        activeSettingsTint = ColorStateList.valueOf(ContextCompat.getColor(this, R.color.tile_focused))
 
         repository = AppRepository(this)
 
@@ -133,21 +139,16 @@ class AppListActivity : AppCompatActivity() {
     // swaps the search hint, and updates the grid with the current search text applied.
     private fun renderCurrentMode() {
         if (!pickMode) {
-            binding.settingsButton.backgroundTintList = if (viewModel.isSettingsMode)
-                ColorStateList.valueOf(ContextCompat.getColor(this, R.color.tile_focused))
-            else
-                defaultSettingsTint
+            binding.settingsButton.backgroundTintList =
+                if (viewModel.isSettingsMode) activeSettingsTint else defaultSettingsTint
         }
         binding.searchBox.setHint(
             if (viewModel.isSettingsMode) R.string.search_settings_hint else R.string.search_hint
         )
-        val query = binding.searchBox.text.toString()
+        val query = binding.searchBox.text.toString().trim()
         if (viewModel.isSettingsMode) {
-            val tiles = settingsTiles().let { all ->
-                if (query.isEmpty()) all
-                else all.filter { it.label.contains(query, ignoreCase = true) }
-            }
-            adapter.submit(tiles)
+            val all = settingsTilesCache ?: buildSettingsTiles().also { settingsTilesCache = it }
+            adapter.submit(if (query.isEmpty()) all else all.filter { it.label.contains(query, ignoreCase = true) })
         } else {
             render(AppRepository.filterApps(allApps, query))
         }
@@ -155,7 +156,7 @@ class AppListActivity : AppCompatActivity() {
 
     // Settings tiles replace the app grid in settings mode. Each tile is text-only (no
     // icon): the label is the action, and these tiles have enough vertical room to read.
-    private fun settingsTiles(): List<TileItem> {
+    private fun buildSettingsTiles(): List<TileItem> {
         val tiles = mutableListOf<TileItem>()
 
         tiles.add(TileItem(
@@ -172,13 +173,15 @@ class AppListActivity : AppCompatActivity() {
             ),
             onClick = if (isChecking) ({}) else ({
                 viewModel.isCheckingUpdate = true
-                adapter.submit(settingsTiles())
+                settingsTilesCache = null
+                renderCurrentMode()
                 runUpdateFlow(
                     setClickable = { enabled ->
                         // setClickable(true) is the "done" signal from runUpdateFlow.
                         if (enabled) {
                             viewModel.isCheckingUpdate = false
-                            adapter.submit(settingsTiles())
+                            settingsTilesCache = null
+                            renderCurrentMode()
                         }
                     },
                 )
