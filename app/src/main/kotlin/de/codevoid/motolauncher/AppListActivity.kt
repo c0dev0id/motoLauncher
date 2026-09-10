@@ -163,7 +163,7 @@ class AppListActivity : AppCompatActivity() {
         tiles.add(TileItem(
             label = getString(R.string.theme_label),
             subtitle = getString(if (themeStore.isDark) R.string.theme_dark else R.string.theme_light),
-            onClick = { themeStore.isDark = !themeStore.isDark },
+            onClick = { settingsTilesCache = null; themeStore.isDark = !themeStore.isDark },
         ))
 
         // While checking, the subtitle changes and the click is a no-op — guarding
