@@ -6,6 +6,7 @@ import android.content.ComponentName
 import android.content.Context
 import android.content.Intent
 import android.content.pm.PackageManager
+import android.content.res.ColorStateList
 import android.os.Build
 import android.os.Bundle
 import android.text.Editable
@@ -44,6 +45,7 @@ class AppListActivity : AppCompatActivity() {
     private val viewModel: AppListViewModel by viewModels()
     private val adapter = AppTileAdapter(emptyList())
     private val themeStore by lazy { ThemeStore(this) }
+    private val defaultSettingsTint by lazy { binding.settingsButton.backgroundTintList }
     private var allApps: List<AppEntry> = emptyList()
 
     // >= 0: pick mode — the chosen app is written to that favourite slot and the
@@ -85,11 +87,7 @@ class AppListActivity : AppCompatActivity() {
         binding.appGrid.adapter = adapter
 
         binding.searchBox.addTextChangedListener(object : TextWatcher {
-            override fun afterTextChanged(s: Editable?) {
-                if (!viewModel.isSettingsMode) {
-                    render(AppRepository.filterApps(allApps, s?.toString().orEmpty()))
-                }
-            }
+            override fun afterTextChanged(s: Editable?) { renderCurrentMode() }
             override fun beforeTextChanged(s: CharSequence?, a: Int, b: Int, c: Int) {}
             override fun onTextChanged(s: CharSequence?, a: Int, b: Int, c: Int) {}
         })
@@ -99,18 +97,11 @@ class AppListActivity : AppCompatActivity() {
         if (pickMode) {
             binding.settingsButton.visibility = View.GONE
         } else {
-            binding.settingsButton.setText(
-                if (viewModel.isSettingsMode) R.string.apps else R.string.settings
-            )
             binding.settingsButton.setOnClickListener {
                 viewModel.isSettingsMode = !viewModel.isSettingsMode
                 renderCurrentMode()
             }
         }
-        // Apply initial search-box visibility immediately so there is no flicker during
-        // the async app-list load.
-        binding.searchBox.visibility =
-            if (viewModel.isSettingsMode) View.GONE else View.VISIBLE
 
         loadAndRender(seedFocus = true)
     }
@@ -138,17 +129,27 @@ class AppListActivity : AppCompatActivity() {
         }
     }
 
-    // Single dispatch point for both modes: updates the toggle label, the search-box
-    // visibility, and the grid contents in one place.
+    // Single dispatch point for both modes: tints the toggle to reflect the active state,
+    // swaps the search hint, and updates the grid with the current search text applied.
     private fun renderCurrentMode() {
+        if (!pickMode) {
+            binding.settingsButton.backgroundTintList = if (viewModel.isSettingsMode)
+                ColorStateList.valueOf(ContextCompat.getColor(this, R.color.tile_focused))
+            else
+                defaultSettingsTint
+        }
+        binding.searchBox.setHint(
+            if (viewModel.isSettingsMode) R.string.search_settings_hint else R.string.search_hint
+        )
+        val query = binding.searchBox.text.toString()
         if (viewModel.isSettingsMode) {
-            binding.settingsButton.setText(R.string.apps)
-            binding.searchBox.visibility = View.GONE
-            adapter.submit(settingsTiles())
+            val tiles = settingsTiles().let { all ->
+                if (query.isEmpty()) all
+                else all.filter { it.label.contains(query, ignoreCase = true) }
+            }
+            adapter.submit(tiles)
         } else {
-            if (!pickMode) binding.settingsButton.setText(R.string.settings)
-            binding.searchBox.visibility = View.VISIBLE
-            render(AppRepository.filterApps(allApps, binding.searchBox.text.toString()))
+            render(AppRepository.filterApps(allApps, query))
         }
     }
 
