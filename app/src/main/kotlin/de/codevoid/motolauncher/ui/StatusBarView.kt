@@ -67,7 +67,19 @@ class StatusBarView @JvmOverloads constructor(
         override fun onReceive(context: Context, intent: Intent) = applyBatteryIntent(intent)
     }
 
+    // Which Wi-Fi networks are up, and therefore whether the icon belongs on screen at
+    // all. An empty meter cannot say "no Wi-Fi" — it reads as "connected, no signal" —
+    // so absence is shown by absence. ConnectivityManager serialises one callback's
+    // methods onto a single thread, so plain set bookkeeping is enough here; more than
+    // one Wi-Fi network at a time is unusual, but losing one of two must not hide an
+    // indicator the other still earns.
+    private val wifiNetworks = HashSet<Network>()
+
     private val networkCallback = object : ConnectivityManager.NetworkCallback() {
+        override fun onAvailable(network: Network) {
+            if (wifiNetworks.add(network) && wifiNetworks.size == 1) post { showWifiIcon(true) }
+        }
+
         override fun onCapabilitiesChanged(network: Network, caps: NetworkCapabilities) {
             // Runs on a Binder thread. Classify cheaply here and only hop to the main
             // thread when the icon level actually changes.
@@ -76,9 +88,15 @@ class StatusBarView @JvmOverloads constructor(
             if (level == lastWifiLevel) return
             post { applyWifiLevel(level) }
         }
+
         override fun onLost(network: Network) {
-            if (lastWifiLevel == 0) return
-            post { applyWifiLevel(0) }
+            if (!wifiNetworks.remove(network) || wifiNetworks.isNotEmpty()) return
+            post {
+                // Empty the meter while it is hidden, so reconnecting can't flash the old
+                // strength in the gap before the first capabilities callback arrives.
+                applyWifiLevel(0)
+                showWifiIcon(false)
+            }
         }
     }
 
@@ -116,6 +134,9 @@ class StatusBarView @JvmOverloads constructor(
         context.unregisterReceiver(timeReceiver)
         context.unregisterReceiver(batteryReceiver)
         connectivityManager.unregisterNetworkCallback(networkCallback)
+        // Re-registering on re-attach replays onAvailable for networks that are already
+        // up; without this the set would still hold them and the icon would stay hidden.
+        wifiNetworks.clear()
         // signalCallback is only ever set when SDK >= S (see registerCellular), but lint
         // needs the explicit check because it doesn't cross-reference the two call sites.
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
@@ -152,6 +173,10 @@ class StatusBarView @JvmOverloads constructor(
     private fun applyWifiLevel(level: Int) {
         lastWifiLevel = level
         binding.wifiIcon.setImageLevel(level)
+    }
+
+    private fun showWifiIcon(connected: Boolean) {
+        binding.wifiIcon.visibility = if (connected) View.VISIBLE else View.GONE
     }
 
     private fun scaleWifiLevel(rssi: Int): Int =

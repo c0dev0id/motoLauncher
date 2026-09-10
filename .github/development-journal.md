@@ -85,6 +85,17 @@
   over (rating, platform maximum) so the mapping is unit-tested at both ends. Cellular
   needs no rescale: `SignalStrength.getLevel()` is documented as 0..4 and matches the
   icon's five states directly.
+- **No Wi-Fi is shown by absence, not by an empty meter.** The zero state has to mean one
+  thing. It used to mean both "connected, signal gone" and "there is no Wi-Fi network at
+  all" — and on a device that is mostly offline the second is both the more common case
+  and the more useful to know. Visibility now keys off network presence (`onAvailable` /
+  `onLost`), never off the signal level, and the meter is emptied while hidden so a
+  reconnect cannot flash the previous strength in the gap before the first capabilities
+  callback lands. A set of live networks is tracked rather than a boolean because losing
+  one of two Wi-Fi networks must not hide an indicator the other still earns; the set is
+  cleared on detach because re-registering the callback replays `onAvailable` for networks
+  that are already up, and a stale entry would leave the icon hidden for good. The icon
+  starts `gone` in the layout: at cold start nothing is known until the first callback.
 - **Wi-Fi via `NetworkCallback`, not `WifiManager.connectionInfo`.** Reading RSSI through
   `NetworkCapabilities.transportInfo` avoids `ACCESS_FINE_LOCATION`; only
   `ACCESS_WIFI_STATE` + `ACCESS_NETWORK_STATE` are needed.
