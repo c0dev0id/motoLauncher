@@ -46,19 +46,29 @@ class AppListActivity : AppCompatActivity() {
     private var allApps: List<AppEntry> = emptyList()
 
     // >= 0: pick mode — the chosen app is written to that favourite slot and the
-    // activity finishes. NO_SLOT: browse mode — tap launches, long-press opens app info.
+    // activity finishes. NO_SLOT: browse mode — tap launches, long-press opens the
+    // tile-actions menu.
     private val pickSlot by lazy { intent.getIntExtra(EXTRA_PICK_SLOT, NO_SLOT) }
     private val pickMode get() = pickSlot != NO_SLOT
 
-    // ESC closes the screen; holding it launches the first favourite, the same quick
-    // launch Home offers, so the gesture means one thing wherever the remote is.
+    // In browse mode a short ESC exits settings mode (if active) before exiting the
+    // screen, so Escape acts as a mode-level back. In pick mode there is no settings
+    // mode, so a short ESC always finishes. Holding ESC quick-launches slot 0, same
+    // as Home, so the gesture means one thing wherever the remote is.
     private val escapeKeys = EscapeKeys(
         onLongPress = { launchFirstFavorite() },
-        onShortPress = { finish() },
+        onShortPress = {
+            if (viewModel.isSettingsMode) {
+                viewModel.isSettingsMode = false
+                renderCurrentMode()
+            } else {
+                finish()
+            }
+        },
     )
 
     private val cellularPermissionLauncher =
-        registerForActivityResult(RequestPermission()) { updateCellularPermissionButton() }
+        registerForActivityResult(RequestPermission()) { renderCurrentMode() }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -75,46 +85,50 @@ class AppListActivity : AppCompatActivity() {
 
         binding.searchBox.addTextChangedListener(object : TextWatcher {
             override fun afterTextChanged(s: Editable?) {
-                render(AppRepository.filterApps(allApps, s?.toString().orEmpty()))
+                if (!viewModel.isSettingsMode) {
+                    render(AppRepository.filterApps(allApps, s?.toString().orEmpty()))
+                }
             }
-
             override fun beforeTextChanged(s: CharSequence?, a: Int, b: Int, c: Int) {}
             override fun onTextChanged(s: CharSequence?, a: Int, b: Int, c: Int) {}
         })
 
-        // Label shows the active theme; tapping flips it, which recreates the activity so
-        // the label refreshes on the way back in.
-        val themeStore = ThemeStore(this)
-        binding.themeButton.setText(if (themeStore.isDark) R.string.theme_dark else R.string.theme_light)
-        binding.themeButton.setOnClickListener { themeStore.isDark = !themeStore.isDark }
-        binding.checkUpdateButton.setOnClickListener { runUpdateFlow(binding.checkUpdateButton) }
-        binding.enableCellularButton.setOnClickListener {
-            cellularPermissionLauncher.launch(Manifest.permission.READ_PHONE_STATE)
+        // The picker is a single-purpose screen: hide the settings toggle so the user
+        // can only pick an app or cancel.
+        if (pickMode) {
+            binding.settingsButton.visibility = View.GONE
+        } else {
+            binding.settingsButton.setText(
+                if (viewModel.isSettingsMode) R.string.apps else R.string.settings
+            )
+            binding.settingsButton.setOnClickListener {
+                viewModel.isSettingsMode = !viewModel.isSettingsMode
+                renderCurrentMode()
+            }
         }
-
-        // The picker is a single-purpose screen: no configuration controls while choosing.
-        binding.headerConfig.visibility = if (pickMode) View.GONE else View.VISIBLE
+        // Apply initial search-box visibility immediately so there is no flicker during
+        // the async app-list load.
+        binding.searchBox.visibility =
+            if (viewModel.isSettingsMode) View.GONE else View.VISIBLE
 
         loadAndRender(seedFocus = true)
     }
 
     override fun onResume() {
         super.onResume()
-        if (!pickMode) updateCellularPermissionButton()
-        // Installing or uninstalling anything invalidates the cached enumeration — most
-        // often an uninstall started from this very screen, which returns here when the
-        // system uninstaller finishes. Reload only then: enumerating and rasterising every
-        // installed app is the most expensive thing the app does.
+        // Enumerating apps is the most expensive thing this app does; reload only when the
+        // installed-app set actually changed (uninstall, install) since the last load.
         if (viewModel.reloadIfStale()) loadAndRender(seedFocus = false)
+        else renderCurrentMode()
     }
 
     private fun loadAndRender(seedFocus: Boolean) {
         lifecycleScope.launch {
             allApps = viewModel.apps.await()
             // After a recreate the restored search text is already in the box; honour it.
-            render(AppRepository.filterApps(allApps, binding.searchBox.text.toString()))
-            // Only on first load: re-seeding would drag the remote's focus back to the
-            // first cell every time an app is installed or removed.
+            renderCurrentMode()
+            // Only on first load: re-seeding would drag the remote's focus back to tile 0
+            // every time an app is installed or removed.
             if (seedFocus) {
                 binding.appGrid.post {
                     binding.appGrid.layoutManager?.findViewByPosition(0)?.requestFocus()
@@ -123,14 +137,70 @@ class AppListActivity : AppCompatActivity() {
         }
     }
 
-    // The cellular indicator is optional: expose the ask only when the platform can
-    // deliver signal readings (API 31+) and the permission is still missing. Once
-    // granted, the button silently disappears — no toast, no dialog.
-    private fun updateCellularPermissionButton() {
-        val needsAsk = Build.VERSION.SDK_INT >= Build.VERSION_CODES.S &&
+    // Single dispatch point for both modes: updates the toggle label, the search-box
+    // visibility, and the grid contents in one place.
+    private fun renderCurrentMode() {
+        if (viewModel.isSettingsMode) {
+            binding.settingsButton.setText(R.string.apps)
+            binding.searchBox.visibility = View.GONE
+            adapter.submit(settingsTiles())
+        } else {
+            binding.settingsButton.setText(R.string.settings)
+            binding.searchBox.visibility = View.VISIBLE
+            render(AppRepository.filterApps(allApps, binding.searchBox.text.toString()))
+        }
+    }
+
+    // Settings tiles replace the app grid in settings mode. Each tile is text-only (no
+    // icon): the label is the action, and these tiles have enough vertical room to read.
+    private fun settingsTiles(): List<TileItem> {
+        val tiles = mutableListOf<TileItem>()
+        val themeStore = ThemeStore(this)
+
+        tiles.add(TileItem(
+            label = getString(if (themeStore.isDark) R.string.theme_dark else R.string.theme_light),
+            onClick = { themeStore.isDark = !themeStore.isDark },
+        ))
+
+        // While checking, the tile label changes and its click is a no-op — guarding
+        // against a double-tap while the network call is in flight.
+        val isChecking = viewModel.isCheckingUpdate
+        tiles.add(TileItem(
+            label = getString(
+                if (isChecking) R.string.checking_updates else R.string.check_for_updates
+            ),
+            onClick = if (isChecking) ({}) else ({
+                viewModel.isCheckingUpdate = true
+                adapter.submit(settingsTiles())
+                runUpdateFlow(
+                    setLabel = {},
+                    setClickable = { enabled ->
+                        // setClickable(true) is the "done" signal from runUpdateFlow.
+                        if (enabled) {
+                            viewModel.isCheckingUpdate = false
+                            adapter.submit(settingsTiles())
+                        }
+                    },
+                )
+            }),
+        ))
+
+        // The cellular indicator requires READ_PHONE_STATE, which the user may not have
+        // granted. Offer the ask only when the platform can deliver readings (API 31+)
+        // and the permission is still missing. Once granted, the tile disappears.
+        val needsCellular = Build.VERSION.SDK_INT >= Build.VERSION_CODES.S &&
             ContextCompat.checkSelfPermission(this, Manifest.permission.READ_PHONE_STATE) !=
             PackageManager.PERMISSION_GRANTED
-        binding.enableCellularButton.visibility = if (needsAsk) View.VISIBLE else View.GONE
+        if (needsCellular) {
+            tiles.add(TileItem(
+                label = getString(R.string.enable_cellular_indicator),
+                onClick = {
+                    cellularPermissionLauncher.launch(Manifest.permission.READ_PHONE_STATE)
+                },
+            ))
+        }
+
+        return tiles
     }
 
     private fun render(apps: List<AppEntry>) {
@@ -209,13 +279,17 @@ class AppListActivity : AppCompatActivity() {
 
 // Enumerating and rasterising every installed app is the most expensive thing the app
 // does. Keeping the result in a ViewModel means the theme toggle's recreate() reuses it
-// instead of running it again.
+// instead of running it again. isSettingsMode survives recreate so the screen returns to
+// settings mode after the theme change that caused the recreate.
 class AppListViewModel(app: Application) : AndroidViewModel(app) {
 
     private var loadedGeneration = packageGeneration()
 
     var apps: Deferred<List<AppEntry>> = load()
         private set
+
+    var isSettingsMode: Boolean = false
+    var isCheckingUpdate: Boolean = false
 
     /** Starts a fresh load if apps were installed or removed since the last one. */
     fun reloadIfStale(): Boolean {
