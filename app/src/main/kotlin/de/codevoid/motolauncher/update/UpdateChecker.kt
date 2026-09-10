@@ -87,7 +87,7 @@ class UpdateChecker(private val context: Context) {
     }
 
     companion object {
-        const val RELEASE_API =
+        private const val RELEASE_API =
             "https://api.github.com/repos/c0dev0id/motoLauncher/releases/tags/dev"
         private const val USER_AGENT = "motoLauncher"
         private const val TIMEOUT_MS = 15_000

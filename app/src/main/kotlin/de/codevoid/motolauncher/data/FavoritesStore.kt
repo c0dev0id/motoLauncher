@@ -31,7 +31,7 @@ class FavoritesStore(context: Context) {
     private fun key(index: Int) = "slot_$index"
 
     companion object {
-        const val PREFS = "favorites"
+        private const val PREFS = "favorites"
 
         // Home grid is 4x3 = 12 cells; the last cell is the fixed "All Apps" tile,
         // leaving 11 configurable favorite slots.

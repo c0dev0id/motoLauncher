@@ -227,7 +227,7 @@ class AppListViewModel(app: Application) : AndroidViewModel(app) {
     }
 
     private fun load(): Deferred<List<AppEntry>> = viewModelScope.async(Dispatchers.IO) {
-        AppRepository(getApplication<Application>()).loadApps()
+        AppRepository(getApplication<MotoLauncherApp>()).loadApps()
     }
 
     private fun packageGeneration() = getApplication<MotoLauncherApp>().packageGeneration

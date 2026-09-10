@@ -54,7 +54,8 @@ class StatusBarView @JvmOverloads constructor(
     // fluctuating link).
     private val wifiMaxSignalLevel = wifiManager.maxSignalLevel
 
-    private var lastWifiLevel = -1
+    // Written on the main thread, read on a Binder thread in onCapabilitiesChanged.
+    @Volatile private var lastWifiLevel = -1
     private var lastBatteryPercent = -1
     private var lastBatteryIconLevel = -1
     private var lastCellularLevel = -1
@@ -84,7 +85,7 @@ class StatusBarView @JvmOverloads constructor(
             // Runs on a Binder thread. Classify cheaply here and only hop to the main
             // thread when the icon level actually changes.
             val rssi = (caps.transportInfo as? WifiInfo)?.rssi ?: return
-            val level = scaleWifiLevel(rssi)
+            val level = rssiToIconLevel(rssi)
             if (level == lastWifiLevel) return
             post { applyWifiLevel(level) }
         }
@@ -191,7 +192,7 @@ class StatusBarView @JvmOverloads constructor(
         binding.wifiIcon.visibility = if (connected) View.VISIBLE else View.GONE
     }
 
-    private fun scaleWifiLevel(rssi: Int): Int =
+    private fun rssiToIconLevel(rssi: Int): Int =
         wifiIconLevel(wifiManager.calculateSignalLevel(rssi), wifiMaxSignalLevel)
 
     private fun applyCellularLevel(level: Int) {
@@ -262,7 +263,7 @@ class StatusBarView @JvmOverloads constructor(
 
     companion object {
         // Our meters have five states, 0 (empty) to 4 (full).
-        private const val ICON_LEVELS = 4
+        private const val MAX_ICON_LEVEL = 4
 
         /**
          * Maps a platform Wi-Fi rating onto the icon's five states.
@@ -278,7 +279,7 @@ class StatusBarView @JvmOverloads constructor(
          */
         fun wifiIconLevel(rawLevel: Int, maxSignalLevel: Int): Int {
             val max = maxSignalLevel.coerceAtLeast(1)
-            return rawLevel.coerceIn(0, max) * ICON_LEVELS / max
+            return rawLevel.coerceIn(0, max) * MAX_ICON_LEVEL / max
         }
     }
 }

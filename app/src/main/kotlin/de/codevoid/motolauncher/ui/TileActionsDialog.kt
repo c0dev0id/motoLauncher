@@ -33,11 +33,14 @@ fun showTileActionsDialog(
         dialog.dismiss()
         onUninstall()
     }
-    // No slot to reassign (the app list): drop the row.
-    if (onReassign == null) binding.actionReassign.visibility = View.GONE
-    binding.actionReassign.setOnClickListener {
-        dialog.dismiss()
-        onReassign?.invoke()
+    // No slot to reassign (the app list): drop the row entirely.
+    if (onReassign != null) {
+        binding.actionReassign.setOnClickListener {
+            dialog.dismiss()
+            onReassign()
+        }
+    } else {
+        binding.actionReassign.visibility = View.GONE
     }
     dialog.showImmersive()
     return dialog

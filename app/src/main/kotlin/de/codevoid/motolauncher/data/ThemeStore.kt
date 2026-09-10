@@ -21,7 +21,7 @@ class ThemeStore(context: Context) {
     }
 
     companion object {
-        const val PREFS = "settings"
+        private const val PREFS = "settings"
         private const val KEY_DARK = "dark_theme"
     }
 }
