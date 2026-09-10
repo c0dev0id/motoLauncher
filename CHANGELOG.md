@@ -60,6 +60,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   Michroma is bundled under the SIL Open Font License 1.1 — see `MICHROMA-LICENSE.txt`.
 
 ### Fixed
+- Unlit bars in the Wi-Fi and cellular indicators are now clearly darker than lit ones.
+  They were so close in the dark theme that full signal and no signal looked almost
+  identical at a glance.
 - GitHub Actions `lint`, `test`, and release builds no longer fail during resource
   linking because the tile-actions dialog row style now opts out of Android's implicit
   dotted-name parent lookup instead of inheriting from a non-existent

@@ -7,6 +7,6 @@
         android:fillColor="@color/on_surface"
         android:pathData="M1,16h4v6h-4zM7,12h4v10h-4z" />
     <path
-        android:fillColor="@color/on_surface_muted"
+        android:fillColor="@color/signal_track"
         android:pathData="M13,8h4v14h-4zM19,4h4v18h-4z" />
 </vector>
