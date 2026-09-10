@@ -6,6 +6,10 @@
     <uses-permission android:name="android.permission.ACCESS_WIFI_STATE" />
     <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
     <uses-permission android:name="android.permission.READ_PHONE_STATE" />
+    <!-- Mandatory since targetSdk 28 for asking the system to uninstall a package. Without
+         it the request is dropped without any error, so the tile menu's Uninstall row
+         simply does nothing. Normal protection level: granted at install, no runtime ask. -->
+    <uses-permission android:name="android.permission.REQUEST_DELETE_PACKAGES" />
 
     <!-- A launcher only needs to see launchable apps, not every installed package, so scope
          visibility to MAIN/LAUNCHER instead of the discouraged QUERY_ALL_PACKAGES permission. -->
@@ -13,6 +17,13 @@
         <intent>
             <action android:name="android.intent.action.MAIN" />
             <category android:name="android.intent.category.LAUNCHER" />
+        </intent>
+        <!-- The system uninstaller has no launcher entry, so the filter above never makes
+             it visible. Package visibility filters intent resolution too, so without this
+             the ACTION_DELETE hand-off has nothing to resolve against. -->
+        <intent>
+            <action android:name="android.intent.action.DELETE" />
+            <data android:scheme="package" />
         </intent>
     </queries>
 

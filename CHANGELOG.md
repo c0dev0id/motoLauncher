@@ -63,6 +63,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   Michroma is bundled under the SIL Open Font License 1.1 — see `MICHROMA-LICENSE.txt`.
 
 ### Fixed
+- The tile menu's "Uninstall" now actually starts the system uninstaller. The launcher was
+  missing both the `REQUEST_DELETE_PACKAGES` permission and the package-visibility entry
+  the hand-off needs, and the request was being dropped without any error.
 - The Wi-Fi indicator no longer overstates the signal. The platform rates a link from 0 to
   its reported maximum *inclusive*, and the launcher treated the top rating as out of
   range: a 3-of-4 signal drew full bars and the three-bar state was never shown at all.
