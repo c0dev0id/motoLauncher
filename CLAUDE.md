@@ -156,7 +156,7 @@ Package layout under `de.codevoid.motolauncher`:
   `onDetachedFromWindow`; `HomeActivity` does no lifecycle wiring. Icons are
   `<level-list>` drawables updated by `setImageLevel()`; the battery level encodes
   charging in the number (0–4 idle, 5–9 plugged). Wi-Fi RSSI comes from
-  `NetworkCapabilities.transportInfo` to avoid needing location permission. Uses the
+  `NetworkCapabilities.transportInfo` to avoid needing location permission Uses the
   bundled Michroma font (`res/font/michroma.ttf`, OFL — see `MICHROMA-LICENSE.txt`).
 
 ## Resources & styling
@@ -174,6 +174,9 @@ Package layout under `de.codevoid.motolauncher`:
   `Widget.MotoLauncher.DialogAction` (`parent=""`) are the two shapes in use.
 - Glove sizing is stated in styles, not per view: 56dp minimum height for header buttons,
   72dp rows in the tile menu, 480dp minimum dialog width.
+- The unlit bars of the signal meters use `signal_track`, not `on_surface_muted` — that
+  token is secondary *text* and is far too close to `on_surface` to separate a lit bar
+  from an unlit one. Keep the two roles apart.
 
 The manifest scopes package visibility to `MAIN`/`LAUNCHER` `<queries>` rather than
 requesting `QUERY_ALL_PACKAGES` — the launcher-appropriate approach. Keep it that way.
