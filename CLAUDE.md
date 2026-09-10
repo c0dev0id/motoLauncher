@@ -156,7 +156,10 @@ Package layout under `de.codevoid.motolauncher`:
   `onDetachedFromWindow`; `HomeActivity` does no lifecycle wiring. Icons are
   `<level-list>` drawables updated by `setImageLevel()`; the battery level encodes
   charging in the number (0–4 idle, 5–9 plugged). Wi-Fi RSSI comes from
-  `NetworkCapabilities.transportInfo` to avoid needing location permission, and
+  `NetworkCapabilities.transportInfo` to avoid needing location permission; the icon is
+  hidden outright while no Wi-Fi network exists (visibility keys off `onAvailable` /
+  `onLost`, never off the level, since an empty meter would also read as "connected, no
+  signal"), and
   `calculateSignalLevel`'s rating — which spans `[0, maxSignalLevel]` **inclusive** — is
   mapped onto the five icon states by the pure `wifiIconLevel`. Cellular takes
   `SignalStrength.level` (0..4) straight through. Uses the

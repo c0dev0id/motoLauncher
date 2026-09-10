@@ -32,6 +32,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   has been uninstalled, does nothing.
 
 ### Changed
+- The home status bar hides the Wi-Fi indicator entirely when no Wi-Fi network is
+  connected. An empty meter previously stood for both "no Wi-Fi at all" and "connected,
+  signal gone".
 - A short Escape closes the app list on key release rather than on key press, so holding
   the key can be told apart from tapping it.
 - The "All Apps / Config" home tile is now labelled "All Apps"; it no longer leads to
