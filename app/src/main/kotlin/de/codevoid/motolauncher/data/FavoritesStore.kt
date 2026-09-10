@@ -20,6 +20,14 @@ class FavoritesStore(context: Context) {
 
     fun allSlots(): List<ComponentName?> = (0 until SLOT_COUNT).map { getSlot(it) }
 
+    // Called when a package is uninstalled: without this the slot keeps a component that
+    // can never resolve again, drawn as an empty "+" that is not actually empty.
+    fun clearSlotsForPackage(packageName: String) {
+        for (index in 0 until SLOT_COUNT) {
+            if (getSlot(index)?.packageName == packageName) clearSlot(index)
+        }
+    }
+
     private fun key(index: Int) = "slot_$index"
 
     companion object {
