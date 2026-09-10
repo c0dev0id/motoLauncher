@@ -41,28 +41,10 @@
             android:importantForAutofill="no" />
 
         <!-- Browse mode only; hidden as one group while picking an app for a slot. -->
-        <LinearLayout
-            android:id="@+id/headerConfig"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:orientation="horizontal"
-            android:gravity="center_vertical">
-
-            <Button
-                android:id="@+id/enableCellularButton"
-                style="@style/Widget.MotoLauncher.HeaderButton"
-                android:text="@string/enable_cellular_indicator"
-                android:visibility="gone" />
-
-            <Button
-                android:id="@+id/themeButton"
-                style="@style/Widget.MotoLauncher.HeaderButton" />
-
-            <Button
-                android:id="@+id/checkUpdateButton"
-                style="@style/Widget.MotoLauncher.HeaderButton"
-                android:text="@string/check_for_updates" />
-        </LinearLayout>
+        <Button
+            android:id="@+id/settingsButton"
+            style="@style/Widget.MotoLauncher.HeaderButton"
+            android:text="@string/settings" />
     </de.codevoid.motolauncher.ui.TouchOnlyRow>
 
     <androidx.recyclerview.widget.RecyclerView
