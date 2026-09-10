@@ -95,7 +95,20 @@
   one of two Wi-Fi networks must not hide an indicator the other still earns; the set is
   cleared on detach because re-registering the callback replays `onAvailable` for networks
   that are already up, and a stale entry would leave the icon hidden for good. The icon
-  starts `gone` in the layout: at cold start nothing is known until the first callback.
+  starts `gone` in the layout: at cold start nothing is known until the first callback, and
+  `onAttachedToWindow` hides it again before registering, because re-attaching does not
+  re-run the layout's starting visibility and a network that is already gone sends no
+  `onLost`.
+
+  The cellular meter follows the same rule, with one addition that decides whether it works
+  at all: its request asks for `NET_CAPABILITY_INTERNET`, not merely `TRANSPORT_CELLULAR`.
+  Many devices keep an IMS connection up for VoLTE while mobile data is switched off, and
+  that is a cellular network too — matching on transport alone would leave the icon on
+  screen in exactly the case this was built for. Its existing gate is unchanged and comes
+  first: without telephony, API 31+ and `READ_PHONE_STATE` there is no level to draw, so
+  nothing is watched and the meter never appears. This also settles what the meter means —
+  mobile data and its strength, rather than radio signal strength, which is the useful
+  reading on a device that uses cellular for data alone.
 - **Wi-Fi via `NetworkCallback`, not `WifiManager.connectionInfo`.** Reading RSSI through
   `NetworkCapabilities.transportInfo` avoids `ACCESS_FINE_LOCATION`; only
   `ACCESS_WIFI_STATE` + `ACCESS_NETWORK_STATE` are needed.

@@ -102,6 +102,12 @@ class StatusBarView @JvmOverloads constructor(
 
     private var signalCallback: TelephonyCallback? = null
 
+    // Same idea as the Wi-Fi set, for the mobile-data network. The meter is about data:
+    // with mobile data switched off there is nothing for it to report, so it leaves the
+    // bar rather than sitting at zero bars, which would read as "data on, no coverage".
+    private val cellularNetworks = HashSet<Network>()
+    private var cellularNetworkCallback: ConnectivityManager.NetworkCallback? = null
+
     init {
         orientation = HORIZONTAL
         gravity = Gravity.CENTER_VERTICAL
@@ -121,6 +127,9 @@ class StatusBarView @JvmOverloads constructor(
         )
         initialBattery?.let(::applyBatteryIntent)
 
+        // Re-attaching does not re-run the layout's starting visibility, and a network
+        // that is already gone sends no onLost, so start hidden and let onAvailable show it.
+        showWifiIcon(false)
         val wifiRequest = NetworkRequest.Builder()
             .addTransportType(NetworkCapabilities.TRANSPORT_WIFI)
             .build()
@@ -134,9 +143,12 @@ class StatusBarView @JvmOverloads constructor(
         context.unregisterReceiver(timeReceiver)
         context.unregisterReceiver(batteryReceiver)
         connectivityManager.unregisterNetworkCallback(networkCallback)
+        cellularNetworkCallback?.let { connectivityManager.unregisterNetworkCallback(it) }
+        cellularNetworkCallback = null
         // Re-registering on re-attach replays onAvailable for networks that are already
-        // up; without this the set would still hold them and the icon would stay hidden.
+        // up; without this the sets would still hold them and the icons would stay hidden.
         wifiNetworks.clear()
+        cellularNetworks.clear()
         // signalCallback is only ever set when SDK >= S (see registerCellular), but lint
         // needs the explicit check because it doesn't cross-reference the two call sites.
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
@@ -182,31 +194,70 @@ class StatusBarView @JvmOverloads constructor(
     private fun scaleWifiLevel(rssi: Int): Int =
         wifiIconLevel(wifiManager.calculateSignalLevel(rssi), wifiMaxSignalLevel)
 
+    private fun applyCellularLevel(level: Int) {
+        if (level == lastCellularLevel) return
+        lastCellularLevel = level
+        binding.cellularIcon.setImageLevel(level)
+    }
+
+    private fun showCellularIcon(connected: Boolean) {
+        binding.cellularIcon.visibility = if (connected) View.VISIBLE else View.GONE
+    }
+
+    // Two independent facts decide the cellular meter, and both must hold: telephony has
+    // to be able to report a signal level at all (API 31+ and READ_PHONE_STATE), and a
+    // mobile-data network has to exist. The permission gate is checked once here; the
+    // network gate is the callback below, which is only registered when the first gate
+    // passes — so without the permission nothing is watched and the icon stays hidden.
     private fun registerCellular() {
+        showCellularIcon(false)
         val tm = telephonyManager
-        if (tm == null || Build.VERSION.SDK_INT < Build.VERSION_CODES.S) {
-            binding.cellularIcon.visibility = View.GONE
-            return
-        }
+        if (tm == null || Build.VERSION.SDK_INT < Build.VERSION_CODES.S) return
         val granted = ContextCompat.checkSelfPermission(
             context,
             Manifest.permission.READ_PHONE_STATE,
         ) == PackageManager.PERMISSION_GRANTED
-        if (!granted) {
-            binding.cellularIcon.visibility = View.GONE
-            return
-        }
-        binding.cellularIcon.visibility = View.VISIBLE
+        if (!granted) return
+
         val cb = object : TelephonyCallback(), TelephonyCallback.SignalStrengthsListener {
             override fun onSignalStrengthsChanged(signalStrength: SignalStrength) {
-                val level = signalStrength.level.coerceIn(0, 4)
-                if (level == lastCellularLevel) return
-                lastCellularLevel = level
-                binding.cellularIcon.setImageLevel(level)
+                applyCellularLevel(signalStrength.level.coerceIn(0, 4))
             }
         }
         signalCallback = cb
         tm.registerTelephonyCallback(context.mainExecutor, cb)
+        watchCellularNetwork()
+    }
+
+    private fun watchCellularNetwork() {
+        val callback = object : ConnectivityManager.NetworkCallback() {
+            override fun onAvailable(network: Network) {
+                if (cellularNetworks.add(network) && cellularNetworks.size == 1) {
+                    post { showCellularIcon(true) }
+                }
+            }
+
+            override fun onLost(network: Network) {
+                if (!cellularNetworks.remove(network) || cellularNetworks.isNotEmpty()) return
+                post {
+                    // Empty the meter while it is hidden so switching data back on cannot
+                    // flash the old strength before the first signal callback arrives.
+                    applyCellularLevel(0)
+                    showCellularIcon(false)
+                }
+            }
+        }
+        cellularNetworkCallback = callback
+        connectivityManager.registerNetworkCallback(
+            NetworkRequest.Builder()
+                .addTransportType(NetworkCapabilities.TRANSPORT_CELLULAR)
+                // NET_CAPABILITY_INTERNET is what makes this "mobile data" rather than
+                // "the radio is on": many devices keep an IMS connection up for VoLTE with
+                // data switched off, and that is a TRANSPORT_CELLULAR network too.
+                .addCapability(NetworkCapabilities.NET_CAPABILITY_INTERNET)
+                .build(),
+            callback,
+        )
     }
 
     companion object {
