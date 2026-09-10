@@ -95,19 +95,32 @@ class AppListActivity : AppCompatActivity() {
         // The picker is a single-purpose screen: no configuration controls while choosing.
         binding.headerConfig.visibility = if (pickMode) View.GONE else View.VISIBLE
 
-        lifecycleScope.launch {
-            allApps = viewModel.apps.await()
-            // After a recreate the restored search text is already in the box; honour it.
-            render(AppRepository.filterApps(allApps, binding.searchBox.text.toString()))
-            binding.appGrid.post {
-                binding.appGrid.layoutManager?.findViewByPosition(0)?.requestFocus()
-            }
-        }
+        loadAndRender(seedFocus = true)
     }
 
     override fun onResume() {
         super.onResume()
         if (!pickMode) updateCellularPermissionButton()
+        // Installing or uninstalling anything invalidates the cached enumeration — most
+        // often an uninstall started from this very screen, which returns here when the
+        // system uninstaller finishes. Reload only then: enumerating and rasterising every
+        // installed app is the most expensive thing the app does.
+        if (viewModel.reloadIfStale()) loadAndRender(seedFocus = false)
+    }
+
+    private fun loadAndRender(seedFocus: Boolean) {
+        lifecycleScope.launch {
+            allApps = viewModel.apps.await()
+            // After a recreate the restored search text is already in the box; honour it.
+            render(AppRepository.filterApps(allApps, binding.searchBox.text.toString()))
+            // Only on first load: re-seeding would drag the remote's focus back to the
+            // first cell every time an app is installed or removed.
+            if (seedFocus) {
+                binding.appGrid.post {
+                    binding.appGrid.layoutManager?.findViewByPosition(0)?.requestFocus()
+                }
+            }
+        }
     }
 
     // The cellular indicator is optional: expose the ask only when the platform can
@@ -198,6 +211,24 @@ class AppListActivity : AppCompatActivity() {
 // does. Keeping the result in a ViewModel means the theme toggle's recreate() reuses it
 // instead of running it again.
 class AppListViewModel(app: Application) : AndroidViewModel(app) {
-    val apps: Deferred<List<AppEntry>> =
-        viewModelScope.async(Dispatchers.IO) { AppRepository(app).loadApps() }
+
+    private var loadedGeneration = packageGeneration()
+
+    var apps: Deferred<List<AppEntry>> = load()
+        private set
+
+    /** Starts a fresh load if apps were installed or removed since the last one. */
+    fun reloadIfStale(): Boolean {
+        val current = packageGeneration()
+        if (current == loadedGeneration) return false
+        loadedGeneration = current
+        apps = load()
+        return true
+    }
+
+    private fun load(): Deferred<List<AppEntry>> = viewModelScope.async(Dispatchers.IO) {
+        AppRepository(getApplication<Application>()).loadApps()
+    }
+
+    private fun packageGeneration() = getApplication<MotoLauncherApp>().packageGeneration
 }

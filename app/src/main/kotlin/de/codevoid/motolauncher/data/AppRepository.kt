@@ -45,6 +45,13 @@ class AppRepository(private val context: Context) {
         return result
     }
 
+    // LauncherApps reports adds, removals and profile availability for exactly the apps
+    // this class enumerates, so the change feed comes from the same place as the data.
+    // Registered for the life of the process; nothing here unregisters.
+    fun registerPackageCallback(callback: LauncherApps.Callback) {
+        launcherApps.registerCallback(callback)
+    }
+
     fun launch(component: ComponentName) {
         launcherApps.startMainActivity(component, Process.myUserHandle(), null, null)
     }

@@ -71,7 +71,12 @@ library: `HttpURLConnection` + `org.json`.
 Package layout under `de.codevoid.motolauncher`:
 
 - `MotoLauncherApp` (`Application`) — re-applies the saved theme before any activity is
-  created so restarts don't flash the wrong palette.
+  created so restarts don't flash the wrong palette, and owns the single process-wide
+  `LauncherApps.Callback`: a removed package clears any favourite slot holding it
+  (`clearSlotsForPackage`) and every package event bumps `packageGeneration`, the counter
+  screens compare on resume to see whether their cached view of the app set is stale.
+  Only a real removal clears a slot — an app that merely fails to resolve may be on
+  unmounted storage, and dropping its slot would lose the configuration.
 - `HomeActivity` — the launcher entry (`category.HOME`, `singleTask`). Fixed 4×3 grid of
   11 favorite slots + a pinned "All Apps" tile in the last cell. The grid is **not** a
   RecyclerView: `populateGrid()` inflates `item_app_tile` 12 times into three weighted
@@ -90,7 +95,10 @@ Package layout under `de.codevoid.motolauncher`:
   columns; focus is seeded on the first cell once the load resolves). Also runs
   in "pick mode" (`AppListActivity.pickIntent(context, slot)`): a leading "None" tile
   clears the slot, any app tile is written to that `FavoritesStore` slot, and the
-  activity finishes; callers rebuild in `onResume`, so there is no result contract. Loads apps on `Dispatchers.IO`, filters with
+  activity finishes; callers rebuild in `onResume`, so there is no result contract.
+  `onResume` also calls `AppListViewModel.reloadIfStale()`, which re-runs the enumeration
+  only when `packageGeneration` moved — that is how an uninstall started from this screen
+  disappears from the grid on the way back. Loads apps on `Dispatchers.IO`, filters with
   `AppRepository.filterApps` on every keystroke; `AppListViewModel` (same file) holds the
   enumeration as a `Deferred` so the theme toggle's recreate reuses it. The header
   `TouchOnlyRow` holds a `headerConfig` group, hidden in pick mode, with the theme toggle
@@ -105,11 +113,13 @@ Package layout under `de.codevoid.motolauncher`:
   `REQUEST_DELETE_PACKAGES` and the `ACTION_DELETE` `<queries>` entry, or it silently does
   nothing) to the system
   uninstaller. `loadApps` walks every profile and skips the launcher's own package;
+  `registerPackageCallback` hands `MotoLauncherApp` the `LauncherApps` change feed.
   `loadByComponents` resolves only the favorites' components
   so Home never enumerates or rasterizes every installed app. `sortApps` / `filterApps`
   are pure companion functions, deliberately free of `Context`.
 - `data/FavoritesStore` — `SLOT_COUNT` = 11 slots in `SharedPreferences` (`favorites`)
-  as `slot_<i>` → flattened `ComponentName`.
+  as `slot_<i>` → flattened `ComponentName`. `clearSlotsForPackage` is the uninstall
+  repair path.
 - `data/ThemeStore` — dark/light in `SharedPreferences` (`settings`), default dark;
   drives `AppCompatDelegate.setDefaultNightMode`.
 - `update/UpdateChecker` — one-shot GET on the fixed `dev` release tag. `parseRelease`
@@ -208,7 +218,8 @@ it is merged. Everything before a merge is verified by reading. Three parallel j
   inflation work). Single test:
   `./gradlew testDebugUnitTest --tests "de.codevoid.motolauncher.AppRepositoryTest.sortsCaseInsensitively"`
   Six classes, and the shape they set: `AppRepositoryTest` (the pure `sortApps` /
-  `filterApps`), `FavoritesStoreTest` (slot round-trip against real `SharedPreferences`),
+  `filterApps`), `FavoritesStoreTest` (slot round-trip against real `SharedPreferences`,
+  and `clearSlotsForPackage` matching whole package names rather than prefixes),
   `UpdateCheckerTest` (`parseRelease` / `isNewer` / `deleteInstalledUpdate` over JSON
   fixtures and temp files), `TileActionsDialogTest` (inflates the dialog through the
   handle `showTileActionsDialog` returns: row order, one callback per row, dismissal),

@@ -63,6 +63,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   Michroma is bundled under the SIL Open Font License 1.1 — see `MICHROMA-LICENSE.txt`.
 
 ### Fixed
+- Uninstalling an app now updates the launcher straight away: it is gone from the All Apps
+  list when that screen comes back, and any home slot holding it is cleared instead of
+  keeping a component that can never resolve again.
 - The tile menu's "Uninstall" now actually starts the system uninstaller. The launcher was
   missing both the `REQUEST_DELETE_PACKAGES` permission and the package-visibility entry
   the hand-off needs, and the request was being dropped without any error.

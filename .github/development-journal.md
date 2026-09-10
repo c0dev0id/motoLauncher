@@ -130,6 +130,24 @@
   second entry for `ACTION_DELETE` with the `package` scheme is what gives the hand-off
   something to resolve against. Neither is reachable from a unit test: both are manifest
   facts enforced by the framework at runtime, so this one is confirmed on the device.
+- **Package changes come from one process-wide `LauncherApps.Callback`.** Uninstalling an
+  app left two kinds of stale state: the All Apps list kept showing it (the enumeration is
+  cached in `AppListViewModel` for the screen's lifetime, so nothing re-ran on the way back
+  from the uninstaller), and the favourite slot kept a component that could never resolve
+  again — drawn as an empty "+" that was not actually empty. `LauncherApps.Callback` is the
+  right feed: it reports adds, removals and profile availability for exactly the apps
+  `AppRepository` enumerates, so the change events come from the same place as the data,
+  and no broadcast receiver or extra permission is involved. It is registered once in
+  `MotoLauncherApp` rather than per activity, because the favourites it repairs are
+  process-wide state and an activity paused during an uninstall would miss the very event
+  that concerns it. Screens are not pushed to: the callback bumps a `packageGeneration`
+  counter, Home already rebuilds its grid in `onResume`, and the app list compares the
+  counter there and reloads only when it moved — the enumeration is the most expensive
+  thing the app does, so "reload on every resume" was not an option. Only a real
+  `onPackageRemoved` clears a slot; "failed to resolve" must not, since an app on unmounted
+  external storage is unavailable rather than uninstalled and clearing then would lose the
+  configuration for good. The known gap: a screen already in the foreground when a package
+  changes still waits for the next resume.
 - **The app picker writes the favourite slot itself.** Pick mode is
   `AppListActivity.pickIntent(context, slot)`: on selection the activity stores the
   component in `FavoritesStore` and finishes. A "None" tile leads the grid in pick mode

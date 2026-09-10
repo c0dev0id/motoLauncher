@@ -35,6 +35,32 @@ class FavoritesStoreTest {
     }
 
     @Test
+    fun clearSlotsForPackageClearsEverySlotHoldingIt() {
+        val pkg = "com.example.gone"
+        store.setSlot(0, ComponentName(pkg, "$pkg.Main"))
+        store.setSlot(4, ComponentName(pkg, "$pkg.Other"))
+        val keeper = ComponentName("com.example.stays", "com.example.stays.Main")
+        store.setSlot(2, keeper)
+
+        store.clearSlotsForPackage(pkg)
+
+        assertNull(store.getSlot(0))
+        assertNull(store.getSlot(4))
+        // A different package sharing no name must survive.
+        assertEquals(keeper, store.getSlot(2))
+    }
+
+    @Test
+    fun clearSlotsForPackageIgnoresAPrefixMatch() {
+        val keeper = ComponentName("com.example.gonefishing", "com.example.gonefishing.Main")
+        store.setSlot(1, keeper)
+
+        store.clearSlotsForPackage("com.example.gone")
+
+        assertEquals(keeper, store.getSlot(1))
+    }
+
+    @Test
     fun allSlotsReportsConfiguredSize() {
         assertEquals(FavoritesStore.SLOT_COUNT, store.allSlots().size)
     }
