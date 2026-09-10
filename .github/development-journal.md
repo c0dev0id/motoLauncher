@@ -106,7 +106,8 @@
   `performClick()` on ACTION_UP and never arms the framework's key long-press timer.
   `setOnLongClickListener` is untouched, so tapping and holding a tile still works.
 - **Home tile long-press opens a tile-styled menu (`TileActionsDialog`).** Rows in order:
-  App info, Uninstall (system uninstaller via `ACTION_DELETE`, no permission needed),
+  App info, Uninstall (system uninstaller via `ACTION_DELETE`; see the uninstall entry
+  below for the two manifest declarations it needs),
   Reassign app. The app list's long-press shows the same dialog without the Reassign row
   (there is no slot), so one dialog serves both screens. Reassigning a favourite without the menu meant a detour through
   Settings; app info alone was not worth a long-press. The menu is a plain `Dialog` with a custom layout, not an
@@ -116,6 +117,19 @@
   minimum width) is `Theme.MotoLauncher.Dialog` in `themes.xml`, not code. Every dialog
   goes through `Dialog.showImmersive()` because a dialog is a separate window and would
   otherwise bring the system bars back while showing.
+- **Uninstall needs two manifest declarations, and fails silently without either.** The
+  tile menu's Uninstall row did nothing on the device. `ACTION_DELETE` with a `package:`
+  URI is still the right hand-off — the system uninstaller owns the confirmation, so the
+  launcher needs no UI, no permission prompt and no result contract of its own — but two
+  declarations were missing, and the failure mode for both is silence rather than an
+  error. `REQUEST_DELETE_PACKAGES` is mandatory for apps targeting API 28 or later that
+  ask for a package to be deleted; its protection level is normal, so it is granted at
+  install with no runtime ask. And package visibility (API 30+) filters intent
+  *resolution*, not just explicit queries: the system uninstaller has no MAIN/LAUNCHER
+  entry, so the `<queries>` filter the launcher already had never made it visible — a
+  second entry for `ACTION_DELETE` with the `package` scheme is what gives the hand-off
+  something to resolve against. Neither is reachable from a unit test: both are manifest
+  facts enforced by the framework at runtime, so this one is confirmed on the device.
 - **The app picker writes the favourite slot itself.** Pick mode is
   `AppListActivity.pickIntent(context, slot)`: on selection the activity stores the
   component in `FavoritesStore` and finishes. A "None" tile leads the grid in pick mode

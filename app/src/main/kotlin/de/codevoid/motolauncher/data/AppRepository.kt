@@ -61,9 +61,12 @@ class AppRepository(private val context: Context) {
         launcherApps.startAppDetailsActivity(component, Process.myUserHandle(), null, null)
     }
 
-    // Hands off to the system uninstaller, which asks for confirmation itself. No
-    // permission needed for the ACTION_DELETE route; the favourite tile self-heals to
-    // "+" on the next resume because loadByComponents no longer resolves it.
+    // Hands off to the system uninstaller, which asks for confirmation itself. Two
+    // manifest entries make that hand-off work, and it fails silently without either:
+    // REQUEST_DELETE_PACKAGES (mandatory since targetSdk 28 for requesting a package
+    // delete) and a <queries> entry for ACTION_DELETE, because the uninstaller has no
+    // launcher entry and package visibility filters intent resolution. The favourite tile
+    // self-heals to "+" on the next resume because loadByComponents no longer resolves it.
     fun requestUninstall(component: ComponentName) {
         context.startActivity(
             Intent(Intent.ACTION_DELETE, Uri.fromParts("package", component.packageName, null))

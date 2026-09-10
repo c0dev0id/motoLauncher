@@ -101,7 +101,9 @@ Package layout under `de.codevoid.motolauncher`:
   iterating all `UserManager` profiles. `launch` → `startMainActivity` (and
   `launchIfInstalled` for a stored component, gated on `isActivityEnabled` because
   `startMainActivity` throws on one that no longer exists), `openInfo` →
-  `startAppDetailsActivity`, `requestUninstall` → `ACTION_DELETE` hand-off to the system
+  `startAppDetailsActivity`, `requestUninstall` → `ACTION_DELETE` hand-off (needs both
+  `REQUEST_DELETE_PACKAGES` and the `ACTION_DELETE` `<queries>` entry, or it silently does
+  nothing) to the system
   uninstaller. `loadApps` walks every profile and skips the launcher's own package;
   `loadByComponents` resolves only the favorites' components
   so Home never enumerates or rasterizes every installed app. `sortApps` / `filterApps`
@@ -186,8 +188,9 @@ Package layout under `de.codevoid.motolauncher`:
 
 The manifest scopes package visibility to `MAIN`/`LAUNCHER` `<queries>` rather than
 requesting `QUERY_ALL_PACKAGES` — the launcher-appropriate approach. Keep it that way.
-Permissions in use: `INTERNET`, `REQUEST_INSTALL_PACKAGES`, `ACCESS_WIFI_STATE`,
-`ACCESS_NETWORK_STATE`, and runtime `READ_PHONE_STATE` (optional, cellular bars only).
+Permissions in use: `INTERNET`, `REQUEST_INSTALL_PACKAGES`, `REQUEST_DELETE_PACKAGES`,
+`ACCESS_WIFI_STATE`, `ACCESS_NETWORK_STATE`, and runtime `READ_PHONE_STATE` (optional,
+cellular bars only).
 
 ## Build & CI
 
