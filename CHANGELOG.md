@@ -60,6 +60,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   Michroma is bundled under the SIL Open Font License 1.1 — see `MICHROMA-LICENSE.txt`.
 
 ### Fixed
+- The Wi-Fi indicator no longer overstates the signal. The platform rates a link from 0 to
+  its reported maximum *inclusive*, and the launcher treated the top rating as out of
+  range: a 3-of-4 signal drew full bars and the three-bar state was never shown at all.
 - Unlit bars in the Wi-Fi and cellular indicators are now clearly darker than lit ones.
   They were so close in the dark theme that full signal and no signal looked almost
   identical at a glance.
