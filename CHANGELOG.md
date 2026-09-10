@@ -30,10 +30,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   self-replacing `dev` pre-release.
 - **GPS Speed display** in the home screen status bar, center-aligned between the clock
   and the status icons. Defaults to disabled. Enabled from the settings mode in the
-  All Apps screen; a location-permission tile appears when GPS Speed is on but
-  `ACCESS_FINE_LOCATION` has not yet been granted.
+  All Apps screen: tapping the tile requests `ACCESS_FINE_LOCATION` on first enable;
+  if granted the tile flips to On immediately.
+- **Cellular indicator** in the home screen status bar is now a toggle (defaults to
+  disabled). Enabling it requests `READ_PHONE_STATE` on the spot; the tile reflects
+  the outcome without requiring a separate page load.
 - **Units setting** (Metric / Imperial) in the All Apps settings mode, shown as the
   current unit (`km/h` or `mph`); controls the unit displayed by the GPS speed widget.
+- Settings tiles now update their subtitle immediately when tapped.
 - Custom home status bar showing the current time on the left and Wi-Fi, cellular, and
   battery indicators on the right, aligned with the grid margins.
 - Visible back button on the app list screen for touch users.

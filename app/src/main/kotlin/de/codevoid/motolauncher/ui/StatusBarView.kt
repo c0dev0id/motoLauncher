@@ -27,6 +27,7 @@ import android.view.View
 import android.widget.LinearLayout
 import androidx.core.content.ContextCompat
 import de.codevoid.motolauncher.R
+import de.codevoid.motolauncher.data.CellularStore
 import de.codevoid.motolauncher.data.SpeedStore
 import de.codevoid.motolauncher.databinding.ViewStatusBarBinding
 import java.text.SimpleDateFormat
@@ -56,6 +57,7 @@ class StatusBarView @JvmOverloads constructor(
         context.getSystemService(Context.LOCATION_SERVICE) as LocationManager
 
     private val speedStore = SpeedStore(context)
+    private val cellularStore = CellularStore(context)
     private val settingsPrefs =
         context.getSharedPreferences(SpeedStore.PREFS, Context.MODE_PRIVATE)
 
@@ -123,6 +125,8 @@ class StatusBarView @JvmOverloads constructor(
 
     private val prefsListener = SharedPreferences.OnSharedPreferenceChangeListener { _, key ->
         when (key) {
+            CellularStore.KEY_CELLULAR_ENABLED ->
+                if (cellularStore.enabled) registerCellular() else unregisterCellular()
             SpeedStore.KEY_SPEED_ENABLED -> if (speedStore.speedEnabled) registerGps() else unregisterGps()
             SpeedStore.KEY_SPEED_METRIC -> {
                 // If speed is visible, reset the placeholder so the unit updates immediately;
@@ -179,18 +183,10 @@ class StatusBarView @JvmOverloads constructor(
         context.unregisterReceiver(timeReceiver)
         context.unregisterReceiver(batteryReceiver)
         connectivityManager.unregisterNetworkCallback(networkCallback)
-        cellularNetworkCallback?.let { connectivityManager.unregisterNetworkCallback(it) }
-        cellularNetworkCallback = null
-        // Re-registering on re-attach replays onAvailable for networks that are already
-        // up; without this the sets would still hold them and the icons would stay hidden.
+        // Re-attaching replays onAvailable for networks already up; clear so the icon
+        // does not stay hidden when it reconnects without sending onLost first.
         wifiNetworks.clear()
-        cellularNetworks.clear()
-        // signalCallback is only ever set when SDK >= S (see registerCellular), but lint
-        // needs the explicit check because it doesn't cross-reference the two call sites.
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
-            signalCallback?.let { telephonyManager?.unregisterTelephonyCallback(it) }
-        }
-        signalCallback = null
+        unregisterCellular()
 
         settingsPrefs.unregisterOnSharedPreferenceChangeListener(prefsListener)
         locationManager.removeUpdates(locationListener)
@@ -243,20 +239,15 @@ class StatusBarView @JvmOverloads constructor(
         binding.cellularIcon.visibility = if (connected) View.VISIBLE else View.GONE
     }
 
-    // Two independent facts decide the cellular meter, and both must hold: telephony has
-    // to be able to report a signal level at all (API 31+ and READ_PHONE_STATE), and a
-    // mobile-data network has to exist. The permission gate is checked once here; the
-    // network gate is the callback below, which is only registered when the first gate
-    // passes — so without the permission nothing is watched and the icon stays hidden.
+    // Three gates: cellularEnabled (user toggle), telephony available on API 31+, and
+    // READ_PHONE_STATE granted. All must hold or nothing is registered and the icon stays hidden.
     private fun registerCellular() {
         showCellularIcon(false)
+        if (!cellularStore.enabled) return
         val tm = telephonyManager
         if (tm == null || Build.VERSION.SDK_INT < Build.VERSION_CODES.S) return
-        val granted = ContextCompat.checkSelfPermission(
-            context,
-            Manifest.permission.READ_PHONE_STATE,
-        ) == PackageManager.PERMISSION_GRANTED
-        if (!granted) return
+        if (ContextCompat.checkSelfPermission(context, Manifest.permission.READ_PHONE_STATE)
+            != PackageManager.PERMISSION_GRANTED) return
 
         val cb = object : TelephonyCallback(), TelephonyCallback.SignalStrengthsListener {
             override fun onSignalStrengthsChanged(signalStrength: SignalStrength) {
@@ -266,6 +257,18 @@ class StatusBarView @JvmOverloads constructor(
         signalCallback = cb
         tm.registerTelephonyCallback(context.mainExecutor, cb)
         watchCellularNetwork()
+    }
+
+    private fun unregisterCellular() {
+        showCellularIcon(false)
+        cellularNetworkCallback?.let { connectivityManager.unregisterNetworkCallback(it) }
+        cellularNetworkCallback = null
+        // Clear so re-registering gets a fresh onAvailable for networks already up.
+        cellularNetworks.clear()
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+            signalCallback?.let { telephonyManager?.unregisterTelephonyCallback(it) }
+        }
+        signalCallback = null
     }
 
     // Same two-gate pattern as registerCellular: speedEnabled must be true and

@@ -24,6 +24,7 @@ import androidx.recyclerview.widget.GridLayoutManager
 import de.codevoid.motolauncher.BuildConfig
 import de.codevoid.motolauncher.data.AppEntry
 import de.codevoid.motolauncher.data.AppRepository
+import de.codevoid.motolauncher.data.CellularStore
 import de.codevoid.motolauncher.data.FavoritesStore
 import de.codevoid.motolauncher.data.SpeedStore
 import de.codevoid.motolauncher.data.ThemeStore
@@ -48,6 +49,7 @@ class AppListActivity : AppCompatActivity() {
     private val adapter = AppTileAdapter(emptyList())
     private val themeStore by lazy { ThemeStore(this) }
     private val speedStore by lazy { SpeedStore(this) }
+    private val cellularStore by lazy { CellularStore(this) }
     private var defaultSettingsTint: ColorStateList? = null
     private var activeSettingsTint: ColorStateList? = null
     // Invalidated when isCheckingUpdate, cellular permission, or GPS permission state changes.
@@ -77,10 +79,18 @@ class AppListActivity : AppCompatActivity() {
     )
 
     private val cellularPermissionLauncher =
-        registerForActivityResult(RequestPermission()) { settingsTilesCache = null; renderCurrentMode() }
+        registerForActivityResult(RequestPermission()) { granted ->
+            if (granted) cellularStore.enabled = true
+            settingsTilesCache = null
+            renderCurrentMode()
+        }
 
     private val gpsPermissionLauncher =
-        registerForActivityResult(RequestPermission()) { settingsTilesCache = null; renderCurrentMode() }
+        registerForActivityResult(RequestPermission()) { granted ->
+            if (granted) speedStore.speedEnabled = true
+            settingsTilesCache = null
+            renderCurrentMode()
+        }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -194,46 +204,42 @@ class AppListActivity : AppCompatActivity() {
             }),
         ))
 
-        // The cellular indicator requires READ_PHONE_STATE, which the user may not have
-        // granted. Offer the ask only when the platform can deliver readings (API 31+)
-        // and the permission is still missing. Once granted, the tile disappears.
-        val needsCellular = Build.VERSION.SDK_INT >= Build.VERSION_CODES.S &&
-            ContextCompat.checkSelfPermission(this, Manifest.permission.READ_PHONE_STATE) !=
-            PackageManager.PERMISSION_GRANTED
-        if (needsCellular) {
-            tiles.add(TileItem(
-                label = getString(R.string.cellular_indicator),
-                subtitle = getString(R.string.permission_required),
-                onClick = {
+        // Tapping "Off" requests the permission; if granted the tile flips to "On".
+        // Tapping "On" disables immediately. If the permission is already granted, the
+        // system skips the dialog and the launcher callback fires with granted=true at once.
+        tiles.add(TileItem(
+            label = getString(R.string.cellular_indicator),
+            subtitle = getString(if (cellularStore.enabled) R.string.setting_on else R.string.setting_off),
+            onClick = {
+                if (cellularStore.enabled) {
+                    cellularStore.enabled = false
+                    settingsTilesCache = null
+                    renderCurrentMode()
+                } else {
                     cellularPermissionLauncher.launch(Manifest.permission.READ_PHONE_STATE)
-                },
-            ))
-        }
+                }
+            },
+        ))
 
         tiles.add(TileItem(
             label = getString(R.string.gps_speed),
-            subtitle = getString(if (speedStore.speedEnabled) R.string.gps_speed_on else R.string.gps_speed_off),
-            onClick = { settingsTilesCache = null; speedStore.speedEnabled = !speedStore.speedEnabled },
+            subtitle = getString(if (speedStore.speedEnabled) R.string.setting_on else R.string.setting_off),
+            onClick = {
+                if (speedStore.speedEnabled) {
+                    speedStore.speedEnabled = false
+                    settingsTilesCache = null
+                    renderCurrentMode()
+                } else {
+                    gpsPermissionLauncher.launch(Manifest.permission.ACCESS_FINE_LOCATION)
+                }
+            },
         ))
 
         tiles.add(TileItem(
             label = getString(R.string.units),
             subtitle = getString(if (speedStore.isMetric) R.string.units_kmh else R.string.units_mph),
-            onClick = { settingsTilesCache = null; speedStore.isMetric = !speedStore.isMetric },
+            onClick = { settingsTilesCache = null; speedStore.isMetric = !speedStore.isMetric; renderCurrentMode() },
         ))
-
-        val needsGps = speedStore.speedEnabled &&
-            ContextCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION) !=
-            PackageManager.PERMISSION_GRANTED
-        if (needsGps) {
-            tiles.add(TileItem(
-                label = getString(R.string.gps_location_permission),
-                subtitle = getString(R.string.permission_required),
-                onClick = {
-                    gpsPermissionLauncher.launch(Manifest.permission.ACCESS_FINE_LOCATION)
-                },
-            ))
-        }
 
         return tiles
     }

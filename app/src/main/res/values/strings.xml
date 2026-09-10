@@ -23,15 +23,12 @@
     <string name="downloading">Downloading update…</string>
     <string name="back">Back</string>
     <string name="battery_percent">%1$d%%</string>
-    <string name="enable_cellular_indicator">Enable cellular indicator</string>
     <string name="cellular_indicator">Cellular indicator</string>
-    <string name="permission_required">Permission required</string>
     <string name="settings">Settings</string>
     <string name="apps">Apps</string>
+    <string name="setting_on">On</string>
+    <string name="setting_off">Off</string>
     <string name="gps_speed">GPS Speed</string>
-    <string name="gps_speed_on">On</string>
-    <string name="gps_speed_off">Off</string>
-    <string name="gps_location_permission">GPS location</string>
     <string name="units">Units</string>
     <string name="units_kmh">km/h</string>
     <string name="units_mph">mph</string>
