@@ -100,11 +100,15 @@ Package layout under `de.codevoid.motolauncher`:
   only when `packageGeneration` moved — that is how an uninstall started from this screen
   disappears from the grid on the way back. Loads apps on `Dispatchers.IO`, filters with
   `AppRepository.filterApps` on every keystroke; `AppListViewModel` (same file) holds the
-  enumeration as a `Deferred` so the theme toggle's recreate reuses it. The header
-  `TouchOnlyRow` holds a `headerConfig` group, hidden in pick mode, with the theme toggle
-  (flipping recreates the activity), the update check (`runUpdateFlow`), and an "enable
-  cellular indicator" button that requests `READ_PHONE_STATE` at runtime and hides itself
-  once granted (API 31+ only). Header buttons use `Widget.MotoLauncher.HeaderButton`.
+  enumeration as a `Deferred` so the theme toggle's recreate reuses it. Also carries
+  `isSettingsMode` and `isCheckingUpdate` so both survive the recreation. The header
+  `TouchOnlyRow` holds a single `settingsButton` (hidden in pick mode) that toggles
+  `isSettingsMode`; `renderCurrentMode()` then swaps the RecyclerView between the app
+  grid and settings tiles (theme, update check via `runUpdateFlow`, conditional cellular
+  permission). A short Escape exits settings mode before finishing. Settings tiles are
+  text-only (`TileItem.icon = null`); the adapter hides `appIcon` (`View.GONE`) and
+  restores it (`View.VISIBLE`) on rebind. Header buttons use
+  `Widget.MotoLauncher.HeaderButton`.
 - `data/AppRepository` — thin wrapper over `LauncherApps` (not `PackageManager`),
   iterating all `UserManager` profiles. `launch` → `startMainActivity` (and
   `launchIfInstalled` for a stored component, gated on `isActivityEnabled` because
