@@ -69,6 +69,22 @@
   `setImageLevel()`. The battery level-list encodes charging state in the level number
   itself (0–4 = idle, 5–9 = plugged, five fill buckets each), so plugging in and level
   changes both flow through the same one-call update path.
+- **Signal meters need a dedicated "unlit" colour, and the platform's rating range is
+  inclusive.** Two separate faults made the status bar's Wi-Fi and cellular meters
+  unreadable, both found from a screenshot of the running device. First, the unlit bars
+  were drawn in `on_surface_muted` — a colour built for secondary *text*, which in the
+  dark theme (`#B8C0CC` against `#FFFFFF`) leaves lit and unlit bars about 1.85:1 apart,
+  so full signal and no signal looked nearly the same. The unlit segments now use their
+  own `signal_track` token, far enough from `on_surface` to read at a glance while still
+  showing where the missing bars would be; `on_surface_muted` could not simply be darkened
+  because secondary text and the "+" / "None" tile glyphs share it. Second,
+  `WifiManager.calculateSignalLevel` returns a rating in `[0, maxSignalLevel]`
+  *inclusive* — five values on a typical device, not four. Rescaling with
+  `maxSignalLevel - 1` as the divisor therefore reported a 3-of-4 signal as full and made
+  the three-bar icon unreachable. `StatusBarView.wifiIconLevel` is now a pure function
+  over (rating, platform maximum) so the mapping is unit-tested at both ends. Cellular
+  needs no rescale: `SignalStrength.getLevel()` is documented as 0..4 and matches the
+  icon's five states directly.
 - **Wi-Fi via `NetworkCallback`, not `WifiManager.connectionInfo`.** Reading RSSI through
   `NetworkCapabilities.transportInfo` avoids `ACCESS_FINE_LOCATION`; only
   `ACCESS_WIFI_STATE` + `ACCESS_NETWORK_STATE` are needed.

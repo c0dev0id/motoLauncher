@@ -52,7 +52,7 @@ class StatusBarView @JvmOverloads constructor(
     // Cached once — maxSignalLevel is a fixed property that would otherwise cross the
     // Binder on every capability callback (which fires many times per second on a
     // fluctuating link).
-    private val wifiSignalSteps = (wifiManager.maxSignalLevel - 1).coerceAtLeast(1)
+    private val wifiMaxSignalLevel = wifiManager.maxSignalLevel
 
     private var lastWifiLevel = -1
     private var lastBatteryPercent = -1
@@ -154,13 +154,8 @@ class StatusBarView @JvmOverloads constructor(
         binding.wifiIcon.setImageLevel(level)
     }
 
-    // WifiManager.calculateSignalLevel(rssi) returns 0..maxSignalLevel-1 (typically 0..3
-    // or 0..4). Rescale to our 5-step icon (0..4) so the "full bars" drawable is reachable
-    // regardless of what the platform reports as its maximum.
-    private fun scaleWifiLevel(rssi: Int): Int {
-        val raw = wifiManager.calculateSignalLevel(rssi)
-        return ((raw * 4) / wifiSignalSteps).coerceIn(0, 4)
-    }
+    private fun scaleWifiLevel(rssi: Int): Int =
+        wifiIconLevel(wifiManager.calculateSignalLevel(rssi), wifiMaxSignalLevel)
 
     private fun registerCellular() {
         val tm = telephonyManager
@@ -187,5 +182,27 @@ class StatusBarView @JvmOverloads constructor(
         }
         signalCallback = cb
         tm.registerTelephonyCallback(context.mainExecutor, cb)
+    }
+
+    companion object {
+        // Our meters have five states, 0 (empty) to 4 (full).
+        private const val ICON_LEVELS = 4
+
+        /**
+         * Maps a platform Wi-Fi rating onto the icon's five states.
+         *
+         * `WifiManager.calculateSignalLevel` returns a rating in `[0, maxSignalLevel]`
+         * *inclusive* — maxSignalLevel + 1 distinct values, five on a typical device.
+         * Dividing by `maxSignalLevel` (not by one less, which treats the top rating as
+         * out of range) keeps the mapping honest at both ends: only the platform's own
+         * maximum draws full bars, and only a 0 rating draws none.
+         *
+         * A platform reporting fewer steps than the icon has simply skips icon states;
+         * that is lost resolution, not a misreading.
+         */
+        fun wifiIconLevel(rawLevel: Int, maxSignalLevel: Int): Int {
+            val max = maxSignalLevel.coerceAtLeast(1)
+            return rawLevel.coerceIn(0, max) * ICON_LEVELS / max
+        }
     }
 }

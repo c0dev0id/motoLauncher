@@ -156,7 +156,10 @@ Package layout under `de.codevoid.motolauncher`:
   `onDetachedFromWindow`; `HomeActivity` does no lifecycle wiring. Icons are
   `<level-list>` drawables updated by `setImageLevel()`; the battery level encodes
   charging in the number (0–4 idle, 5–9 plugged). Wi-Fi RSSI comes from
-  `NetworkCapabilities.transportInfo` to avoid needing location permission Uses the
+  `NetworkCapabilities.transportInfo` to avoid needing location permission, and
+  `calculateSignalLevel`'s rating — which spans `[0, maxSignalLevel]` **inclusive** — is
+  mapped onto the five icon states by the pure `wifiIconLevel`. Cellular takes
+  `SignalStrength.level` (0..4) straight through. Uses the
   bundled Michroma font (`res/font/michroma.ttf`, OFL — see `MICHROMA-LICENSE.txt`).
 
 ## Resources & styling
@@ -198,14 +201,14 @@ it is merged. Everything before a merge is verified by reading. Three parallel j
   `app/src/test/kotlin` (`isIncludeAndroidResources = true`, so real resources and view
   inflation work). Single test:
   `./gradlew testDebugUnitTest --tests "de.codevoid.motolauncher.AppRepositoryTest.sortsCaseInsensitively"`
-  Five classes, and the shape they set: `AppRepositoryTest` (the pure `sortApps` /
+  Six classes, and the shape they set: `AppRepositoryTest` (the pure `sortApps` /
   `filterApps`), `FavoritesStoreTest` (slot round-trip against real `SharedPreferences`),
   `UpdateCheckerTest` (`parseRelease` / `isNewer` / `deleteInstalledUpdate` over JSON
   fixtures and temp files), `TileActionsDialogTest` (inflates the dialog through the
   handle `showTileActionsDialog` returns: row order, one callback per row, dismissal),
   `EscapeKeysTest` (short vs. held Escape, dispatched through a real
   `KeyEvent.DispatcherState` so the framework's tracking rules are exercised rather than
-  assumed).
+  assumed), `StatusBarViewTest` (`wifiIconLevel` across platform rating ranges).
   Write new behaviour so it lands in that surface — a pure function, a store, or
   something a Robolectric activity can reach. No device is ever available to check it.
 - `./gradlew assembleRelease -PappVersionName=dev-<sha> -PappVersionCode=<run>` —
