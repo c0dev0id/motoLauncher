@@ -241,5 +241,7 @@ it is merged. Everything before a merge is verified by reading. Three parallel j
   the update endpoint stays a single stable URL and "keep only the latest" needs no
   cleanup.
 
-Read CI results through the GitHub tooling available in the session (there is no
-`.gh_token` in the repo).
+Read CI results through the **`ci-verifier`** subagent (`.claude/agents/ci-verifier.md`):
+it drives the session's authenticated `gh` to fetch only the failed-step logs for the
+latest `Build` run and hands back a punch list, keeping the large log output out of the
+main conversation. There is no `.gh_token` in the repo — `gh` is authenticated globally.
