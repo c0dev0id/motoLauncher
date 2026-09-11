@@ -8,7 +8,6 @@ import android.content.Intent
 import android.content.pm.ActivityInfo
 import android.content.pm.PackageManager
 import android.content.res.ColorStateList
-import android.content.res.Configuration
 import android.os.Build
 import android.os.Bundle
 import android.text.Editable
@@ -37,6 +36,7 @@ import de.codevoid.motolauncher.ui.AppTileAdapter
 import de.codevoid.motolauncher.ui.EscapeKeys
 import de.codevoid.motolauncher.ui.TileItem
 import de.codevoid.motolauncher.ui.enableImmersiveMode
+import de.codevoid.motolauncher.ui.isPortrait
 import de.codevoid.motolauncher.ui.launchFirstFavorite
 import de.codevoid.motolauncher.ui.runUpdateFlow
 import de.codevoid.motolauncher.ui.showTileActionsDialog
@@ -56,7 +56,6 @@ class AppListActivity : AppCompatActivity() {
     private val cellularStore by lazy { CellularStore(this) }
     private val hiddenAppsStore by lazy { HiddenAppsStore(this) }
     private val orientationStore by lazy { OrientationStore(this) }
-    private val isPortrait get() = resources.configuration.orientation == Configuration.ORIENTATION_PORTRAIT
     private val columns get() = if (isPortrait) 4 else 5
     private var defaultSettingsTint: ColorStateList? = null
     private var activeSettingsTint: ColorStateList? = null
@@ -268,19 +267,14 @@ class AppListActivity : AppCompatActivity() {
     )
 
     private fun orientationTile(): TileItem {
-        val options = listOf(
-            ActivityInfo.SCREEN_ORIENTATION_LANDSCAPE to R.string.orientation_landscape,
-            ActivityInfo.SCREEN_ORIENTATION_PORTRAIT to R.string.orientation_portrait,
-            ActivityInfo.SCREEN_ORIENTATION_REVERSE_LANDSCAPE to R.string.orientation_reverse_landscape,
-            ActivityInfo.SCREEN_ORIENTATION_REVERSE_PORTRAIT to R.string.orientation_reverse_portrait,
-        )
         val current = orientationStore.orientation
-        val idx = options.indexOfFirst { it.first == current }.coerceAtLeast(0)
-        val next = options[(idx + 1) % options.size].first
+        val idx = ORIENTATION_OPTIONS.indexOfFirst { it.first == current }.coerceAtLeast(0)
         return TileItem(
             label = getString(R.string.orientation),
-            subtitle = getString(options[idx].second),
+            subtitle = getString(ORIENTATION_OPTIONS[idx].second),
             onClick = {
+                val cur = orientationStore.orientation
+                val next = ORIENTATION_OPTIONS[(ORIENTATION_OPTIONS.indexOfFirst { it.first == cur }.coerceAtLeast(0) + 1) % ORIENTATION_OPTIONS.size].first
                 orientationStore.orientation = next
                 requestedOrientation = next
                 settingsTilesCache = null
@@ -310,14 +304,10 @@ class AppListActivity : AppCompatActivity() {
                         entry = entry,
                         onAppInfo = { repository.openInfo(entry.component) },
                         onUninstall = { repository.requestUninstall(entry.component) },
-                        onHide = if (!isHidden) ({
-                            hiddenAppsStore.hide(entry.component.packageName)
-                            renderCurrentMode()
-                        }) else null,
-                        onUnhide = if (isHidden) ({
-                            hiddenAppsStore.unhide(entry.component.packageName)
-                            renderCurrentMode()
-                        }) else null,
+                        hideAction = if (isHidden)
+                            R.string.tile_action_unhide to { hiddenAppsStore.unhide(entry.component.packageName); renderCurrentMode() }
+                        else
+                            R.string.tile_action_hide to { hiddenAppsStore.hide(entry.component.packageName); renderCurrentMode() },
                     )
                     true
                 }),
@@ -364,6 +354,13 @@ class AppListActivity : AppCompatActivity() {
     companion object {
         private const val EXTRA_PICK_SLOT = "pick_slot"
         private const val NO_SLOT = -1
+
+        private val ORIENTATION_OPTIONS = listOf(
+            ActivityInfo.SCREEN_ORIENTATION_LANDSCAPE to R.string.orientation_landscape,
+            ActivityInfo.SCREEN_ORIENTATION_PORTRAIT to R.string.orientation_portrait,
+            ActivityInfo.SCREEN_ORIENTATION_REVERSE_LANDSCAPE to R.string.orientation_reverse_landscape,
+            ActivityInfo.SCREEN_ORIENTATION_REVERSE_PORTRAIT to R.string.orientation_reverse_portrait,
+        )
 
         // Callers rebuild their grid in onResume, so no result contract is needed.
         fun pickIntent(context: Context, slot: Int): Intent =

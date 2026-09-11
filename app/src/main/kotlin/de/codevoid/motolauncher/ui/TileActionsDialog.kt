@@ -4,6 +4,7 @@ import android.app.Dialog
 import android.content.Context
 import android.view.LayoutInflater
 import android.view.View
+import androidx.annotation.StringRes
 import de.codevoid.motolauncher.R
 import de.codevoid.motolauncher.data.AppEntry
 import de.codevoid.motolauncher.databinding.DialogTileActionsBinding
@@ -12,14 +13,16 @@ import de.codevoid.motolauncher.databinding.DialogTileActionsBinding
 // the app's own dialog theme rather than an AlertDialog, so the surface keeps the
 // launcher palette and tile-style buttons instead of the Material3 dialog look. Back /
 // Escape dismiss it without choosing. Returns the shown dialog (tests use the handle).
+//
+// hideAction: pass (R.string.tile_action_hide, callback) or (R.string.tile_action_unhide, callback)
+// to show the hide/unhide row; null hides it. A single param enforces mutual exclusion at the call site.
 fun showTileActionsDialog(
     context: Context,
     entry: AppEntry,
     onAppInfo: () -> Unit,
     onUninstall: () -> Unit,
     onReassign: (() -> Unit)? = null,
-    onHide: (() -> Unit)? = null,
-    onUnhide: (() -> Unit)? = null,
+    hideAction: Pair<@StringRes Int, () -> Unit>? = null,
 ): Dialog {
     val binding = DialogTileActionsBinding.inflate(LayoutInflater.from(context))
     binding.appIcon.setImageDrawable(entry.icon)
@@ -35,16 +38,11 @@ fun showTileActionsDialog(
         dialog.dismiss()
         onUninstall()
     }
-    when {
-        onHide != null -> {
-            binding.actionHide.text = context.getString(R.string.tile_action_hide)
-            binding.actionHide.setOnClickListener { dialog.dismiss(); onHide() }
-        }
-        onUnhide != null -> {
-            binding.actionHide.text = context.getString(R.string.tile_action_unhide)
-            binding.actionHide.setOnClickListener { dialog.dismiss(); onUnhide() }
-        }
-        else -> binding.actionHide.visibility = View.GONE
+    if (hideAction != null) {
+        binding.actionHide.setText(hideAction.first)
+        binding.actionHide.setOnClickListener { dialog.dismiss(); hideAction.second() }
+    } else {
+        binding.actionHide.visibility = View.GONE
     }
     // No slot to reassign (the app list): drop the row entirely.
     if (onReassign != null) {

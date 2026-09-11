@@ -102,7 +102,7 @@ class TileActionsDialogTest {
             entry,
             onAppInfo = {},
             onUninstall = {},
-            onHide = { hideCount++ },
+            hideAction = R.string.tile_action_hide to { hideCount++ },
         )
         dialog.findViewById<TextView>(R.id.actionHide).performClick()
         assertEquals(1, hideCount)
@@ -117,7 +117,7 @@ class TileActionsDialogTest {
             entry,
             onAppInfo = {},
             onUninstall = {},
-            onUnhide = { unhideCount++ },
+            hideAction = R.string.tile_action_unhide to { unhideCount++ },
         )
         dialog.findViewById<TextView>(R.id.actionHide).performClick()
         assertEquals(1, unhideCount)

@@ -1,7 +1,6 @@
 package de.codevoid.motolauncher
 
 import android.content.Intent
-import android.content.res.Configuration
 import android.graphics.drawable.Drawable
 import android.os.Bundle
 import android.view.KeyEvent
@@ -18,6 +17,7 @@ import de.codevoid.motolauncher.databinding.ItemAppTileBinding
 import de.codevoid.motolauncher.ui.EscapeKeys
 import de.codevoid.motolauncher.ui.blockKeyLongPress
 import de.codevoid.motolauncher.ui.enableImmersiveMode
+import de.codevoid.motolauncher.ui.isPortrait
 import de.codevoid.motolauncher.ui.launchFirstFavorite
 import de.codevoid.motolauncher.ui.showTileActionsDialog
 
@@ -27,7 +27,6 @@ class HomeActivity : AppCompatActivity() {
     private lateinit var favorites: FavoritesStore
     private lateinit var repository: AppRepository
     private val orientationStore by lazy { OrientationStore(this) }
-    private val isPortrait get() = resources.configuration.orientation == Configuration.ORIENTATION_PORTRAIT
     private val columns get() = if (isPortrait) 3 else 4
     private val rows get() = if (isPortrait) 4 else 3
     private val tiles = ArrayList<ItemAppTileBinding>(12)
