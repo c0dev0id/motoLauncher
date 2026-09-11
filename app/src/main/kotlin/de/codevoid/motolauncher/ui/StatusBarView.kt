@@ -27,6 +27,7 @@ import android.view.View
 import android.widget.LinearLayout
 import androidx.core.content.ContextCompat
 import de.codevoid.motolauncher.R
+import de.codevoid.motolauncher.data.BatteryStore
 import de.codevoid.motolauncher.data.CellularStore
 import de.codevoid.motolauncher.data.SpeedStore
 import de.codevoid.motolauncher.databinding.ViewStatusBarBinding
@@ -58,6 +59,7 @@ class StatusBarView @JvmOverloads constructor(
 
     private val speedStore = SpeedStore(context)
     private val cellularStore = CellularStore(context)
+    private val batteryStore = BatteryStore(context)
     private val settingsPrefs =
         context.getSharedPreferences(SpeedStore.PREFS, Context.MODE_PRIVATE)
 
@@ -133,6 +135,7 @@ class StatusBarView @JvmOverloads constructor(
                     binding.speedText.text = "-- ${speedUnitString(speedStore.isMetric)}"
                 }
             }
+            BatteryStore.KEY_BATTERY_DISPLAY -> applyBatteryDisplay()
         }
     }
 
@@ -173,6 +176,7 @@ class StatusBarView @JvmOverloads constructor(
 
         settingsPrefs.registerOnSharedPreferenceChangeListener(prefsListener)
         registerGps()
+        applyBatteryDisplay()
     }
 
     override fun onDetachedFromWindow() {
@@ -318,6 +322,12 @@ class StatusBarView @JvmOverloads constructor(
                 .build(),
             callback,
         )
+    }
+
+    private fun applyBatteryDisplay() {
+        val display = batteryStore.display
+        binding.batteryIcon.visibility = if (display != BatteryStore.DISPLAY_TEXT) View.VISIBLE else View.GONE
+        binding.batteryText.visibility = if (display != BatteryStore.DISPLAY_ICON) View.VISIBLE else View.GONE
     }
 
     companion object {

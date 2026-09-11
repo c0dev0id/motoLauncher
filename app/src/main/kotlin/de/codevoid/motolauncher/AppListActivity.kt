@@ -25,6 +25,7 @@ import androidx.recyclerview.widget.GridLayoutManager
 import de.codevoid.motolauncher.BuildConfig
 import de.codevoid.motolauncher.data.AppEntry
 import de.codevoid.motolauncher.data.AppRepository
+import de.codevoid.motolauncher.data.BatteryStore
 import de.codevoid.motolauncher.data.CellularStore
 import de.codevoid.motolauncher.data.FavoritesStore
 import de.codevoid.motolauncher.data.HiddenAppsStore
@@ -54,6 +55,7 @@ class AppListActivity : AppCompatActivity() {
     private val themeStore by lazy { ThemeStore(this) }
     private val speedStore by lazy { SpeedStore(this) }
     private val cellularStore by lazy { CellularStore(this) }
+    private val batteryStore by lazy { BatteryStore(this) }
     private val hiddenAppsStore by lazy { HiddenAppsStore(this) }
     private val orientationStore by lazy { OrientationStore(this) }
     private val columns get() = if (isPortrait) 4 else 5
@@ -234,6 +236,8 @@ class AppListActivity : AppCompatActivity() {
             ))
         }
 
+        tiles.add(batteryDisplayTile())
+
         tiles.add(TileItem(
             label = getString(R.string.hidden_apps),
             subtitle = getString(if (hiddenAppsStore.showHidden) R.string.hidden_apps_showing else R.string.hidden_apps_hidden),
@@ -266,6 +270,24 @@ class AppListActivity : AppCompatActivity() {
             }
         },
     )
+
+    private fun batteryDisplayTile(): TileItem {
+        val subtitleRes = when (batteryStore.display) {
+            BatteryStore.DISPLAY_ICON -> R.string.battery_display_icon
+            BatteryStore.DISPLAY_TEXT -> R.string.battery_display_text
+            else -> R.string.battery_display_both
+        }
+        return TileItem(
+            label = getString(R.string.battery_display),
+            subtitle = getString(subtitleRes),
+            onClick = {
+                val opts = BatteryStore.OPTIONS
+                batteryStore.display = opts[(opts.indexOf(batteryStore.display) + 1) % opts.size]
+                settingsTilesCache = null
+                renderCurrentMode()
+            },
+        )
+    }
 
     private fun orientationTile(): TileItem {
         val current = orientationStore.orientation

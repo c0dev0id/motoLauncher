@@ -8,6 +8,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- **Battery display setting.** Settings tile cycles between Icon + text (default),
+  Icon only, and Text only. The status bar updates immediately on change.
+
 - **Phone / small-screen support.** All text sizes, icon sizes, padding, and tile heights
   now scale down on phones (smallest-width < 600dp) via `values/dimens.xml` qualifiers,
   while tablets (≥ 600dp) keep the original sizing unchanged.

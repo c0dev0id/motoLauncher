@@ -37,6 +37,10 @@
     <string name="units">Units</string>
     <string name="units_kmh">km/h</string>
     <string name="units_mph">mph</string>
+    <string name="battery_display">Battery</string>
+    <string name="battery_display_both">Icon + text</string>
+    <string name="battery_display_icon">Icon only</string>
+    <string name="battery_display_text">Text only</string>
     <string name="orientation">Orientation</string>
     <string name="orientation_landscape">Landscape</string>
     <string name="orientation_portrait">Portrait</string>
