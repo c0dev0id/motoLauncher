@@ -4,7 +4,6 @@ import android.app.Dialog
 import android.content.Context
 import android.view.LayoutInflater
 import android.view.View
-import androidx.annotation.StringRes
 import de.codevoid.motolauncher.R
 import de.codevoid.motolauncher.data.AppEntry
 import de.codevoid.motolauncher.databinding.DialogTileActionsBinding
@@ -14,15 +13,13 @@ import de.codevoid.motolauncher.databinding.DialogTileActionsBinding
 // launcher palette and tile-style buttons instead of the Material3 dialog look. Back /
 // Escape dismiss it without choosing. Returns the shown dialog (tests use the handle).
 //
-// hideAction: pass (R.string.tile_action_hide, callback) or (R.string.tile_action_unhide, callback)
-// to show the hide/unhide row; null hides it. A single param enforces mutual exclusion at the call site.
 fun showTileActionsDialog(
     context: Context,
     entry: AppEntry,
     onAppInfo: () -> Unit,
     onUninstall: () -> Unit,
     onReassign: (() -> Unit)? = null,
-    hideAction: Pair<@StringRes Int, () -> Unit>? = null,
+    hideAction: Pair<Int, () -> Unit>? = null,
 ): Dialog {
     val binding = DialogTileActionsBinding.inflate(LayoutInflater.from(context))
     binding.appIcon.setImageDrawable(entry.icon)
