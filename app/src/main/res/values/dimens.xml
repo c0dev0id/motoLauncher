@@ -1,0 +1,45 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Phone defaults (sw < 600dp). Tablet overrides live in values-sw600dp/dimens.xml. -->
+<resources>
+    <!-- Tile grid -->
+    <dimen name="tile_height">120dp</dimen>
+    <dimen name="tile_margin">4dp</dimen>
+    <dimen name="tile_padding">6dp</dimen>
+    <dimen name="tile_icon_size">52dp</dimen>
+    <dimen name="tile_label_margin_top">7dp</dimen>
+    <dimen name="tile_subtitle_margin_top">3dp</dimen>
+    <dimen name="text_tile_label">14sp</dimen>
+    <dimen name="text_tile_subtitle">11sp</dimen>
+
+    <!-- Status bar -->
+    <dimen name="status_padding_h">12dp</dimen>
+    <dimen name="status_padding_top">12dp</dimen>
+    <dimen name="status_icon_size">22dp</dimen>
+    <dimen name="status_icon_margin">8dp</dimen>
+    <dimen name="status_battery_margin">3dp</dimen>
+    <dimen name="text_status_clock">22sp</dimen>
+    <dimen name="text_status_battery">18sp</dimen>
+
+    <!-- Grid / screen padding -->
+    <dimen name="screen_padding">6dp</dimen>
+    <dimen name="grid_padding">6dp</dimen>
+
+    <!-- App list header -->
+    <dimen name="header_margin_bottom">6dp</dimen>
+    <dimen name="back_button_size">44dp</dimen>
+    <dimen name="back_button_margin_end">6dp</dimen>
+    <dimen name="search_padding">12dp</dimen>
+    <dimen name="text_search">16sp</dimen>
+    <dimen name="header_button_margin_start">6dp</dimen>
+    <dimen name="header_button_min_height">44dp</dimen>
+
+    <!-- Tile actions dialog -->
+    <dimen name="dialog_padding">16dp</dimen>
+    <dimen name="dialog_icon_size">44dp</dimen>
+    <dimen name="dialog_label_margin_start">12dp</dimen>
+    <dimen name="text_dialog_label">18sp</dimen>
+    <dimen name="dialog_action_height">56dp</dimen>
+    <dimen name="dialog_action_margin_top">8dp</dimen>
+    <dimen name="text_dialog_action">17sp</dimen>
+    <dimen name="dialog_min_width">320dp</dimen>
+</resources>

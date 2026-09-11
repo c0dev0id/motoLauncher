@@ -18,8 +18,8 @@
          picks up via alertDialogTheme, so callers never name a theme. -->
     <style name="Theme.MotoLauncher.Dialog" parent="Theme.Material3.DayNight.Dialog">
         <item name="android:windowBackground">@drawable/dialog_background</item>
-        <item name="android:windowMinWidthMajor">480dp</item>
-        <item name="android:windowMinWidthMinor">480dp</item>
+        <item name="android:windowMinWidthMajor">@dimen/dialog_min_width</item>
+        <item name="android:windowMinWidthMinor">@dimen/dialog_min_width</item>
         <item name="android:colorBackground">@color/background</item>
         <item name="colorPrimary">@color/tile_focused</item>
         <item name="colorOnPrimary">@color/on_surface</item>
@@ -27,8 +27,8 @@
 
     <style name="ThemeOverlay.MotoLauncher.Dialog.Alert" parent="ThemeOverlay.Material3.Dialog.Alert">
         <item name="android:windowBackground">@drawable/dialog_background</item>
-        <item name="android:windowMinWidthMajor">480dp</item>
-        <item name="android:windowMinWidthMinor">480dp</item>
+        <item name="android:windowMinWidthMajor">@dimen/dialog_min_width</item>
+        <item name="android:windowMinWidthMinor">@dimen/dialog_min_width</item>
         <item name="android:colorBackground">@color/background</item>
         <item name="colorPrimary">@color/tile_focused</item>
         <item name="colorOnPrimary">@color/on_surface</item>
@@ -39,20 +39,20 @@
     <style name="Widget.MotoLauncher.HeaderButton" parent="Widget.Material3.Button">
         <item name="android:layout_width">wrap_content</item>
         <item name="android:layout_height">wrap_content</item>
-        <item name="android:layout_marginStart">8dp</item>
-        <item name="android:minHeight">56dp</item>
+        <item name="android:layout_marginStart">@dimen/header_button_margin_start</item>
+        <item name="android:minHeight">@dimen/header_button_min_height</item>
     </style>
 
     <!-- One action row of the tile menu: a glove-sized tile-styled button. -->
     <style name="Widget.MotoLauncher.DialogAction" parent="">
         <item name="android:layout_width">match_parent</item>
-        <item name="android:layout_height">72dp</item>
-        <item name="android:layout_marginTop">12dp</item>
+        <item name="android:layout_height">@dimen/dialog_action_height</item>
+        <item name="android:layout_marginTop">@dimen/dialog_action_margin_top</item>
         <item name="android:background">@drawable/tile_background</item>
         <item name="android:gravity">center</item>
         <item name="android:focusable">true</item>
         <item name="android:clickable">true</item>
         <item name="android:textColor">@color/on_surface</item>
-        <item name="android:textSize">22sp</item>
+        <item name="android:textSize">@dimen/text_dialog_action</item>
     </style>
 </resources>

@@ -9,8 +9,8 @@
         android:id="@+id/statusBar"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:paddingHorizontal="16dp"
-        android:paddingTop="16dp"
+        android:paddingHorizontal="@dimen/status_padding_h"
+        android:paddingTop="@dimen/status_padding_top"
         android:paddingBottom="0dp" />
 
     <LinearLayout
@@ -19,5 +19,5 @@
         android:layout_height="0dp"
         android:layout_weight="1"
         android:orientation="vertical"
-        android:padding="10dp" />
+        android:padding="@dimen/grid_padding" />
 </LinearLayout>

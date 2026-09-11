@@ -17,7 +17,7 @@
             android:layout_height="wrap_content"
             android:fontFamily="@font/michroma"
             android:textColor="@color/on_surface"
-            android:textSize="28sp"
+            android:textSize="@dimen/text_status_clock"
             tools:text="12:34" />
     </LinearLayout>
 
@@ -35,7 +35,7 @@
             android:layout_height="wrap_content"
             android:fontFamily="@font/michroma"
             android:textColor="@color/on_surface"
-            android:textSize="28sp"
+            android:textSize="@dimen/text_status_clock"
             android:visibility="gone"
             tools:text="87 km/h" />
     </LinearLayout>
@@ -50,10 +50,10 @@
 
         <ImageView
             android:id="@+id/wifiIcon"
-            android:layout_width="28dp"
-            android:layout_height="28dp"
+            android:layout_width="@dimen/status_icon_size"
+            android:layout_height="@dimen/status_icon_size"
             android:layout_gravity="center_vertical"
-            android:layout_marginEnd="12dp"
+            android:layout_marginEnd="@dimen/status_icon_margin"
             android:contentDescription="@null"
             android:src="@drawable/ic_wifi"
             android:visibility="gone"
@@ -61,10 +61,10 @@
 
         <ImageView
             android:id="@+id/cellularIcon"
-            android:layout_width="28dp"
-            android:layout_height="28dp"
+            android:layout_width="@dimen/status_icon_size"
+            android:layout_height="@dimen/status_icon_size"
             android:layout_gravity="center_vertical"
-            android:layout_marginEnd="12dp"
+            android:layout_marginEnd="@dimen/status_icon_margin"
             android:contentDescription="@null"
             android:src="@drawable/ic_cellular"
             android:visibility="gone"
@@ -72,8 +72,8 @@
 
         <ImageView
             android:id="@+id/batteryIcon"
-            android:layout_width="28dp"
-            android:layout_height="28dp"
+            android:layout_width="@dimen/status_icon_size"
+            android:layout_height="@dimen/status_icon_size"
             android:layout_gravity="center_vertical"
             android:contentDescription="@null"
             android:src="@drawable/ic_battery" />
@@ -83,10 +83,10 @@
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:layout_gravity="center_vertical"
-            android:layout_marginStart="4dp"
+            android:layout_marginStart="@dimen/status_battery_margin"
             android:fontFamily="@font/michroma"
             android:textColor="@color/on_surface"
-            android:textSize="24sp"
+            android:textSize="@dimen/text_status_battery"
             tools:text="87%" />
     </LinearLayout>
 </merge>

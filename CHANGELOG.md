@@ -8,6 +8,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- **Phone / small-screen support.** All text sizes, icon sizes, padding, and tile heights
+  now scale down on phones (smallest-width < 600dp) via `values/dimens.xml` qualifiers,
+  while tablets (≥ 600dp) keep the original sizing unchanged.
+
 - **Hide apps from the All Apps list.** Long-pressing any app now shows a "Hide" option
   in the tile-actions menu; long-pressing a hidden app shows "Unhide" instead.
   A "Hidden apps" settings tile (in the All Apps settings mode) toggles between

@@ -2,19 +2,19 @@
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:id="@+id/tileRoot"
     android:layout_width="match_parent"
-    android:layout_height="168dp"
-    android:layout_margin="6dp"
+    android:layout_height="@dimen/tile_height"
+    android:layout_margin="@dimen/tile_margin"
     android:orientation="vertical"
     android:gravity="center"
     android:background="@drawable/tile_background"
     android:focusable="true"
     android:clickable="true"
-    android:padding="8dp">
+    android:padding="@dimen/tile_padding">
 
     <ImageView
         android:id="@+id/appIcon"
-        android:layout_width="72dp"
-        android:layout_height="72dp"
+        android:layout_width="@dimen/tile_icon_size"
+        android:layout_height="@dimen/tile_icon_size"
         android:scaleType="fitCenter"
         android:importantForAccessibility="no" />
 
@@ -22,22 +22,22 @@
         android:id="@+id/appLabel"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:layout_marginTop="10dp"
+        android:layout_marginTop="@dimen/tile_label_margin_top"
         android:gravity="center"
         android:maxLines="2"
         android:ellipsize="end"
         android:textColor="@color/on_surface"
-        android:textSize="18sp" />
+        android:textSize="@dimen/text_tile_label" />
 
     <TextView
         android:id="@+id/appSubtitle"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:layout_marginTop="4dp"
+        android:layout_marginTop="@dimen/tile_subtitle_margin_top"
         android:gravity="center"
         android:maxLines="1"
         android:ellipsize="end"
         android:textColor="@color/on_surface_muted"
-        android:textSize="14sp"
+        android:textSize="@dimen/text_tile_subtitle"
         android:visibility="gone" />
 </LinearLayout>
