@@ -8,4 +8,5 @@ data class TileItem(
     val icon: Drawable? = null,
     val onClick: () -> Unit = {},
     val onLongClick: (() -> Boolean)? = null,
+    val dimmed: Boolean = false,
 )

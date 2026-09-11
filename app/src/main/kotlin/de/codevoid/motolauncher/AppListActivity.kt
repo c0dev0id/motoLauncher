@@ -26,6 +26,7 @@ import de.codevoid.motolauncher.data.AppEntry
 import de.codevoid.motolauncher.data.AppRepository
 import de.codevoid.motolauncher.data.CellularStore
 import de.codevoid.motolauncher.data.FavoritesStore
+import de.codevoid.motolauncher.data.HiddenAppsStore
 import de.codevoid.motolauncher.data.SpeedStore
 import de.codevoid.motolauncher.data.ThemeStore
 import de.codevoid.motolauncher.databinding.ActivityAppListBinding
@@ -50,6 +51,7 @@ class AppListActivity : AppCompatActivity() {
     private val themeStore by lazy { ThemeStore(this) }
     private val speedStore by lazy { SpeedStore(this) }
     private val cellularStore by lazy { CellularStore(this) }
+    private val hiddenAppsStore by lazy { HiddenAppsStore(this) }
     private var defaultSettingsTint: ColorStateList? = null
     private var activeSettingsTint: ColorStateList? = null
     // Invalidated when isCheckingUpdate, cellular permission, or GPS permission state changes.
@@ -224,6 +226,12 @@ class AppListActivity : AppCompatActivity() {
             onClick = { settingsTilesCache = null; speedStore.isMetric = !speedStore.isMetric; renderCurrentMode() },
         ))
 
+        tiles.add(TileItem(
+            label = getString(R.string.hidden_apps),
+            subtitle = getString(if (hiddenAppsStore.showHidden) R.string.hidden_apps_showing else R.string.hidden_apps_hidden),
+            onClick = { settingsTilesCache = null; hiddenAppsStore.showHidden = !hiddenAppsStore.showHidden; renderCurrentMode() },
+        ))
+
         return tiles
     }
 
@@ -254,10 +262,15 @@ class AppListActivity : AppCompatActivity() {
         // In pick mode a "None" tile leads the grid, whatever the search says: choosing it
         // clears the slot. It is the only way to empty a favourite.
         if (pickMode) tiles.add(noneTile)
-        apps.mapTo(tiles) { entry ->
-            TileItem(
+        val hiddenSet = hiddenAppsStore.hiddenPackages()
+        val showHidden = hiddenAppsStore.showHidden
+        apps.forEach { entry ->
+            val isHidden = entry.component.packageName in hiddenSet
+            if (isHidden && !showHidden) return@forEach
+            tiles.add(TileItem(
                 label = entry.label,
                 icon = entry.icon,
+                dimmed = isHidden,
                 onClick = { onAppSelected(entry.component) },
                 onLongClick = if (pickMode) null else ({
                     showTileActionsDialog(
@@ -265,10 +278,18 @@ class AppListActivity : AppCompatActivity() {
                         entry = entry,
                         onAppInfo = { repository.openInfo(entry.component) },
                         onUninstall = { repository.requestUninstall(entry.component) },
+                        onHide = if (!isHidden) ({
+                            hiddenAppsStore.hide(entry.component.packageName)
+                            renderCurrentMode()
+                        }) else null,
+                        onUnhide = if (isHidden) ({
+                            hiddenAppsStore.unhide(entry.component.packageName)
+                            renderCurrentMode()
+                        }) else null,
                     )
                     true
                 }),
-            )
+            ))
         }
         adapter.submit(tiles)
     }

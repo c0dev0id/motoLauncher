@@ -39,6 +39,7 @@ class AppTileAdapter(private var items: List<TileItem>) :
         binding.appLabel.text = item.label
         binding.appIcon.bindOptional(item.icon)
         binding.appSubtitle.bindOptional(item.subtitle)
+        binding.root.alpha = if (item.dimmed) 0.35f else 1.0f
 
         binding.root.setOnClickListener { item.onClick() }
         val onLongClick = item.onLongClick

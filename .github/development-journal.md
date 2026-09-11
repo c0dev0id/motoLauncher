@@ -251,6 +251,12 @@
   the two texts split remaining space equally, placing the speed roughly in the center of
   the bar (slightly left of true center because the icons occupy fixed space on the right).
 
+- **Hidden apps stored per-package, not per-component.** `HiddenAppsStore` persists a
+  `Set<String>` of package names. The hidden set is read once per `render()` call
+  (one prefs read) rather than per-app (N reads), and a mutable copy is taken before
+  any write since `getStringSet()` returns the live internal reference. Visibility
+  (show/hide) is a second boolean pref in the same file. Both live under `hidden_apps`.
+
 ## Core Features
 
 - Fixed 4×3 favorites grid, remote- and glove-operable.

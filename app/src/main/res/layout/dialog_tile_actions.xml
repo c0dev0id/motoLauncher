@@ -42,6 +42,11 @@
         android:text="@string/tile_action_uninstall" />
 
     <TextView
+        android:id="@+id/actionHide"
+        style="@style/Widget.MotoLauncher.DialogAction"
+        android:text="@string/tile_action_hide" />
+
+    <TextView
         android:id="@+id/actionReassign"
         style="@style/Widget.MotoLauncher.DialogAction"
         android:text="@string/tile_action_reassign" />

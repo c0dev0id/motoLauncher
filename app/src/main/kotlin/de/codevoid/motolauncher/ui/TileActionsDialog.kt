@@ -18,6 +18,8 @@ fun showTileActionsDialog(
     onAppInfo: () -> Unit,
     onUninstall: () -> Unit,
     onReassign: (() -> Unit)? = null,
+    onHide: (() -> Unit)? = null,
+    onUnhide: (() -> Unit)? = null,
 ): Dialog {
     val binding = DialogTileActionsBinding.inflate(LayoutInflater.from(context))
     binding.appIcon.setImageDrawable(entry.icon)
@@ -32,6 +34,17 @@ fun showTileActionsDialog(
     binding.actionUninstall.setOnClickListener {
         dialog.dismiss()
         onUninstall()
+    }
+    when {
+        onHide != null -> {
+            binding.actionHide.text = context.getString(R.string.tile_action_hide)
+            binding.actionHide.setOnClickListener { dialog.dismiss(); onHide() }
+        }
+        onUnhide != null -> {
+            binding.actionHide.text = context.getString(R.string.tile_action_unhide)
+            binding.actionHide.setOnClickListener { dialog.dismiss(); onUnhide() }
+        }
+        else -> binding.actionHide.visibility = View.GONE
     }
     // No slot to reassign (the app list): drop the row entirely.
     if (onReassign != null) {

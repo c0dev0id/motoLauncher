@@ -8,6 +8,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- **Hide apps from the All Apps list.** Long-pressing any app now shows a "Hide" option
+  in the tile-actions menu; long-pressing a hidden app shows "Unhide" instead.
+  A "Hidden apps" settings tile (in the All Apps settings mode) toggles between
+  Hidden (default) and Showing (dimmed), letting you review and recover hidden apps
+  without cluttering the list during normal use.
+
+
 - Glove- and remote-friendly home launcher for the DMD2 navigation device.
 - Home screen with a fixed 4×3 grid of large tiles: 11 configurable favorite slots
   plus a dedicated "All Apps" tile. Fully operable by the handlebar remote

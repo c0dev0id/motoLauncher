@@ -8,6 +8,11 @@
     <string name="tile_action_reassign">Reassign app</string>
     <string name="tile_action_app_info">App info</string>
     <string name="tile_action_uninstall">Uninstall</string>
+    <string name="tile_action_hide">Hide</string>
+    <string name="tile_action_unhide">Unhide</string>
+    <string name="hidden_apps">Hidden apps</string>
+    <string name="hidden_apps_hidden">Hidden</string>
+    <string name="hidden_apps_showing">Showing (dimmed)</string>
     <string name="pick_none">None</string>
     <string name="cancel">Cancel</string>
     <string name="ok">OK</string>

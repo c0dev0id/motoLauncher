@@ -84,6 +84,47 @@ class TileActionsDialogTest {
     }
 
     @Test
+    fun hideRowIsHiddenWhenNoCallbackIsGiven() {
+        val dialog = showTileActionsDialog(
+            ApplicationProvider.getApplicationContext(),
+            entry,
+            onAppInfo = {},
+            onUninstall = {},
+        )
+        assertEquals(android.view.View.GONE, dialog.findViewById<TextView>(R.id.actionHide).visibility)
+    }
+
+    @Test
+    fun hideInvokesCallbackAndDismisses() {
+        var hideCount = 0
+        val dialog = showTileActionsDialog(
+            ApplicationProvider.getApplicationContext(),
+            entry,
+            onAppInfo = {},
+            onUninstall = {},
+            onHide = { hideCount++ },
+        )
+        dialog.findViewById<TextView>(R.id.actionHide).performClick()
+        assertEquals(1, hideCount)
+        assertFalse(dialog.isShowing)
+    }
+
+    @Test
+    fun unhideInvokesCallbackAndDismisses() {
+        var unhideCount = 0
+        val dialog = showTileActionsDialog(
+            ApplicationProvider.getApplicationContext(),
+            entry,
+            onAppInfo = {},
+            onUninstall = {},
+            onUnhide = { unhideCount++ },
+        )
+        dialog.findViewById<TextView>(R.id.actionHide).performClick()
+        assertEquals(1, unhideCount)
+        assertFalse(dialog.isShowing)
+    }
+
+    @Test
     fun rowsAppearInDocumentedOrder() {
         val dialog = show()
         val parent = dialog.findViewById<TextView>(R.id.actionAppInfo).parent as android.view.ViewGroup
