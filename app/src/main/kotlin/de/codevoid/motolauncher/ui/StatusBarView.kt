@@ -271,6 +271,7 @@ class StatusBarView @JvmOverloads constructor(
     private fun registerGps() {
         binding.speedText.visibility = View.GONE
         if (!speedStore.enabled) return
+        if (!context.packageManager.hasSystemFeature(android.content.pm.PackageManager.FEATURE_LOCATION_GPS)) return
         if (ContextCompat.checkSelfPermission(context, Manifest.permission.ACCESS_FINE_LOCATION)
             != PackageManager.PERMISSION_GRANTED) return
         locationManager.requestLocationUpdates(

@@ -220,18 +220,19 @@ class AppListActivity : AppCompatActivity() {
             onEnable = { cellularPermissionLauncher.launch(Manifest.permission.READ_PHONE_STATE) },
         ))
 
-        tiles.add(permissionToggleTile(
-            label = getString(R.string.gps_speed),
-            enabled = speedStore.enabled,
-            onDisable = { speedStore.enabled = false },
-            onEnable = { gpsPermissionLauncher.launch(Manifest.permission.ACCESS_FINE_LOCATION) },
-        ))
-
-        tiles.add(TileItem(
-            label = getString(R.string.units),
-            subtitle = getString(if (speedStore.isMetric) R.string.units_kmh else R.string.units_mph),
-            onClick = { settingsTilesCache = null; speedStore.isMetric = !speedStore.isMetric; renderCurrentMode() },
-        ))
+        if (packageManager.hasSystemFeature(android.content.pm.PackageManager.FEATURE_LOCATION_GPS)) {
+            tiles.add(permissionToggleTile(
+                label = getString(R.string.gps_speed),
+                enabled = speedStore.enabled,
+                onDisable = { speedStore.enabled = false },
+                onEnable = { gpsPermissionLauncher.launch(Manifest.permission.ACCESS_FINE_LOCATION) },
+            ))
+            tiles.add(TileItem(
+                label = getString(R.string.units),
+                subtitle = getString(if (speedStore.isMetric) R.string.units_kmh else R.string.units_mph),
+                onClick = { settingsTilesCache = null; speedStore.isMetric = !speedStore.isMetric; renderCurrentMode() },
+            ))
+        }
 
         tiles.add(TileItem(
             label = getString(R.string.hidden_apps),
