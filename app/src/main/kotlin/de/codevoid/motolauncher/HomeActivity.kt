@@ -1,6 +1,7 @@
 package de.codevoid.motolauncher
 
 import android.content.Intent
+import android.content.res.Configuration
 import android.graphics.drawable.Drawable
 import android.os.Bundle
 import android.view.KeyEvent
@@ -11,6 +12,7 @@ import androidx.activity.addCallback
 import androidx.appcompat.app.AppCompatActivity
 import de.codevoid.motolauncher.data.AppRepository
 import de.codevoid.motolauncher.data.FavoritesStore
+import de.codevoid.motolauncher.data.OrientationStore
 import de.codevoid.motolauncher.databinding.ActivityHomeBinding
 import de.codevoid.motolauncher.databinding.ItemAppTileBinding
 import de.codevoid.motolauncher.ui.EscapeKeys
@@ -24,7 +26,11 @@ class HomeActivity : AppCompatActivity() {
     private lateinit var binding: ActivityHomeBinding
     private lateinit var favorites: FavoritesStore
     private lateinit var repository: AppRepository
-    private val tiles = ArrayList<ItemAppTileBinding>(COLUMNS * ROWS)
+    private val orientationStore by lazy { OrientationStore(this) }
+    private val isPortrait get() = resources.configuration.orientation == Configuration.ORIENTATION_PORTRAIT
+    private val columns get() = if (isPortrait) 3 else 4
+    private val rows get() = if (isPortrait) 4 else 3
+    private val tiles = ArrayList<ItemAppTileBinding>(12)
 
     // A short ESC stays inert: Home is the launcher root, there is nowhere to go back to.
     // Holding it launches the first favourite — still only a launch, so the remote gains
@@ -33,6 +39,7 @@ class HomeActivity : AppCompatActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        setRequestedOrientation(orientationStore.orientation)
         binding = ActivityHomeBinding.inflate(layoutInflater)
         setContentView(binding.root)
         window.enableImmersiveMode()
@@ -52,14 +59,14 @@ class HomeActivity : AppCompatActivity() {
     // first-frame race that briefly showed the third row cut off on cold start.
     private fun populateGrid() {
         val inflater = LayoutInflater.from(this)
-        repeat(ROWS) {
+        repeat(rows) {
             val row = LinearLayout(this).apply {
                 orientation = LinearLayout.HORIZONTAL
                 layoutParams = LinearLayout.LayoutParams(
                     LinearLayout.LayoutParams.MATCH_PARENT, 0, 1f,
                 )
             }
-            repeat(COLUMNS) {
+            repeat(columns) {
                 val tile = ItemAppTileBinding.inflate(inflater, row, false)
                 val existing = tile.root.layoutParams as ViewGroup.MarginLayoutParams
                 tile.root.layoutParams = LinearLayout.LayoutParams(
@@ -82,6 +89,7 @@ class HomeActivity : AppCompatActivity() {
 
     override fun onResume() {
         super.onResume()
+        setRequestedOrientation(orientationStore.orientation)
         buildGrid()
     }
 
@@ -134,7 +142,7 @@ class HomeActivity : AppCompatActivity() {
         }
 
         bindTile(
-            tile = tiles[COLUMNS * ROWS - 1],
+            tile = tiles.last(),
             label = getString(R.string.all_apps),
             iconRes = R.drawable.ic_all_apps,
             onClick = { startActivity(Intent(this, AppListActivity::class.java)) },
@@ -172,8 +180,4 @@ class HomeActivity : AppCompatActivity() {
         startActivity(AppListActivity.pickIntent(this, slot))
     }
 
-    companion object {
-        private const val COLUMNS = 4
-        private const val ROWS = 3
-    }
 }

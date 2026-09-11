@@ -42,9 +42,8 @@
             android:name=".HomeActivity"
             android:exported="true"
             android:launchMode="singleTask"
-            android:screenOrientation="landscape"
             android:stateNotNeeded="true"
-            android:configChanges="keyboard|keyboardHidden|navigation|orientation|screenSize|screenLayout|smallestScreenSize">
+            android:configChanges="keyboard|keyboardHidden|navigation">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
                 <category android:name="android.intent.category.HOME" />
@@ -55,8 +54,7 @@
 
         <activity
             android:name=".AppListActivity"
-            android:exported="false"
-            android:screenOrientation="landscape" />
+            android:exported="false" />
 
         <provider
             android:name="androidx.core.content.FileProvider"

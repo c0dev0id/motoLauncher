@@ -5,8 +5,10 @@ import android.app.Application
 import android.content.ComponentName
 import android.content.Context
 import android.content.Intent
+import android.content.pm.ActivityInfo
 import android.content.pm.PackageManager
 import android.content.res.ColorStateList
+import android.content.res.Configuration
 import android.os.Build
 import android.os.Bundle
 import android.text.Editable
@@ -27,6 +29,7 @@ import de.codevoid.motolauncher.data.AppRepository
 import de.codevoid.motolauncher.data.CellularStore
 import de.codevoid.motolauncher.data.FavoritesStore
 import de.codevoid.motolauncher.data.HiddenAppsStore
+import de.codevoid.motolauncher.data.OrientationStore
 import de.codevoid.motolauncher.data.SpeedStore
 import de.codevoid.motolauncher.data.ThemeStore
 import de.codevoid.motolauncher.databinding.ActivityAppListBinding
@@ -52,6 +55,9 @@ class AppListActivity : AppCompatActivity() {
     private val speedStore by lazy { SpeedStore(this) }
     private val cellularStore by lazy { CellularStore(this) }
     private val hiddenAppsStore by lazy { HiddenAppsStore(this) }
+    private val orientationStore by lazy { OrientationStore(this) }
+    private val isPortrait get() = resources.configuration.orientation == Configuration.ORIENTATION_PORTRAIT
+    private val columns get() = if (isPortrait) 4 else 5
     private var defaultSettingsTint: ColorStateList? = null
     private var activeSettingsTint: ColorStateList? = null
     // Invalidated when isCheckingUpdate, cellular permission, or GPS permission state changes.
@@ -96,6 +102,7 @@ class AppListActivity : AppCompatActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        setRequestedOrientation(orientationStore.orientation)
         binding = ActivityAppListBinding.inflate(layoutInflater)
         setContentView(binding.root)
         window.enableImmersiveMode()
@@ -107,7 +114,7 @@ class AppListActivity : AppCompatActivity() {
 
         binding.backButton.setOnClickListener { finish() }
 
-        binding.appGrid.layoutManager = GridLayoutManager(this, COLUMNS)
+        binding.appGrid.layoutManager = GridLayoutManager(this, columns)
         binding.appGrid.adapter = adapter
 
         binding.searchBox.addTextChangedListener(object : TextWatcher {
@@ -132,6 +139,7 @@ class AppListActivity : AppCompatActivity() {
 
     override fun onResume() {
         super.onResume()
+        setRequestedOrientation(orientationStore.orientation)
         // Enumerating apps is the most expensive thing this app does; reload only when the
         // installed-app set actually changed (uninstall, install) since the last load.
         if (viewModel.reloadIfStale()) loadAndRender(seedFocus = false)
@@ -232,6 +240,8 @@ class AppListActivity : AppCompatActivity() {
             onClick = { settingsTilesCache = null; hiddenAppsStore.showHidden = !hiddenAppsStore.showHidden; renderCurrentMode() },
         ))
 
+        tiles.add(orientationTile())
+
         return tiles
     }
 
@@ -256,6 +266,28 @@ class AppListActivity : AppCompatActivity() {
             }
         },
     )
+
+    private fun orientationTile(): TileItem {
+        val options = listOf(
+            ActivityInfo.SCREEN_ORIENTATION_LANDSCAPE to R.string.orientation_landscape,
+            ActivityInfo.SCREEN_ORIENTATION_PORTRAIT to R.string.orientation_portrait,
+            ActivityInfo.SCREEN_ORIENTATION_REVERSE_LANDSCAPE to R.string.orientation_reverse_landscape,
+            ActivityInfo.SCREEN_ORIENTATION_REVERSE_PORTRAIT to R.string.orientation_reverse_portrait,
+        )
+        val current = orientationStore.orientation
+        val idx = options.indexOfFirst { it.first == current }.coerceAtLeast(0)
+        val next = options[(idx + 1) % options.size].first
+        return TileItem(
+            label = getString(R.string.orientation),
+            subtitle = getString(options[idx].second),
+            onClick = {
+                orientationStore.orientation = next
+                requestedOrientation = next
+                settingsTilesCache = null
+                renderCurrentMode()
+            },
+        )
+    }
 
     private fun render(apps: List<AppEntry>) {
         val tiles = ArrayList<TileItem>(apps.size + 1)
@@ -332,7 +364,6 @@ class AppListActivity : AppCompatActivity() {
     companion object {
         private const val EXTRA_PICK_SLOT = "pick_slot"
         private const val NO_SLOT = -1
-        private const val COLUMNS = 5
 
         // Callers rebuild their grid in onResume, so no result contract is needed.
         fun pickIntent(context: Context, slot: Int): Intent =
