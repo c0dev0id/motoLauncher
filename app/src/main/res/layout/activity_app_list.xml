@@ -37,7 +37,7 @@
             android:singleLine="true"
             android:textColor="@color/on_surface"
             android:textColorHint="@color/on_surface_muted"
-            android:textSize="@dimen/text_search"
+            android:textSize="@dimen/text_search_box"
             android:importantForAutofill="no" />
 
         <!-- Browse mode only; hidden as one group while picking an app for a slot. -->
