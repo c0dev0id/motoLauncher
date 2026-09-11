@@ -25,6 +25,7 @@ import androidx.recyclerview.widget.GridLayoutManager
 import de.codevoid.motolauncher.BuildConfig
 import de.codevoid.motolauncher.data.AppEntry
 import de.codevoid.motolauncher.data.AppRepository
+import de.codevoid.motolauncher.data.BatteryDisplay
 import de.codevoid.motolauncher.data.BatteryStore
 import de.codevoid.motolauncher.data.CellularStore
 import de.codevoid.motolauncher.data.FavoritesStore
@@ -273,16 +274,16 @@ class AppListActivity : AppCompatActivity() {
 
     private fun batteryDisplayTile(): TileItem {
         val subtitleRes = when (batteryStore.display) {
-            BatteryStore.DISPLAY_ICON -> R.string.battery_display_icon
-            BatteryStore.DISPLAY_TEXT -> R.string.battery_display_text
-            else -> R.string.battery_display_both
+            BatteryDisplay.BOTH -> R.string.battery_display_both
+            BatteryDisplay.ICON -> R.string.battery_display_icon
+            BatteryDisplay.TEXT -> R.string.battery_display_text
         }
         return TileItem(
             label = getString(R.string.battery_display),
             subtitle = getString(subtitleRes),
             onClick = {
-                val opts = BatteryStore.OPTIONS
-                batteryStore.display = opts[(opts.indexOf(batteryStore.display) + 1) % opts.size]
+                val entries = BatteryDisplay.entries
+                batteryStore.display = entries[(entries.indexOf(batteryStore.display) + 1) % entries.size]
                 settingsTilesCache = null
                 renderCurrentMode()
             },

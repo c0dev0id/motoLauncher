@@ -27,6 +27,7 @@ import android.view.View
 import android.widget.LinearLayout
 import androidx.core.content.ContextCompat
 import de.codevoid.motolauncher.R
+import de.codevoid.motolauncher.data.BatteryDisplay
 import de.codevoid.motolauncher.data.BatteryStore
 import de.codevoid.motolauncher.data.CellularStore
 import de.codevoid.motolauncher.data.SpeedStore
@@ -325,9 +326,11 @@ class StatusBarView @JvmOverloads constructor(
     }
 
     private fun applyBatteryDisplay() {
-        val display = batteryStore.display
-        binding.batteryIcon.visibility = if (display != BatteryStore.DISPLAY_TEXT) View.VISIBLE else View.GONE
-        binding.batteryText.visibility = if (display != BatteryStore.DISPLAY_ICON) View.VISIBLE else View.GONE
+        when (batteryStore.display) {
+            BatteryDisplay.BOTH -> { binding.batteryIcon.visibility = View.VISIBLE; binding.batteryText.visibility = View.VISIBLE }
+            BatteryDisplay.ICON -> { binding.batteryIcon.visibility = View.VISIBLE; binding.batteryText.visibility = View.GONE }
+            BatteryDisplay.TEXT -> { binding.batteryIcon.visibility = View.GONE;    binding.batteryText.visibility = View.VISIBLE }
+        }
     }
 
     companion object {
