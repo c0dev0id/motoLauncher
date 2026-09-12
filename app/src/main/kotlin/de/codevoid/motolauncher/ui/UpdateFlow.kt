@@ -19,7 +19,7 @@ import kotlinx.coroutines.launch
 // the activity is gone are dropped by showImmersive().
 fun AppCompatActivity.runUpdateFlow(
     setClickable: (Boolean) -> Unit = {},
-    setSubtitle: (String?) -> Unit = {},
+    setSubtitle: (String) -> Unit = {},
 ) {
     val checker = UpdateChecker(this)
 
@@ -36,11 +36,10 @@ fun AppCompatActivity.runUpdateFlow(
 
     fun downloadAndInstall(release: ReleaseInfo) {
         setClickable(false)
-        var lastBytes = 0L
-        var lastTime = System.currentTimeMillis()
-        var lastUpdate = 0L
-
         lifecycleScope.launch {
+            var lastBytes = 0L
+            var lastTime = System.currentTimeMillis()
+            var lastUpdate = 0L
             try {
                 startActivity(checker.installIntent(checker.download(release) { written, total ->
                     val now = System.currentTimeMillis()

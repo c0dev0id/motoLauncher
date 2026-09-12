@@ -19,6 +19,11 @@ class AppTileAdapter(private var items: List<TileItem>) :
         notifyDataSetChanged()
     }
 
+    fun updateItem(position: Int, item: TileItem) {
+        items = items.toMutableList().also { it[position] = item }
+        notifyItemChanged(position)
+    }
+
     class TileViewHolder(val binding: ItemAppTileBinding) :
         RecyclerView.ViewHolder(binding.root)
 

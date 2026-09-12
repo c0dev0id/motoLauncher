@@ -217,8 +217,12 @@ class AppListActivity : AppCompatActivity() {
                     },
                     setSubtitle = { text ->
                         viewModel.downloadProgressSubtitle = text
-                        settingsTilesCache = null
-                        renderCurrentMode()
+                        val cache = settingsTilesCache
+                        if (cache != null) {
+                            val updated = cache[UPDATE_TILE_INDEX].copy(subtitle = text)
+                            settingsTilesCache = cache.toMutableList().also { it[UPDATE_TILE_INDEX] = updated }
+                            adapter.updateItem(UPDATE_TILE_INDEX, updated)
+                        }
                     },
                 )
             }),
@@ -403,6 +407,7 @@ class AppListActivity : AppCompatActivity() {
     companion object {
         private const val EXTRA_PICK_SLOT = "pick_slot"
         private const val NO_SLOT = -1
+        private const val UPDATE_TILE_INDEX = 1 // theme is always index 0
 
         private val ORIENTATION_OPTIONS = listOf(
             ActivityInfo.SCREEN_ORIENTATION_LANDSCAPE to R.string.orientation_landscape,
