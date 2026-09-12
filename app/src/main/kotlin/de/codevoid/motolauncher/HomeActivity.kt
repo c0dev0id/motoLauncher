@@ -125,15 +125,12 @@ class HomeActivity : AppCompatActivity() {
     private fun buildGrid() {
         val slots = favorites.allSlots()
         val generation = (application as MotoLauncherApp).packageGeneration
-        val apps = if (generation == cacheGeneration && slots == cacheSlots) {
-            cachedApps
-        } else {
-            repository.loadByComponents(slots.filterNotNull()).also {
-                cachedApps = it
-                cacheGeneration = generation
-                cacheSlots = slots
-            }
+        if (generation != cacheGeneration || slots != cacheSlots) {
+            cachedApps = repository.loadByComponents(slots.filterNotNull())
+            cacheGeneration = generation
+            cacheSlots = slots
         }
+        val apps = cachedApps
 
         slots.forEachIndexed { index, component ->
             val entry = component?.let { apps[it] }
