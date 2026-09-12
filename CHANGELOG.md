@@ -9,6 +9,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 - Activity transitions (Home ↔ All Apps, pick-mode open/close) are now instant — no slide animation.
+- App list is now cached at the process level. Navigating back and forth between Home and All Apps no longer re-decodes all app icons on every visit — the list loads once and stays loaded until an app is installed or removed.
 
 ### Added
 - **Battery display setting.** Settings tile cycles between Icon + text (default),
