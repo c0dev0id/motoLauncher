@@ -144,7 +144,10 @@ class HomeActivity : AppCompatActivity() {
             tile = tiles.last(),
             label = getString(R.string.all_apps),
             iconRes = R.drawable.ic_all_apps,
-            onClick = { startActivity(Intent(this, AppListActivity::class.java)) },
+            onClick = {
+                startActivity(Intent(this, AppListActivity::class.java))
+                @Suppress("DEPRECATION") overridePendingTransition(0, 0)
+            },
         )
     }
 
@@ -177,6 +180,7 @@ class HomeActivity : AppCompatActivity() {
     // The picker writes the slot itself; onResume rebuilds the grid on return.
     private fun pickForSlot(slot: Int) {
         startActivity(AppListActivity.pickIntent(this, slot))
+        @Suppress("DEPRECATION") overridePendingTransition(0, 0)
     }
 
 }

@@ -375,6 +375,11 @@ class AppListActivity : AppCompatActivity() {
     override fun onKeyUp(keyCode: Int, event: KeyEvent): Boolean =
         escapeKeys.onKeyUp(keyCode, event) || super.onKeyUp(keyCode, event)
 
+    override fun finish() {
+        super.finish()
+        @Suppress("DEPRECATION") overridePendingTransition(0, 0)
+    }
+
     companion object {
         private const val EXTRA_PICK_SLOT = "pick_slot"
         private const val NO_SLOT = -1
