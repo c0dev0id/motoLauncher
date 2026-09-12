@@ -44,8 +44,6 @@ import de.codevoid.motolauncher.ui.launchFirstFavorite
 import de.codevoid.motolauncher.ui.runUpdateFlow
 import de.codevoid.motolauncher.ui.showTileActionsDialog
 import kotlinx.coroutines.Deferred
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.async
 import kotlinx.coroutines.launch
 
 class AppListActivity : AppCompatActivity() {
@@ -395,32 +393,21 @@ class AppListActivity : AppCompatActivity() {
     }
 }
 
-// Enumerating and rasterising every installed app is the most expensive thing the app
-// does. Keeping the result in a ViewModel means the theme toggle's recreate() reuses it
-// instead of running it again. isSettingsMode survives recreate so the screen returns to
-// settings mode after the theme change that caused the recreate.
+// isSettingsMode and isCheckingUpdate survive recreate() (theme toggle) here.
+// The app list itself is cached at the Application level and reused across Activity
+// instances — the ViewModel just holds the current reference and detects staleness.
 class AppListViewModel(app: Application) : AndroidViewModel(app) {
 
-    private var loadedGeneration = packageGeneration()
-
-    var apps: Deferred<List<AppEntry>> = load()
+    var apps: Deferred<List<AppEntry>> = getApplication<MotoLauncherApp>().getApps()
         private set
 
     var isSettingsMode: Boolean = false
     var isCheckingUpdate: Boolean = false
 
-    /** Starts a fresh load if apps were installed or removed since the last one. */
     fun reloadIfStale(): Boolean {
-        val current = packageGeneration()
-        if (current == loadedGeneration) return false
-        loadedGeneration = current
-        apps = load()
+        val fresh = getApplication<MotoLauncherApp>().getApps()
+        if (fresh === apps) return false
+        apps = fresh
         return true
     }
-
-    private fun load(): Deferred<List<AppEntry>> = viewModelScope.async(Dispatchers.IO) {
-        AppRepository(getApplication<MotoLauncherApp>()).loadApps()
-    }
-
-    private fun packageGeneration() = getApplication<MotoLauncherApp>().packageGeneration
 }
