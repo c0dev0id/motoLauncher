@@ -84,7 +84,7 @@ class StatusBarView @JvmOverloads constructor(
     }
 
     // Tracks active Wi-Fi networks so onLost knows when the last one is gone and can
-    // reset the level to 0. Visibility is now driven by the radio state (wifiStateReceiver),
+    // reset the level to 0. Visibility is driven by the radio state (wifiStateReceiver),
     // not by network availability — zero bars while on but not connected is correct.
     // ConnectivityManager serialises one callback's methods onto a single thread.
     private val wifiNetworks = HashSet<Network>()
@@ -233,6 +233,7 @@ class StatusBarView @JvmOverloads constructor(
     }
 
     private fun applyWifiLevel(level: Int) {
+        if (level == lastWifiLevel) return
         lastWifiLevel = level
         binding.wifiIcon.setImageLevel(level)
     }
@@ -256,8 +257,6 @@ class StatusBarView @JvmOverloads constructor(
 
     // Three gates: cellularEnabled (user toggle), telephony available on API 31+, and
     // READ_PHONE_STATE granted. All must hold or nothing is registered and the icon stays hidden.
-    // Icon is shown as soon as the callback is registered; signal level (0 = no coverage)
-    // comes from the callback — no separate data-network tracking needed.
     private fun registerCellular() {
         showCellularIcon(false)
         if (!cellularStore.enabled) return
@@ -273,6 +272,7 @@ class StatusBarView @JvmOverloads constructor(
         }
         signalCallback = cb
         tm.registerTelephonyCallback(context.mainExecutor, cb)
+        applyCellularLevel(0)
         showCellularIcon(true)
     }
 
