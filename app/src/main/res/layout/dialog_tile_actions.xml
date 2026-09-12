@@ -49,7 +49,7 @@
     <TextView
         android:id="@+id/actionRemove"
         style="@style/Widget.MotoLauncher.DialogAction"
-        android:text="@string/link_action_remove" />
+        android:text="@string/tile_action_remove" />
 
     <TextView
         android:id="@+id/actionEditLink"

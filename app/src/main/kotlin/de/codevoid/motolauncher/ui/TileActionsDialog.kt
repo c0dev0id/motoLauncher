@@ -42,7 +42,10 @@ fun showTileActionsDialog(
         binding.actionHide.visibility = View.GONE
     }
     if (onRemove != null) {
-        binding.actionRemove.setOnClickListener { dialog.dismiss(); onRemove() }
+        binding.actionRemove.setOnClickListener {
+            dialog.dismiss()
+            onRemove()
+        }
     } else {
         binding.actionRemove.visibility = View.GONE
     }

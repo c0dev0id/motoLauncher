@@ -8,6 +8,7 @@
 
     <string name="tile_action_app_info">App info</string>
     <string name="tile_action_uninstall">Uninstall</string>
+    <string name="tile_action_remove">Remove</string>
     <string name="tile_action_hide">Hide</string>
     <string name="tile_action_unhide">Unhide</string>
     <string name="hidden_apps">Hidden apps</string>
