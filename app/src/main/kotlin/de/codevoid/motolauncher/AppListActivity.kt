@@ -59,7 +59,7 @@ class AppListActivity : AppCompatActivity() {
     private val hiddenAppsStore by lazy { HiddenAppsStore(this) }
     private val orientationStore by lazy { OrientationStore(this) }
     private val columns get() = if (isPortrait) 4 else 5
-    private val defaultSettingsTint by lazy { ColorStateList.valueOf(ContextCompat.getColor(this, R.color.surface)) }
+    private val defaultSettingsTint by lazy { ColorStateList.valueOf(ContextCompat.getColor(this, R.color.tile_default)) }
     private val activeSettingsTint by lazy { ColorStateList.valueOf(ContextCompat.getColor(this, R.color.tile_focused)) }
     // Invalidated when isCheckingUpdate, cellular permission, or GPS permission state changes.
     private var settingsTilesCache: List<TileItem>? = null
