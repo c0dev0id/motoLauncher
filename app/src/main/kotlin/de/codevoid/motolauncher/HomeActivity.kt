@@ -101,7 +101,7 @@ class HomeActivity : AppCompatActivity() {
 
     override fun onWindowFocusChanged(hasFocus: Boolean) {
         super.onWindowFocusChanged(hasFocus)
-        if (hasFocus) window.enableImmersiveMode()
+        if (hasFocus) window.enableImmersiveMode(navBarStore.showNavBar)
     }
 
     override fun onKeyDown(keyCode: Int, event: KeyEvent): Boolean =
