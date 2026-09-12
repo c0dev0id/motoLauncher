@@ -18,7 +18,7 @@ fun showTileActionsDialog(
     entry: AppEntry,
     onAppInfo: () -> Unit,
     onUninstall: () -> Unit,
-    onReassign: (() -> Unit)? = null,
+    onRemove: (() -> Unit)? = null,
     hideAction: Pair<Int, () -> Unit>? = null,
 ): Dialog {
     val binding = DialogTileActionsBinding.inflate(LayoutInflater.from(context))
@@ -41,13 +41,10 @@ fun showTileActionsDialog(
     } else {
         binding.actionHide.visibility = View.GONE
     }
-    if (onReassign != null) {
-        binding.actionReassign.setOnClickListener {
-            dialog.dismiss()
-            onReassign()
-        }
+    if (onRemove != null) {
+        binding.actionRemove.setOnClickListener { dialog.dismiss(); onRemove() }
     } else {
-        binding.actionReassign.visibility = View.GONE
+        binding.actionRemove.visibility = View.GONE
     }
     binding.actionEditLink.visibility = View.GONE
     binding.actionRemoveLink.visibility = View.GONE
@@ -67,7 +64,7 @@ fun showLinkActionsDialog(
     binding.actionAppInfo.visibility = View.GONE
     binding.actionUninstall.visibility = View.GONE
     binding.actionHide.visibility = View.GONE
-    binding.actionReassign.visibility = View.GONE
+    binding.actionRemove.visibility = View.GONE
 
     val dialog = Dialog(context, R.style.Theme_MotoLauncher_Dialog)
     dialog.setContentView(binding.root)

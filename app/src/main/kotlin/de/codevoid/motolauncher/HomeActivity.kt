@@ -153,7 +153,7 @@ class HomeActivity : AppCompatActivity() {
                                     entry = entry,
                                     onAppInfo = { repository.openInfo(entry.component) },
                                     onUninstall = { repository.requestUninstall(entry.component) },
-                                    onReassign = { pickForSlot(index) },
+                                    onRemove = { favorites.clearSlot(index); buildGrid() },
                                 )
                                 true
                             },

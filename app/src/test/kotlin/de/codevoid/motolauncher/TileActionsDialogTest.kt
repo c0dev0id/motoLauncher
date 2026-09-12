@@ -21,7 +21,7 @@ class TileActionsDialogTest {
     private class Calls {
         var appInfo = 0
         var uninstall = 0
-        var reassign = 0
+        var remove = 0
     }
 
     private fun show(calls: Calls = Calls()) = showTileActionsDialog(
@@ -29,7 +29,7 @@ class TileActionsDialogTest {
         entry,
         onAppInfo = { calls.appInfo++ },
         onUninstall = { calls.uninstall++ },
-        onReassign = { calls.reassign++ },
+        onRemove = { calls.remove++ },
     )
 
     @Test
@@ -46,7 +46,7 @@ class TileActionsDialogTest {
         dialog.findViewById<TextView>(R.id.actionAppInfo).performClick()
         assertEquals(1, calls.appInfo)
         assertEquals(0, calls.uninstall)
-        assertEquals(0, calls.reassign)
+        assertEquals(0, calls.remove)
         assertFalse(dialog.isShowing)
     }
 
@@ -57,30 +57,30 @@ class TileActionsDialogTest {
         dialog.findViewById<TextView>(R.id.actionUninstall).performClick()
         assertEquals(0, calls.appInfo)
         assertEquals(1, calls.uninstall)
-        assertEquals(0, calls.reassign)
+        assertEquals(0, calls.remove)
         assertFalse(dialog.isShowing)
     }
 
     @Test
-    fun reassignInvokesOnlyItsCallbackAndDismisses() {
+    fun removeInvokesOnlyItsCallbackAndDismisses() {
         val calls = Calls()
         val dialog = show(calls)
-        dialog.findViewById<TextView>(R.id.actionReassign).performClick()
+        dialog.findViewById<TextView>(R.id.actionRemove).performClick()
         assertEquals(0, calls.appInfo)
         assertEquals(0, calls.uninstall)
-        assertEquals(1, calls.reassign)
+        assertEquals(1, calls.remove)
         assertFalse(dialog.isShowing)
     }
 
     @Test
-    fun reassignRowIsHiddenWhenNoCallbackIsGiven() {
+    fun removeRowIsHiddenWhenNoCallbackIsGiven() {
         val dialog = showTileActionsDialog(
             ApplicationProvider.getApplicationContext(),
             entry,
             onAppInfo = {},
             onUninstall = {},
         )
-        assertEquals(android.view.View.GONE, dialog.findViewById<TextView>(R.id.actionReassign).visibility)
+        assertEquals(android.view.View.GONE, dialog.findViewById<TextView>(R.id.actionRemove).visibility)
     }
 
     @Test
@@ -128,8 +128,8 @@ class TileActionsDialogTest {
     fun rowsAppearInDocumentedOrder() {
         val dialog = show()
         val parent = dialog.findViewById<TextView>(R.id.actionAppInfo).parent as android.view.ViewGroup
-        val actionIds = setOf(R.id.actionAppInfo, R.id.actionUninstall, R.id.actionReassign)
+        val actionIds = setOf(R.id.actionAppInfo, R.id.actionUninstall, R.id.actionRemove)
         val order = (0 until parent.childCount).map { parent.getChildAt(it).id }.filter { it in actionIds }
-        assertEquals(listOf(R.id.actionAppInfo, R.id.actionUninstall, R.id.actionReassign), order)
+        assertEquals(listOf(R.id.actionAppInfo, R.id.actionUninstall, R.id.actionRemove), order)
     }
 }
