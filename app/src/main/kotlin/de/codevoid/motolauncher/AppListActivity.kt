@@ -249,8 +249,9 @@ class AppListActivity : AppCompatActivity() {
             label = getString(R.string.nav_bar),
             subtitle = getString(if (navBarStore.showNavBar) R.string.nav_bar_visible else R.string.nav_bar_hidden),
             onClick = {
-                navBarStore.showNavBar = !navBarStore.showNavBar
-                window.enableImmersiveMode(navBarStore.showNavBar)
+                val show = !navBarStore.showNavBar
+                navBarStore.showNavBar = show
+                window.enableImmersiveMode(show)
                 settingsTilesCache = null
                 renderCurrentMode()
             },
