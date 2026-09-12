@@ -46,4 +46,7 @@
     <string name="orientation_portrait">Portrait</string>
     <string name="orientation_reverse_landscape">Reverse landscape</string>
     <string name="orientation_reverse_portrait">Reverse portrait</string>
+    <string name="nav_bar">Navigation bar</string>
+    <string name="nav_bar_hidden">Hidden</string>
+    <string name="nav_bar_visible">Visible</string>
 </resources>

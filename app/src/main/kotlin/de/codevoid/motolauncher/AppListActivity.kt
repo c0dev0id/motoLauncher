@@ -30,6 +30,7 @@ import de.codevoid.motolauncher.data.BatteryStore
 import de.codevoid.motolauncher.data.CellularStore
 import de.codevoid.motolauncher.data.FavoritesStore
 import de.codevoid.motolauncher.data.HiddenAppsStore
+import de.codevoid.motolauncher.data.NavBarStore
 import de.codevoid.motolauncher.data.OrientationStore
 import de.codevoid.motolauncher.data.SpeedStore
 import de.codevoid.motolauncher.data.ThemeStore
@@ -57,6 +58,7 @@ class AppListActivity : AppCompatActivity() {
     private val cellularStore by lazy { CellularStore(this) }
     private val batteryStore by lazy { BatteryStore(this) }
     private val hiddenAppsStore by lazy { HiddenAppsStore(this) }
+    private val navBarStore by lazy { NavBarStore(this) }
     private val orientationStore by lazy { OrientationStore(this) }
     private val columns get() = if (isPortrait) 4 else 5
     private val defaultSettingsTint by lazy { ColorStateList.valueOf(ContextCompat.getColor(this, R.color.tile_default)) }
@@ -106,7 +108,7 @@ class AppListActivity : AppCompatActivity() {
         setRequestedOrientation(orientationStore.orientation)
         binding = ActivityAppListBinding.inflate(layoutInflater)
         setContentView(binding.root)
-        window.enableImmersiveMode()
+        window.enableImmersiveMode(navBarStore.showNavBar)
 
         repository = AppRepository(this)
 
@@ -242,6 +244,17 @@ class AppListActivity : AppCompatActivity() {
         ))
 
         tiles.add(orientationTile())
+
+        tiles.add(TileItem(
+            label = getString(R.string.nav_bar),
+            subtitle = getString(if (navBarStore.showNavBar) R.string.nav_bar_visible else R.string.nav_bar_hidden),
+            onClick = {
+                navBarStore.showNavBar = !navBarStore.showNavBar
+                window.enableImmersiveMode(navBarStore.showNavBar)
+                settingsTilesCache = null
+                renderCurrentMode()
+            },
+        ))
 
         return tiles
     }

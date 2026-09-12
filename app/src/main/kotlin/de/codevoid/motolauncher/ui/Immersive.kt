@@ -8,18 +8,23 @@ import android.view.Window
 import androidx.core.view.WindowCompat
 import androidx.core.view.WindowInsetsCompat
 import androidx.core.view.WindowInsetsControllerCompat
+import de.codevoid.motolauncher.data.NavBarStore
 
 @Suppress("DEPRECATION")
 fun Activity.noTransition() = overridePendingTransition(0, 0)
 
-// Bars stay hidden until an explicit swipe from the edge, which never happens on the
-// remote and is impractical with gloves. Activities re-apply on onWindowFocusChanged(true)
-// because permission dialogs and the system installer can transiently restore them.
-fun Window.enableImmersiveMode() {
-    WindowCompat.setDecorFitsSystemWindows(this, false)
+// Status bar always hidden; nav bar follows the NavBarStore setting.
+// setDecorFitsSystemWindows mirrors showNavBar so the grid automatically makes room
+// for a visible nav bar without any manual inset handling.
+// Activities re-apply on onWindowFocusChanged(true) because permission dialogs and
+// the system installer can transiently restore bars.
+fun Window.enableImmersiveMode(showNavBar: Boolean = false) {
+    WindowCompat.setDecorFitsSystemWindows(this, showNavBar)
     WindowInsetsControllerCompat(this, decorView).apply {
         systemBarsBehavior = WindowInsetsControllerCompat.BEHAVIOR_SHOW_TRANSIENT_BARS_BY_SWIPE
-        hide(WindowInsetsCompat.Type.systemBars())
+        hide(WindowInsetsCompat.Type.statusBars())
+        if (showNavBar) show(WindowInsetsCompat.Type.navigationBars())
+        else hide(WindowInsetsCompat.Type.navigationBars())
     }
 }
 
@@ -31,7 +36,7 @@ fun Window.enableImmersiveMode() {
 fun Dialog.showImmersive() {
     val host = hostActivity()
     if (host != null && (host.isFinishing || host.isDestroyed)) return
-    window?.enableImmersiveMode()
+    window?.enableImmersiveMode(host?.let { NavBarStore(it).showNavBar } ?: false)
     show()
 }
 

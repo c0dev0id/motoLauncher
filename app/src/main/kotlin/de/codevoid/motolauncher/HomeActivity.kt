@@ -11,6 +11,7 @@ import androidx.activity.addCallback
 import androidx.appcompat.app.AppCompatActivity
 import de.codevoid.motolauncher.data.AppRepository
 import de.codevoid.motolauncher.data.FavoritesStore
+import de.codevoid.motolauncher.data.NavBarStore
 import de.codevoid.motolauncher.data.OrientationStore
 import de.codevoid.motolauncher.databinding.ActivityHomeBinding
 import de.codevoid.motolauncher.databinding.ItemAppTileBinding
@@ -28,6 +29,7 @@ class HomeActivity : AppCompatActivity() {
     private lateinit var favorites: FavoritesStore
     private lateinit var repository: AppRepository
     private val orientationStore by lazy { OrientationStore(this) }
+    private val navBarStore by lazy { NavBarStore(this) }
     private val columns get() = if (isPortrait) 3 else 4
     private val rows get() = if (isPortrait) 4 else 3
     private val tiles = ArrayList<ItemAppTileBinding>(12)
@@ -42,7 +44,7 @@ class HomeActivity : AppCompatActivity() {
         setRequestedOrientation(orientationStore.orientation)
         binding = ActivityHomeBinding.inflate(layoutInflater)
         setContentView(binding.root)
-        window.enableImmersiveMode()
+        window.enableImmersiveMode(navBarStore.showNavBar)
 
         favorites = FavoritesStore(this)
         repository = AppRepository(this)
