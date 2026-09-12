@@ -396,7 +396,7 @@ class AppListActivity : AppCompatActivity() {
     private fun onAppSelected(component: ComponentName) {
         when {
             navAppPickMode -> { navAppStore.navApp = component; finish() }
-            pickMode -> { FavoritesStore(this).setSlot(pickSlot, component); finish() }
+            pickSlot != NO_SLOT -> { FavoritesStore(this).setSlot(pickSlot, component); finish() }
             else -> repository.launch(component)
         }
     }

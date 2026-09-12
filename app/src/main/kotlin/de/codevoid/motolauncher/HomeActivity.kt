@@ -44,8 +44,8 @@ class HomeActivity : AppCompatActivity() {
     private var cacheSlots: List<ComponentName?> = emptyList()
 
     // A short ESC stays inert: Home is the launcher root, there is nowhere to go back to.
-    // Holding it launches the first favourite — still only a launch, so the remote gains
-    // no route into configuration.
+    // Holding it launches the configured navigation app — still only a launch, so the
+    // remote gains no route into configuration.
     private val escapeKeys = EscapeKeys(onLongPress = { launchNavApp() })
 
     override fun onCreate(savedInstanceState: Bundle?) {
