@@ -43,6 +43,10 @@
         <item name="android:minHeight">@dimen/header_button_min_height</item>
     </style>
 
+    <style name="Theme.MotoLauncher.NoTransition" parent="Theme.MotoLauncher">
+        <item name="android:windowAnimationStyle">@null</item>
+    </style>
+
     <!-- One action row of the tile menu: a glove-sized tile-styled button. -->
     <style name="Widget.MotoLauncher.DialogAction" parent="">
         <item name="android:layout_width">match_parent</item>

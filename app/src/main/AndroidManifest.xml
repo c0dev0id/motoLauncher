@@ -54,7 +54,8 @@
 
         <activity
             android:name=".AppListActivity"
-            android:exported="false" />
+            android:exported="false"
+            android:theme="@style/Theme.MotoLauncher.NoTransition" />
 
         <provider
             android:name="androidx.core.content.FileProvider"
