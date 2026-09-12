@@ -22,7 +22,7 @@ import de.codevoid.motolauncher.ui.blockKeyLongPress
 import de.codevoid.motolauncher.ui.enableImmersiveMode
 import de.codevoid.motolauncher.ui.noTransition
 import de.codevoid.motolauncher.ui.isPortrait
-import de.codevoid.motolauncher.ui.launchFirstFavorite
+import de.codevoid.motolauncher.ui.launchNavApp
 import de.codevoid.motolauncher.ui.showTileActionsDialog
 
 class HomeActivity : AppCompatActivity() {
@@ -46,7 +46,7 @@ class HomeActivity : AppCompatActivity() {
     // A short ESC stays inert: Home is the launcher root, there is nowhere to go back to.
     // Holding it launches the first favourite — still only a launch, so the remote gains
     // no route into configuration.
-    private val escapeKeys = EscapeKeys(onLongPress = { launchFirstFavorite() })
+    private val escapeKeys = EscapeKeys(onLongPress = { launchNavApp() })
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)

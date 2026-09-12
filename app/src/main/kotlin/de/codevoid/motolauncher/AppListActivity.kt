@@ -30,6 +30,7 @@ import de.codevoid.motolauncher.data.BatteryStore
 import de.codevoid.motolauncher.data.CellularStore
 import de.codevoid.motolauncher.data.FavoritesStore
 import de.codevoid.motolauncher.data.HiddenAppsStore
+import de.codevoid.motolauncher.data.NavAppStore
 import de.codevoid.motolauncher.data.NavBarStore
 import de.codevoid.motolauncher.data.OrientationStore
 import de.codevoid.motolauncher.data.SpeedStore
@@ -41,7 +42,7 @@ import de.codevoid.motolauncher.ui.TileItem
 import de.codevoid.motolauncher.ui.enableImmersiveMode
 import de.codevoid.motolauncher.ui.noTransition
 import de.codevoid.motolauncher.ui.isPortrait
-import de.codevoid.motolauncher.ui.launchFirstFavorite
+import de.codevoid.motolauncher.ui.launchNavApp
 import de.codevoid.motolauncher.ui.runUpdateFlow
 import de.codevoid.motolauncher.ui.showTileActionsDialog
 import kotlinx.coroutines.Deferred
@@ -53,6 +54,7 @@ class AppListActivity : AppCompatActivity() {
     private lateinit var repository: AppRepository
     private val viewModel: AppListViewModel by viewModels()
     private val adapter = AppTileAdapter(emptyList())
+    private val navAppStore by lazy { NavAppStore(this) }
     private val themeStore by lazy { ThemeStore(this) }
     private val speedStore by lazy { SpeedStore(this) }
     private val cellularStore by lazy { CellularStore(this) }
@@ -67,18 +69,19 @@ class AppListActivity : AppCompatActivity() {
     private var settingsTilesCache: List<TileItem>? = null
     private var allApps: List<AppEntry> = emptyList()
 
-    // >= 0: pick mode — the chosen app is written to that favourite slot and the
-    // activity finishes. NO_SLOT: browse mode — tap launches, long-press opens the
-    // tile-actions menu.
+    // >= 0: slot pick mode — the chosen app is written to that favourite slot and the
+    // activity finishes. navAppPickMode: the chosen app is stored as the nav app.
+    // NO_SLOT + no nav flag: browse mode — tap launches, long-press opens tile-actions.
     private val pickSlot by lazy { intent.getIntExtra(EXTRA_PICK_SLOT, NO_SLOT) }
-    private val pickMode get() = pickSlot != NO_SLOT
+    private val navAppPickMode by lazy { intent.getBooleanExtra(EXTRA_PICK_NAV_APP, false) }
+    private val pickMode get() = pickSlot != NO_SLOT || navAppPickMode
 
     // In browse mode a short ESC exits settings mode (if active) before exiting the
     // screen, so Escape acts as a mode-level back. In pick mode there is no settings
-    // mode, so a short ESC always finishes. Holding ESC quick-launches slot 0, same
-    // as Home, so the gesture means one thing wherever the remote is.
+    // mode, so a short ESC always finishes. Holding ESC quick-launches the nav app,
+    // same as Home, so the gesture means one thing wherever the remote is.
     private val escapeKeys = EscapeKeys(
-        onLongPress = { launchFirstFavorite() },
+        onLongPress = { launchNavApp() },
         onShortPress = {
             if (viewModel.isSettingsMode) {
                 viewModel.isSettingsMode = false
@@ -189,6 +192,19 @@ class AppListActivity : AppCompatActivity() {
             label = getString(R.string.theme_label),
             subtitle = getString(if (themeStore.isDark) R.string.theme_dark else R.string.theme_light),
             onClick = { settingsTilesCache = null; themeStore.isDark = !themeStore.isDark },
+        ))
+
+        val currentNavApp = navAppStore.navApp
+        val navAppSubtitle = if (currentNavApp == null) {
+            getString(R.string.pick_none)
+        } else {
+            repository.loadByComponents(listOf(currentNavApp))[currentNavApp]?.label
+                ?: currentNavApp.packageName
+        }
+        tiles.add(TileItem(
+            label = getString(R.string.nav_app),
+            subtitle = navAppSubtitle,
+            onClick = { settingsTilesCache = null; startActivity(navAppPickerIntent(this@AppListActivity)) },
         ))
 
         // While checking, the subtitle changes and the click is a no-op — guarding
@@ -370,18 +386,18 @@ class AppListActivity : AppCompatActivity() {
             label = getString(R.string.pick_none),
             icon = ContextCompat.getDrawable(this, R.drawable.ic_none)!!,
             onClick = {
-                FavoritesStore(this).clearSlot(pickSlot)
+                if (navAppPickMode) navAppStore.navApp = null
+                else FavoritesStore(this).clearSlot(pickSlot)
                 finish()
             },
         )
     }
 
     private fun onAppSelected(component: ComponentName) {
-        if (pickMode) {
-            FavoritesStore(this).setSlot(pickSlot, component)
-            finish()
-        } else {
-            repository.launch(component)
+        when {
+            navAppPickMode -> { navAppStore.navApp = component; finish() }
+            pickMode -> { FavoritesStore(this).setSlot(pickSlot, component); finish() }
+            else -> repository.launch(component)
         }
     }
 
@@ -406,8 +422,9 @@ class AppListActivity : AppCompatActivity() {
 
     companion object {
         private const val EXTRA_PICK_SLOT = "pick_slot"
+        private const val EXTRA_PICK_NAV_APP = "pick_nav_app"
         private const val NO_SLOT = -1
-        private const val UPDATE_TILE_INDEX = 1 // theme is always index 0
+        private const val UPDATE_TILE_INDEX = 2 // theme=0, nav_app=1, update=2
 
         private val ORIENTATION_OPTIONS = listOf(
             ActivityInfo.SCREEN_ORIENTATION_LANDSCAPE to R.string.orientation_landscape,
@@ -419,6 +436,9 @@ class AppListActivity : AppCompatActivity() {
         // Callers rebuild their grid in onResume, so no result contract is needed.
         fun pickIntent(context: Context, slot: Int): Intent =
             Intent(context, AppListActivity::class.java).putExtra(EXTRA_PICK_SLOT, slot)
+
+        fun navAppPickerIntent(context: Context): Intent =
+            Intent(context, AppListActivity::class.java).putExtra(EXTRA_PICK_NAV_APP, true)
     }
 }
 
