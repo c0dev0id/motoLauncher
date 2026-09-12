@@ -110,7 +110,7 @@ class AppListActivity : AppCompatActivity() {
         setContentView(binding.root)
         window.enableImmersiveMode()
 
-        defaultSettingsTint = binding.settingsButton.backgroundTintList
+        defaultSettingsTint = ColorStateList.valueOf(ContextCompat.getColor(this, R.color.surface))
         activeSettingsTint = ColorStateList.valueOf(ContextCompat.getColor(this, R.color.tile_focused))
 
         repository = AppRepository(this)
