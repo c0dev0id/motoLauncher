@@ -64,7 +64,7 @@
             tools:text="87%" />
     </LinearLayout>
 
-    <!-- Row 2: speed centered — GONE collapses to zero height when GPS is inactive -->
+    <!-- Row 2: speed (centered) -->
     <TextView
         android:id="@+id/speedText"
         android:layout_width="match_parent"

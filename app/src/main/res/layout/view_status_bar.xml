@@ -18,6 +18,7 @@
             android:fontFamily="@font/michroma"
             android:textColor="@color/on_surface"
             android:textSize="@dimen/text_status_clock"
+            android:maxLines="1"
             tools:text="12:34" />
     </LinearLayout>
 
@@ -36,6 +37,7 @@
             android:fontFamily="@font/michroma"
             android:textColor="@color/on_surface"
             android:textSize="@dimen/text_status_clock"
+            android:maxLines="1"
             android:visibility="gone"
             tools:text="87 km/h" />
     </LinearLayout>

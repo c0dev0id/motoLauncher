@@ -7,7 +7,6 @@ import android.content.Intent
 import android.content.IntentFilter
 import android.content.SharedPreferences
 import android.content.pm.PackageManager
-import android.content.res.Configuration
 import android.location.LocationListener
 import android.location.LocationManager
 import android.net.ConnectivityManager
@@ -148,9 +147,8 @@ class StatusBarView @JvmOverloads constructor(
     private var cellularNetworkCallback: ConnectivityManager.NetworkCallback? = null
 
     init {
-        val isPortrait = resources.configuration.orientation == Configuration.ORIENTATION_PORTRAIT
-        orientation = if (isPortrait) VERTICAL else HORIZONTAL
-        gravity = if (isPortrait) Gravity.CENTER_HORIZONTAL else Gravity.CENTER_VERTICAL
+        orientation = if (context.isPortrait) VERTICAL else HORIZONTAL
+        gravity = Gravity.CENTER_VERTICAL
     }
 
     override fun onAttachedToWindow() {
