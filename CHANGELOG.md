@@ -7,6 +7,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+- Activity transitions (Home ↔ All Apps, pick-mode open/close) are now instant — no slide animation.
+
 ### Added
 - **Battery display setting.** Settings tile cycles between Icon + text (default),
   Icon only, and Text only. The status bar updates immediately on change.
