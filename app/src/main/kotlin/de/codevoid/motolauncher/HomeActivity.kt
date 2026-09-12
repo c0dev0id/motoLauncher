@@ -17,6 +17,7 @@ import de.codevoid.motolauncher.databinding.ItemAppTileBinding
 import de.codevoid.motolauncher.ui.EscapeKeys
 import de.codevoid.motolauncher.ui.blockKeyLongPress
 import de.codevoid.motolauncher.ui.enableImmersiveMode
+import de.codevoid.motolauncher.ui.noTransition
 import de.codevoid.motolauncher.ui.isPortrait
 import de.codevoid.motolauncher.ui.launchFirstFavorite
 import de.codevoid.motolauncher.ui.showTileActionsDialog
@@ -146,7 +147,7 @@ class HomeActivity : AppCompatActivity() {
             iconRes = R.drawable.ic_all_apps,
             onClick = {
                 startActivity(Intent(this, AppListActivity::class.java))
-                @Suppress("DEPRECATION") overridePendingTransition(0, 0)
+                noTransition()
             },
         )
     }
@@ -180,7 +181,7 @@ class HomeActivity : AppCompatActivity() {
     // The picker writes the slot itself; onResume rebuilds the grid on return.
     private fun pickForSlot(slot: Int) {
         startActivity(AppListActivity.pickIntent(this, slot))
-        @Suppress("DEPRECATION") overridePendingTransition(0, 0)
+        noTransition()
     }
 
 }

@@ -38,6 +38,7 @@ import de.codevoid.motolauncher.ui.AppTileAdapter
 import de.codevoid.motolauncher.ui.EscapeKeys
 import de.codevoid.motolauncher.ui.TileItem
 import de.codevoid.motolauncher.ui.enableImmersiveMode
+import de.codevoid.motolauncher.ui.noTransition
 import de.codevoid.motolauncher.ui.isPortrait
 import de.codevoid.motolauncher.ui.launchFirstFavorite
 import de.codevoid.motolauncher.ui.runUpdateFlow
@@ -377,7 +378,7 @@ class AppListActivity : AppCompatActivity() {
 
     override fun finish() {
         super.finish()
-        @Suppress("DEPRECATION") overridePendingTransition(0, 0)
+        noTransition()
     }
 
     companion object {

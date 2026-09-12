@@ -9,6 +9,11 @@ import androidx.core.view.WindowCompat
 import androidx.core.view.WindowInsetsCompat
 import androidx.core.view.WindowInsetsControllerCompat
 
+// Suppress the animation between activities — this launcher owns the full screen and
+// sliding or fading to another launcher activity looks wrong.
+@Suppress("DEPRECATION")
+fun Activity.noTransition() = overridePendingTransition(0, 0)
+
 // Bars stay hidden until an explicit swipe from the edge, which never happens on the
 // remote and is impractical with gloves. Activities re-apply on onWindowFocusChanged(true)
 // because permission dialogs and the system installer can transiently restore them.
