@@ -15,6 +15,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - GPS speed listener is now paused while the home screen window is hidden (navigation app in the foreground) and resumed when the home screen comes back. Previously the 1 Hz location poll kept running in the background, consuming CPU that the navigation app needed.
 
 ### Added
+- **Download progress in settings tile.** While an update is downloading, the "Check for updates" tile subtitle shows percentage and speed (e.g. `45% · 2.2 MB/s`), updating every 500 ms.
 - **Navigation bar setting.** Settings tile toggles between Hidden (default) and Visible. The home grid and app list automatically make space for the bar when shown.
 - **Battery display setting.** Settings tile cycles between Icon + text (default),
   Icon only, and Text only. The status bar updates immediately on change.

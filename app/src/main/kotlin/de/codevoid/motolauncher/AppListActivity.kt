@@ -194,21 +194,31 @@ class AppListActivity : AppCompatActivity() {
         // While checking, the subtitle changes and the click is a no-op — guarding
         // against a double-tap while the network call is in flight.
         val isChecking = viewModel.isCheckingUpdate
+        val progressSub = viewModel.downloadProgressSubtitle
         tiles.add(TileItem(
             label = getString(R.string.check_for_updates),
-            subtitle = if (isChecking) getString(R.string.checking_updates) else BuildConfig.VERSION_NAME,
+            subtitle = when {
+                progressSub != null -> progressSub
+                isChecking -> getString(R.string.checking_updates)
+                else -> BuildConfig.VERSION_NAME
+            },
             onClick = if (isChecking) ({}) else ({
                 viewModel.isCheckingUpdate = true
                 settingsTilesCache = null
                 renderCurrentMode()
                 runUpdateFlow(
                     setClickable = { enabled ->
-                        // setClickable(true) is the "done" signal from runUpdateFlow.
                         if (enabled) {
                             viewModel.isCheckingUpdate = false
+                            viewModel.downloadProgressSubtitle = null
                             settingsTilesCache = null
                             renderCurrentMode()
                         }
+                    },
+                    setSubtitle = { text ->
+                        viewModel.downloadProgressSubtitle = text
+                        settingsTilesCache = null
+                        renderCurrentMode()
                     },
                 )
             }),
@@ -417,6 +427,7 @@ class AppListViewModel(app: Application) : AndroidViewModel(app) {
 
     var isSettingsMode: Boolean = false
     var isCheckingUpdate: Boolean = false
+    var downloadProgressSubtitle: String? = null
 
     fun reloadIfStale(): Boolean {
         val fresh = getApplication<MotoLauncherApp>().getApps()

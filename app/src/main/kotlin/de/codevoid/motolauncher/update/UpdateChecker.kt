@@ -28,12 +28,15 @@ class UpdateChecker(private val context: Context) {
         if (isNewer(release, BuildConfig.VERSION_NAME)) release else null
     }
 
-    suspend fun download(release: ReleaseInfo): File = withContext(Dispatchers.IO) {
+    suspend fun download(
+        release: ReleaseInfo,
+        onProgress: ((bytesWritten: Long, totalBytes: Long) -> Unit)? = null,
+    ): File = withContext(Dispatchers.IO) {
         val dir = downloadDir.apply { mkdirs() }
         val file = File(dir, release.apkName)
         // The directory holds at most the download in progress.
         dir.listFiles()?.filter { it != file }?.forEach { it.delete() }
-        httpDownload(release.apkUrl, file)
+        httpDownload(release.apkUrl, file, onProgress)
         file
     }
 
@@ -69,7 +72,11 @@ class UpdateChecker(private val context: Context) {
         }
     }
 
-    private fun httpDownload(urlString: String, dest: File) {
+    private fun httpDownload(
+        urlString: String,
+        dest: File,
+        onProgress: ((Long, Long) -> Unit)? = null,
+    ) {
         val connection = (URL(urlString).openConnection() as HttpURLConnection).apply {
             requestMethod = "GET"
             connectTimeout = TIMEOUT_MS
@@ -78,8 +85,18 @@ class UpdateChecker(private val context: Context) {
             setRequestProperty("User-Agent", USER_AGENT)
         }
         try {
+            val totalBytes = connection.contentLengthLong
+            var written = 0L
             connection.inputStream.use { input ->
-                FileOutputStream(dest).use { output -> input.copyTo(output) }
+                FileOutputStream(dest).use { output ->
+                    val buf = ByteArray(DEFAULT_BUFFER_SIZE)
+                    var n: Int
+                    while (input.read(buf).also { n = it } != -1) {
+                        output.write(buf, 0, n)
+                        written += n
+                        onProgress?.invoke(written, totalBytes)
+                    }
+                }
             }
         } finally {
             connection.disconnect()

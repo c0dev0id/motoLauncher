@@ -19,6 +19,7 @@ import kotlinx.coroutines.launch
 // the activity is gone are dropped by showImmersive().
 fun AppCompatActivity.runUpdateFlow(
     setClickable: (Boolean) -> Unit = {},
+    setSubtitle: (String?) -> Unit = {},
 ) {
     val checker = UpdateChecker(this)
 
@@ -35,9 +36,24 @@ fun AppCompatActivity.runUpdateFlow(
 
     fun downloadAndInstall(release: ReleaseInfo) {
         setClickable(false)
+        var lastBytes = 0L
+        var lastTime = System.currentTimeMillis()
+        var lastUpdate = 0L
+
         lifecycleScope.launch {
             try {
-                startActivity(checker.installIntent(checker.download(release)))
+                startActivity(checker.installIntent(checker.download(release) { written, total ->
+                    val now = System.currentTimeMillis()
+                    if (now - lastUpdate >= 500) {
+                        val elapsed = (now - lastTime).coerceAtLeast(1)
+                        val speedMBs = (written - lastBytes) * 1000.0 / elapsed / (1024.0 * 1024)
+                        lastBytes = written
+                        lastTime = now
+                        lastUpdate = now
+                        val pct = if (total > 0) "${written * 100 / total}% \u00b7 " else ""
+                        runOnUiThread { setSubtitle("$pct%.1f MB/s".format(speedMBs)) }
+                    }
+                }))
             } catch (e: CancellationException) {
                 throw e
             } catch (e: Exception) {
