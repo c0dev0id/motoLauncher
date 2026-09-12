@@ -1,5 +1,6 @@
 package de.codevoid.motolauncher
 
+import android.content.ComponentName
 import android.content.Intent
 import android.graphics.drawable.Drawable
 import android.os.Bundle
@@ -9,6 +10,7 @@ import android.view.ViewGroup
 import android.widget.LinearLayout
 import androidx.activity.addCallback
 import androidx.appcompat.app.AppCompatActivity
+import de.codevoid.motolauncher.data.AppEntry
 import de.codevoid.motolauncher.data.AppRepository
 import de.codevoid.motolauncher.data.FavoritesStore
 import de.codevoid.motolauncher.data.NavBarStore
@@ -33,6 +35,13 @@ class HomeActivity : AppCompatActivity() {
     private val columns get() = if (isPortrait) 3 else 4
     private val rows get() = if (isPortrait) 4 else 3
     private val tiles = ArrayList<ItemAppTileBinding>(12)
+
+    // Resolved on first resume and reused until either packageGeneration advances (app
+    // installed/removed) or the slot list itself changes (reassign/clear). Avoids Binder
+    // IPC and icon decoding on every return from the navigation app.
+    private var cachedApps: Map<ComponentName, AppEntry> = emptyMap()
+    private var cacheGeneration: Int = -1
+    private var cacheSlots: List<ComponentName?> = emptyList()
 
     // A short ESC stays inert: Home is the launcher root, there is nowhere to go back to.
     // Holding it launches the first favourite — still only a launch, so the remote gains
@@ -115,7 +124,16 @@ class HomeActivity : AppCompatActivity() {
 
     private fun buildGrid() {
         val slots = favorites.allSlots()
-        val apps = repository.loadByComponents(slots.filterNotNull())
+        val generation = (application as MotoLauncherApp).packageGeneration
+        val apps = if (generation == cacheGeneration && slots == cacheSlots) {
+            cachedApps
+        } else {
+            repository.loadByComponents(slots.filterNotNull()).also {
+                cachedApps = it
+                cacheGeneration = generation
+                cacheSlots = slots
+            }
+        }
 
         slots.forEachIndexed { index, component ->
             val entry = component?.let { apps[it] }

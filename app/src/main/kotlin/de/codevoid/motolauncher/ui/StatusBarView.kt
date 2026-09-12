@@ -118,6 +118,10 @@ class StatusBarView @JvmOverloads constructor(
 
     private var signalCallback: TelephonyCallback? = null
 
+    // Set when the window goes invisible (activity backgrounded). Prevents double-
+    // registration when onWindowVisibilityChanged(VISIBLE) fires after onAttachedToWindow.
+    private var gpsPaused = false
+
     private val locationListener = LocationListener { location ->
         if (!location.hasSpeed()) return@LocationListener
         val metric = speedStore.isMetric
@@ -192,6 +196,18 @@ class StatusBarView @JvmOverloads constructor(
 
         settingsPrefs.unregisterOnSharedPreferenceChangeListener(prefsListener)
         locationManager.removeUpdates(locationListener)
+    }
+
+    // Pause the GPS listener while the home window is hidden (navigation app in
+    // foreground) and resume it when the window comes back. Event-driven callbacks
+    // (battery, network) are cheap enough to leave running; 1 Hz GPS polling is not.
+    override fun onWindowVisibilityChanged(visibility: Int) {
+        super.onWindowVisibilityChanged(visibility)
+        if (visibility == VISIBLE) {
+            if (gpsPaused) { gpsPaused = false; registerGps() }
+        } else {
+            if (!gpsPaused) { gpsPaused = true; unregisterGps() }
+        }
     }
 
     private fun updateTime() {
