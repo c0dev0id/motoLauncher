@@ -50,4 +50,9 @@
     <string name="nav_bar">Navigation bar</string>
     <string name="nav_bar_hidden">Hidden</string>
     <string name="nav_bar_visible">Visible</string>
+    <string name="add_link">Add link</string>
+    <string name="link_label_hint">Name</string>
+    <string name="link_url_hint">URL</string>
+    <string name="link_action_edit">Edit link</string>
+    <string name="link_action_remove">Remove</string>
 </resources>

@@ -3,8 +3,10 @@ package de.codevoid.motolauncher
 import android.content.ComponentName
 import androidx.test.core.app.ApplicationProvider
 import de.codevoid.motolauncher.data.FavoritesStore
+import de.codevoid.motolauncher.data.SlotEntry
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNull
+import org.junit.Assert.assertTrue
 import org.junit.Before
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -63,5 +65,37 @@ class FavoritesStoreTest {
     @Test
     fun allSlotsReportsConfiguredSize() {
         assertEquals(FavoritesStore.SLOT_COUNT, store.allSlots().size)
+    }
+
+    @Test
+    fun linkRoundTrip() {
+        store.setLink(5, "OpenStreetMap", "https://osm.org")
+        val entry = store.getSlotEntry(5)
+        assertTrue(entry is SlotEntry.Link)
+        entry as SlotEntry.Link
+        assertEquals("OpenStreetMap", entry.label)
+        assertEquals("https://osm.org", entry.url)
+    }
+
+    @Test
+    fun clearSlotAlsoRemovesLinkData() {
+        store.setLink(3, "Test", "https://example.com")
+        store.clearSlot(3)
+        assertNull(store.getSlotEntry(3))
+    }
+
+    @Test
+    fun setSlotAfterLinkClearsLinkData() {
+        store.setLink(2, "Test", "https://example.com")
+        val component = ComponentName("com.example", "com.example.Main")
+        store.setSlot(2, component)
+        assertTrue(store.getSlotEntry(2) is SlotEntry.App)
+    }
+
+    @Test
+    fun clearSlotsForPackageLeavesLinkSlotsAlone() {
+        store.setLink(0, "Link", "https://example.com")
+        store.clearSlotsForPackage("example.com")
+        assertTrue(store.getSlotEntry(0) is SlotEntry.Link)
     }
 }

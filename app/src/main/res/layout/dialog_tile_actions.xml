@@ -50,4 +50,14 @@
         android:id="@+id/actionReassign"
         style="@style/Widget.MotoLauncher.DialogAction"
         android:text="@string/tile_action_reassign" />
+
+    <TextView
+        android:id="@+id/actionEditLink"
+        style="@style/Widget.MotoLauncher.DialogAction"
+        android:text="@string/link_action_edit" />
+
+    <TextView
+        android:id="@+id/actionRemoveLink"
+        style="@style/Widget.MotoLauncher.DialogAction"
+        android:text="@string/link_action_remove" />
 </LinearLayout>

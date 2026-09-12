@@ -32,6 +32,7 @@ import de.codevoid.motolauncher.data.FavoritesStore
 import de.codevoid.motolauncher.data.HiddenAppsStore
 import de.codevoid.motolauncher.data.NavAppStore
 import de.codevoid.motolauncher.data.NavBarStore
+import de.codevoid.motolauncher.data.SlotEntry
 import de.codevoid.motolauncher.data.OrientationStore
 import de.codevoid.motolauncher.data.SpeedStore
 import de.codevoid.motolauncher.data.ThemeStore
@@ -44,6 +45,7 @@ import de.codevoid.motolauncher.ui.noTransition
 import de.codevoid.motolauncher.ui.isPortrait
 import de.codevoid.motolauncher.ui.launchNavApp
 import de.codevoid.motolauncher.ui.runUpdateFlow
+import de.codevoid.motolauncher.ui.showLinkDialog
 import de.codevoid.motolauncher.ui.showTileActionsDialog
 import kotlinx.coroutines.Deferred
 import kotlinx.coroutines.launch
@@ -352,6 +354,7 @@ class AppListActivity : AppCompatActivity() {
         // In pick mode a "None" tile leads the grid, whatever the search says: choosing it
         // clears the slot. It is the only way to empty a favourite.
         if (pickMode) tiles.add(noneTile)
+        if (pickSlot != NO_SLOT) tiles.add(addLinkTile)
         val hiddenSet = hiddenAppsStore.hiddenPackages()
         val showHidden = hiddenAppsStore.showHidden
         apps.forEach { entry ->
@@ -380,7 +383,7 @@ class AppListActivity : AppCompatActivity() {
         adapter.submit(tiles)
     }
 
-    // Built once: render() runs on every keystroke and this tile never changes.
+    // Built once: render() runs on every keystroke and these tiles never change shape.
     private val noneTile by lazy {
         TileItem(
             label = getString(R.string.pick_none),
@@ -389,6 +392,21 @@ class AppListActivity : AppCompatActivity() {
                 if (navAppPickMode) navAppStore.navApp = null
                 else FavoritesStore(this).clearSlot(pickSlot)
                 finish()
+            },
+        )
+    }
+
+    // Pre-fills label and URL when the current slot already holds a link (edit flow).
+    private val addLinkTile by lazy {
+        TileItem(
+            label = getString(R.string.add_link),
+            icon = ContextCompat.getDrawable(this, R.drawable.ic_link)!!,
+            onClick = {
+                val existing = FavoritesStore(this).getSlotEntry(pickSlot) as? SlotEntry.Link
+                showLinkDialog(existing?.label ?: "", existing?.url ?: "") { label, url ->
+                    FavoritesStore(this).setLink(pickSlot, label, url)
+                    finish()
+                }
             },
         )
     }

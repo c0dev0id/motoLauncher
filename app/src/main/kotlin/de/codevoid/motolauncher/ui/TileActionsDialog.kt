@@ -41,7 +41,6 @@ fun showTileActionsDialog(
     } else {
         binding.actionHide.visibility = View.GONE
     }
-    // No slot to reassign (the app list): drop the row entirely.
     if (onReassign != null) {
         binding.actionReassign.setOnClickListener {
             dialog.dismiss()
@@ -50,6 +49,30 @@ fun showTileActionsDialog(
     } else {
         binding.actionReassign.visibility = View.GONE
     }
+    binding.actionEditLink.visibility = View.GONE
+    binding.actionRemoveLink.visibility = View.GONE
+    dialog.showImmersive()
+    return dialog
+}
+
+fun showLinkActionsDialog(
+    context: Context,
+    label: String,
+    onEdit: () -> Unit,
+    onRemove: () -> Unit,
+): Dialog {
+    val binding = DialogTileActionsBinding.inflate(LayoutInflater.from(context))
+    binding.appIcon.setImageResource(R.drawable.ic_link)
+    binding.appLabel.text = label
+    binding.actionAppInfo.visibility = View.GONE
+    binding.actionUninstall.visibility = View.GONE
+    binding.actionHide.visibility = View.GONE
+    binding.actionReassign.visibility = View.GONE
+
+    val dialog = Dialog(context, R.style.Theme_MotoLauncher_Dialog)
+    dialog.setContentView(binding.root)
+    binding.actionEditLink.setOnClickListener { dialog.dismiss(); onEdit() }
+    binding.actionRemoveLink.setOnClickListener { dialog.dismiss(); onRemove() }
     dialog.showImmersive()
     return dialog
 }

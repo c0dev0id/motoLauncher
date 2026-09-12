@@ -3,6 +3,7 @@ package de.codevoid.motolauncher
 import android.content.ComponentName
 import android.content.Intent
 import android.graphics.drawable.Drawable
+import android.net.Uri
 import android.os.Bundle
 import android.view.KeyEvent
 import android.view.LayoutInflater
@@ -15,6 +16,7 @@ import de.codevoid.motolauncher.data.AppRepository
 import de.codevoid.motolauncher.data.FavoritesStore
 import de.codevoid.motolauncher.data.NavBarStore
 import de.codevoid.motolauncher.data.OrientationStore
+import de.codevoid.motolauncher.data.SlotEntry
 import de.codevoid.motolauncher.databinding.ActivityHomeBinding
 import de.codevoid.motolauncher.databinding.ItemAppTileBinding
 import de.codevoid.motolauncher.ui.EscapeKeys
@@ -23,6 +25,8 @@ import de.codevoid.motolauncher.ui.enableImmersiveMode
 import de.codevoid.motolauncher.ui.noTransition
 import de.codevoid.motolauncher.ui.isPortrait
 import de.codevoid.motolauncher.ui.launchNavApp
+import de.codevoid.motolauncher.ui.showLinkActionsDialog
+import de.codevoid.motolauncher.ui.showLinkDialog
 import de.codevoid.motolauncher.ui.showTileActionsDialog
 
 class HomeActivity : AppCompatActivity() {
@@ -41,7 +45,7 @@ class HomeActivity : AppCompatActivity() {
     // IPC and icon decoding on every return from the navigation app.
     private var cachedApps: Map<ComponentName, AppEntry> = emptyMap()
     private var cacheGeneration: Int = -1
-    private var cacheSlots: List<ComponentName?> = emptyList()
+    private var cacheSlots: List<SlotEntry?> = emptyList()
 
     // A short ESC stays inert: Home is the launcher root, there is nowhere to go back to.
     // Holding it launches the configured navigation app — still only a launch, so the
@@ -126,39 +130,82 @@ class HomeActivity : AppCompatActivity() {
         val slots = favorites.allSlots()
         val generation = (application as MotoLauncherApp).packageGeneration
         if (generation != cacheGeneration || slots != cacheSlots) {
-            cachedApps = repository.loadByComponents(slots.filterNotNull())
+            val appComponents = slots.filterIsInstance<SlotEntry.App>().map { it.component }
+            cachedApps = repository.loadByComponents(appComponents)
             cacheGeneration = generation
             cacheSlots = slots
         }
         val apps = cachedApps
 
-        slots.forEachIndexed { index, component ->
-            val entry = component?.let { apps[it] }
-            if (entry != null) {
-                bindTile(
-                    tile = tiles[index],
-                    label = entry.label,
-                    icon = entry.icon,
-                    onClick = { repository.launch(entry.component) },
-                    onLongClick = {
-                        showTileActionsDialog(
-                            context = this,
-                            entry = entry,
-                            onAppInfo = { repository.openInfo(entry.component) },
-                            onUninstall = { repository.requestUninstall(entry.component) },
-                            onReassign = { pickForSlot(index) },
+        slots.forEachIndexed { index, slotEntry ->
+            when (slotEntry) {
+                is SlotEntry.App -> {
+                    val entry = apps[slotEntry.component]
+                    if (entry != null) {
+                        bindTile(
+                            tile = tiles[index],
+                            label = entry.label,
+                            icon = entry.icon,
+                            onClick = { repository.launch(entry.component) },
+                            onLongClick = {
+                                showTileActionsDialog(
+                                    context = this,
+                                    entry = entry,
+                                    onAppInfo = { repository.openInfo(entry.component) },
+                                    onUninstall = { repository.requestUninstall(entry.component) },
+                                    onReassign = { pickForSlot(index) },
+                                )
+                                true
+                            },
                         )
-                        true
-                    },
-                )
-            } else {
-                bindTile(
-                    tile = tiles[index],
-                    label = getString(R.string.empty_slot),
-                    iconRes = R.drawable.ic_add,
-                    onClick = { pickForSlot(index) },
-                    onLongClick = { pickForSlot(index); true },
-                )
+                    } else {
+                        bindTile(
+                            tile = tiles[index],
+                            label = getString(R.string.empty_slot),
+                            iconRes = R.drawable.ic_add,
+                            onClick = { pickForSlot(index) },
+                            onLongClick = { pickForSlot(index); true },
+                        )
+                    }
+                }
+                is SlotEntry.Link -> {
+                    bindTile(
+                        tile = tiles[index],
+                        label = slotEntry.label,
+                        iconRes = R.drawable.ic_link,
+                        onClick = {
+                            runCatching {
+                                startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(slotEntry.url)))
+                            }
+                        },
+                        onLongClick = {
+                            showLinkActionsDialog(
+                                context = this,
+                                label = slotEntry.label,
+                                onEdit = {
+                                    showLinkDialog(slotEntry.label, slotEntry.url) { label, url ->
+                                        favorites.setLink(index, label, url)
+                                        buildGrid()
+                                    }
+                                },
+                                onRemove = {
+                                    favorites.clearSlot(index)
+                                    buildGrid()
+                                },
+                            )
+                            true
+                        },
+                    )
+                }
+                null -> {
+                    bindTile(
+                        tile = tiles[index],
+                        label = getString(R.string.empty_slot),
+                        iconRes = R.drawable.ic_add,
+                        onClick = { pickForSlot(index) },
+                        onLongClick = { pickForSlot(index); true },
+                    )
+                }
             }
         }
 
