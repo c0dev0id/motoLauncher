@@ -56,6 +56,7 @@ class AppListActivity : AppCompatActivity() {
     private lateinit var repository: AppRepository
     private val viewModel: AppListViewModel by viewModels()
     private val adapter = AppTileAdapter(emptyList())
+    private val favoritesStore by lazy { FavoritesStore(this) }
     private val navAppStore by lazy { NavAppStore(this) }
     private val themeStore by lazy { ThemeStore(this) }
     private val speedStore by lazy { SpeedStore(this) }
@@ -390,21 +391,20 @@ class AppListActivity : AppCompatActivity() {
             icon = ContextCompat.getDrawable(this, R.drawable.ic_none)!!,
             onClick = {
                 if (navAppPickMode) navAppStore.navApp = null
-                else FavoritesStore(this).clearSlot(pickSlot)
+                else favoritesStore.clearSlot(pickSlot)
                 finish()
             },
         )
     }
 
-    // Pre-fills label and URL when the current slot already holds a link (edit flow).
     private val addLinkTile by lazy {
         TileItem(
             label = getString(R.string.add_link),
             icon = ContextCompat.getDrawable(this, R.drawable.ic_link)!!,
             onClick = {
-                val existing = FavoritesStore(this).getSlotEntry(pickSlot) as? SlotEntry.Link
+                val existing = favoritesStore.getSlotEntry(pickSlot) as? SlotEntry.Link
                 showLinkDialog(existing?.label ?: "", existing?.url ?: "") { label, url ->
-                    FavoritesStore(this).setLink(pickSlot, label, url)
+                    favoritesStore.setLink(pickSlot, label, url)
                     finish()
                 }
             },
@@ -414,7 +414,7 @@ class AppListActivity : AppCompatActivity() {
     private fun onAppSelected(component: ComponentName) {
         when {
             navAppPickMode -> { navAppStore.navApp = component; finish() }
-            pickSlot != NO_SLOT -> { FavoritesStore(this).setSlot(pickSlot, component); finish() }
+            pickSlot != NO_SLOT -> { favoritesStore.setSlot(pickSlot, component); finish() }
             else -> repository.launch(component)
         }
     }

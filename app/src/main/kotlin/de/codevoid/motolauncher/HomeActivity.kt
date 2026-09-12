@@ -159,13 +159,7 @@ class HomeActivity : AppCompatActivity() {
                             },
                         )
                     } else {
-                        bindTile(
-                            tile = tiles[index],
-                            label = getString(R.string.empty_slot),
-                            iconRes = R.drawable.ic_add,
-                            onClick = { pickForSlot(index) },
-                            onLongClick = { pickForSlot(index); true },
-                        )
+                        bindEmptySlot(index)
                     }
                 }
                 is SlotEntry.Link -> {
@@ -197,15 +191,7 @@ class HomeActivity : AppCompatActivity() {
                         },
                     )
                 }
-                null -> {
-                    bindTile(
-                        tile = tiles[index],
-                        label = getString(R.string.empty_slot),
-                        iconRes = R.drawable.ic_add,
-                        onClick = { pickForSlot(index) },
-                        onLongClick = { pickForSlot(index); true },
-                    )
-                }
+                null -> bindEmptySlot(index)
             }
         }
 
@@ -219,6 +205,14 @@ class HomeActivity : AppCompatActivity() {
             },
         )
     }
+
+    private fun bindEmptySlot(index: Int) = bindTile(
+        tile = tiles[index],
+        label = getString(R.string.empty_slot),
+        iconRes = R.drawable.ic_add,
+        onClick = { pickForSlot(index) },
+        onLongClick = { pickForSlot(index); true },
+    )
 
     // Tiles are reused across rebinds, so a tile without a long-press must clear the
     // previous listener and drop isLongClickable, or the framework keeps arming the
