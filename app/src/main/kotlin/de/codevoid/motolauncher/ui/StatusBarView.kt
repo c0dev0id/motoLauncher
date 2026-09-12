@@ -114,7 +114,10 @@ class StatusBarView @JvmOverloads constructor(
         override fun onReceive(context: Context, intent: Intent) {
             when (intent.action) {
                 Intent.ACTION_SCREEN_OFF -> unregisterGps()
-                Intent.ACTION_SCREEN_ON  -> registerGps()
+                // Guard against the nav app still being in the foreground when the
+                // screen turns back on — window visibility hasn't changed in that case,
+                // so onWindowVisibilityChanged won't fire and we must not restart GPS.
+                Intent.ACTION_SCREEN_ON  -> if (isShown) registerGps()
             }
         }
     }
@@ -168,10 +171,8 @@ class StatusBarView @JvmOverloads constructor(
 
         updateTime()
         context.registerReceiver(timeReceiver, IntentFilter(Intent.ACTION_TIME_TICK))
-        context.registerReceiver(screenReceiver, IntentFilter().apply {
-            addAction(Intent.ACTION_SCREEN_OFF)
-            addAction(Intent.ACTION_SCREEN_ON)
-        })
+        context.registerReceiver(screenReceiver,
+            IntentFilter(Intent.ACTION_SCREEN_OFF).also { it.addAction(Intent.ACTION_SCREEN_ON) })
 
         // Sticky broadcast: registerReceiver returns the current state synchronously so
         // the initial percentage is available without waiting for a change event.
