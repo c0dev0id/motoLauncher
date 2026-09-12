@@ -121,9 +121,11 @@
 - **Home tile long-press opens a tile-styled menu (`TileActionsDialog`).** Rows in order:
   App info, Uninstall (system uninstaller via `ACTION_DELETE`; see the uninstall entry
   below for the two manifest declarations it needs),
-  Reassign app. The app list's long-press shows the same dialog without the Reassign row
-  (there is no slot), so one dialog serves both screens. Reassigning a favourite without the menu meant a detour through
-  Settings; app info alone was not worth a long-press. The menu is a plain `Dialog` with a custom layout, not an
+  Remove (clears the slot, making it an empty "+" tile again). The app list's long-press
+  shows the same dialog without the Remove row (there is no slot to clear), so one dialog
+  serves both screens. The original third row was "Reassign app" — it was replaced by
+  "Remove" because the flow of remove-then-tap-"+" is simpler than an in-place reassign,
+  and avoids holding two states (current occupant and pick target) across the picker round-trip. The menu is a plain `Dialog` with a custom layout, not an
   `AlertDialog`: the Material3 dialog theme brings its own surface colours and small
   buttons, whereas the custom view reuses `tile_background` and the launcher palette so
   it reads as part of the grid and stays glove-sized; its chrome (background drawable,
@@ -172,8 +174,8 @@
 - **A short Escape on Home does nothing; slots are configured in place.** Home is the
   launcher root — there is nothing for "back" to go to. A remote-only user has no route
   into any configuration, and that is intentional: the device is on a motorbike, configuration is
-  a touch-only workflow. Empty "+" tiles and the tile menu's "Reassign app" open the
-  picker for that slot directly. Theme toggle, update check, and the cellular-permission
+  a touch-only workflow. Empty "+" tiles open the picker for that slot directly; long-pressing
+  an occupied tile shows the Remove option to clear it first. Theme toggle, update check, and the cellular-permission
   ask sit in the All Apps header (hidden in pick mode). There is no separate settings
   screen any more — the earlier Configure Favorites activity duplicated all of this and
   was removed.
@@ -264,7 +266,7 @@
 
 - Fixed 4×3 favorites grid, remote- and glove-operable.
 - All-apps browser with touch search; settings mode (same screen) for theme toggle, update check, cellular permission, GPS speed toggle, and unit selection.
-- Tap-to-launch; long-press on a favourite for a Reassign / App info menu.
+- Tap-to-launch; long-press on a favourite for an App info / Uninstall / Remove menu.
 - Remote quick launch: holding Escape starts the configured navigation app from anywhere in the app.
 - Touch configuration of favorite slots.
 - User-triggered self-update from GitHub nightly.

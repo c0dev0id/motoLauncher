@@ -14,6 +14,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Tapping "Download & install" in the update prompt no longer crashes the app. The progress string was built by concatenating a `"X% · "` prefix into a `String.format` template, causing Java to misparse the `%` in the percentage as a format specifier and throw `UnknownFormatConversionException` on the main thread.
 
 ### Changed
+- App tile long-press on the home screen now shows **Remove** instead of **Reassign app**. Removing a favourite clears the slot and turns it back into an empty "+" tile; tapping "+" opens the app picker to fill it again.
 - Wi-Fi and cellular icons now show zero bars instead of disappearing when signal is weak or coverage is lost. The icon is hidden only when the radio is off (Wi-Fi) or the feature is disabled in app settings (cellular) — not when signal drops to zero.
 - Activity transitions (Home ↔ All Apps, pick-mode open/close) are now instant — no slide animation.
 - App list is now cached at the process level. Navigating back and forth between Home and All Apps no longer re-decodes all app icons on every visit — the list loads once and stays loaded until an app is installed or removed.
