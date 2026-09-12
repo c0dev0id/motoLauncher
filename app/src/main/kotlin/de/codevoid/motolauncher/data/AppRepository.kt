@@ -8,6 +8,9 @@ import android.content.pm.LauncherApps
 import android.net.Uri
 import android.os.Process
 import android.os.UserManager
+import kotlinx.coroutines.async
+import kotlinx.coroutines.awaitAll
+import kotlinx.coroutines.coroutineScope
 
 class AppRepository(private val context: Context) {
 
@@ -16,16 +19,13 @@ class AppRepository(private val context: Context) {
     private val userManager =
         context.getSystemService(Context.USER_SERVICE) as UserManager
 
-    fun loadApps(): List<AppEntry> {
+    suspend fun loadApps(): List<AppEntry> = coroutineScope {
         val self = context.packageName
-        val entries = ArrayList<AppEntry>()
-        for (user in userManager.userProfiles) {
-            for (info in launcherApps.getActivityList(null, user)) {
-                if (info.applicationInfo.packageName == self) continue
-                entries.add(toEntry(info))
-            }
+        val infos = userManager.userProfiles.flatMap { user ->
+            launcherApps.getActivityList(null, user)
+                .filter { it.applicationInfo.packageName != self }
         }
-        return sortApps(entries)
+        sortApps(infos.map { async { toEntry(it) } }.awaitAll())
     }
 
     // Resolves only the requested components (and decodes only their icons), so the home
