@@ -177,12 +177,15 @@
   ask sit in the All Apps header (hidden in pick mode). There is no separate settings
   screen any more — the earlier Configure Favorites activity duplicated all of this and
   was removed.
-- **Holding Escape launches the first favourite (`ui/KeyInput.kt`, `EscapeKeys`).** The
+- **Holding Escape launches the configured navigation app (`ui/QuickLaunch.kt`, `NavAppStore`).** The
   remote has one spare key and no spare gesture; ESC was already the only key that meant
   anything outside a tile. A hold is the one input left that can be given a meaning
   without making anything new dpad-reachable, and the meaning stays inside the rule that
-  the remote may only ever launch apps: it starts slot 0, the top-left tile, on both Home
-  and the app list, so the gesture means one thing wherever the remote is. Detection is
+  the remote may only ever launch apps: it starts the user-selected nav app on both Home
+  and the app list, so the gesture means one thing wherever the remote is. The nav app is
+  configured via a settings tile that opens the app picker in nav-app-pick mode; selecting
+  an app writes its `ComponentName` to `NavAppStore` (shared `"settings"` prefs, key
+  `nav_app`). Slot 0 is now a plain favourite with no side-effects. Detection is
   the framework's own tracking, not a timer of ours: `onKeyDown` claims the DOWN and calls
   `event.startTracking()`, which is what makes Android deliver `onKeyLongPress` on the
   first key repeat (~500 ms); returning true there marks the press consumed, so the
@@ -262,7 +265,7 @@
 - Fixed 4×3 favorites grid, remote- and glove-operable.
 - All-apps browser with touch search; settings mode (same screen) for theme toggle, update check, cellular permission, GPS speed toggle, and unit selection.
 - Tap-to-launch; long-press on a favourite for a Reassign / App info menu.
-- Remote quick launch: holding Escape starts the first favourite from anywhere in the app.
+- Remote quick launch: holding Escape starts the configured navigation app from anywhere in the app.
 - Touch configuration of favorite slots.
 - User-triggered self-update from GitHub nightly.
 - GPS speed widget in the home screen status bar (optional, defaults off), with metric/imperial selection.

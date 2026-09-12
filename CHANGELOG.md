@@ -16,6 +16,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - GPS speed listener is also paused when the screen turns off and resumed when it comes back on.
 
 ### Added
+- **Navigation app setting.** Settings tile in the All Apps settings mode lets the user pick any installed app as the navigation app. Holding Escape on the home screen or the app list now launches this configured app instead of whatever happened to be in slot 0. Slot 0 is now a plain favourite with no special behaviour.
 - **Download progress in settings tile.** While an update is downloading, the "Check for updates" tile subtitle shows percentage and speed (e.g. `45% · 2.2 MB/s`), updating every 500 ms.
 - **Navigation bar setting.** Settings tile toggles between Hidden (default) and Visible. The home grid and app list automatically make space for the bar when shown.
 - **Battery display setting.** Settings tile cycles between Icon + text (default),
