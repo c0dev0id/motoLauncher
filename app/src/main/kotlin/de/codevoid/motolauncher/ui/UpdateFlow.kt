@@ -50,7 +50,7 @@ fun AppCompatActivity.runUpdateFlow(
                         lastTime = now
                         lastUpdate = now
                         val pct = if (total > 0) "${written * 100 / total}% \u00b7 " else ""
-                        runOnUiThread { setSubtitle("$pct%.1f MB/s".format(speedMBs)) }
+                        runOnUiThread { setSubtitle(pct + "%.1f MB/s".format(speedMBs)) }
                     }
                 }))
             } catch (e: CancellationException) {
