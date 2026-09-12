@@ -110,6 +110,15 @@ class StatusBarView @JvmOverloads constructor(
         }
     }
 
+    private val screenReceiver = object : BroadcastReceiver() {
+        override fun onReceive(context: Context, intent: Intent) {
+            when (intent.action) {
+                Intent.ACTION_SCREEN_OFF -> unregisterGps()
+                Intent.ACTION_SCREEN_ON  -> registerGps()
+            }
+        }
+    }
+
     // WiFi radio on/off → show/hide the icon. Initial state is set from wifiManager.isWifiEnabled
     // in onAttachedToWindow; this receiver handles subsequent changes.
     private val wifiStateReceiver = object : BroadcastReceiver() {
@@ -159,6 +168,10 @@ class StatusBarView @JvmOverloads constructor(
 
         updateTime()
         context.registerReceiver(timeReceiver, IntentFilter(Intent.ACTION_TIME_TICK))
+        context.registerReceiver(screenReceiver, IntentFilter().apply {
+            addAction(Intent.ACTION_SCREEN_OFF)
+            addAction(Intent.ACTION_SCREEN_ON)
+        })
 
         // Sticky broadcast: registerReceiver returns the current state synchronously so
         // the initial percentage is available without waiting for a change event.
@@ -187,6 +200,7 @@ class StatusBarView @JvmOverloads constructor(
     override fun onDetachedFromWindow() {
         super.onDetachedFromWindow()
         context.unregisterReceiver(timeReceiver)
+        context.unregisterReceiver(screenReceiver)
         context.unregisterReceiver(batteryReceiver)
         context.unregisterReceiver(wifiStateReceiver)
         connectivityManager.unregisterNetworkCallback(networkCallback)

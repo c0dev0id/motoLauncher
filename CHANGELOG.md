@@ -13,6 +13,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - App list is now cached at the process level. Navigating back and forth between Home and All Apps no longer re-decodes all app icons on every visit — the list loads once and stays loaded until an app is installed or removed.
 - Home screen favorite icons are now cached across resumes. Returning from the navigation app no longer triggers Binder IPC and icon decoding on the main thread for each favorite slot — the resolved entries are reused until a package change or slot reassignment invalidates them.
 - GPS speed listener is now paused while the home screen window is hidden (navigation app in the foreground) and resumed when the home screen comes back. Previously the 1 Hz location poll kept running in the background, consuming CPU that the navigation app needed.
+- GPS speed listener is also paused when the screen turns off and resumed when it comes back on.
 
 ### Added
 - **Download progress in settings tile.** While an update is downloading, the "Check for updates" tile subtitle shows percentage and speed (e.g. `45% · 2.2 MB/s`), updating every 500 ms.
