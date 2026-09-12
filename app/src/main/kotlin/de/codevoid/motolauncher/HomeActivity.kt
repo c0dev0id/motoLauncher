@@ -53,6 +53,10 @@ class HomeActivity : AppCompatActivity() {
         tiles[0].root.post { tiles[0].root.requestFocus() }
 
         onBackPressedDispatcher.addCallback(this) { /* home is the root; swallow back */ }
+
+        // Start loading the app list in the background so it is ready before the user taps
+        // "All Apps". The result is cached at the Application level; this just warms it.
+        (application as MotoLauncherApp).getApps()
     }
 
     // Weighted rows divide space during the layout pass, avoiding the RecyclerView
