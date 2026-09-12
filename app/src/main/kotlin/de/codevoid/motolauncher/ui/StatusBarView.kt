@@ -83,17 +83,15 @@ class StatusBarView @JvmOverloads constructor(
         override fun onReceive(context: Context, intent: Intent) = applyBatteryIntent(intent)
     }
 
-    // Which Wi-Fi networks are up, and therefore whether the icon belongs on screen at
-    // all. An empty meter cannot say "no Wi-Fi" — it reads as "connected, no signal" —
-    // so absence is shown by absence. ConnectivityManager serialises one callback's
-    // methods onto a single thread, so plain set bookkeeping is enough here; more than
-    // one Wi-Fi network at a time is unusual, but losing one of two must not hide an
-    // indicator the other still earns.
+    // Tracks active Wi-Fi networks so onLost knows when the last one is gone and can
+    // reset the level to 0. Visibility is now driven by the radio state (wifiStateReceiver),
+    // not by network availability — zero bars while on but not connected is correct.
+    // ConnectivityManager serialises one callback's methods onto a single thread.
     private val wifiNetworks = HashSet<Network>()
 
     private val networkCallback = object : ConnectivityManager.NetworkCallback() {
         override fun onAvailable(network: Network) {
-            if (wifiNetworks.add(network) && wifiNetworks.size == 1) post { showWifiIcon(true) }
+            wifiNetworks.add(network)
         }
 
         override fun onCapabilitiesChanged(network: Network, caps: NetworkCapabilities) {
@@ -107,11 +105,22 @@ class StatusBarView @JvmOverloads constructor(
 
         override fun onLost(network: Network) {
             if (!wifiNetworks.remove(network) || wifiNetworks.isNotEmpty()) return
-            post {
-                // Empty the meter while it is hidden, so reconnecting can't flash the old
-                // strength in the gap before the first capabilities callback arrives.
-                applyWifiLevel(0)
-                showWifiIcon(false)
+            // Reset to zero bars; icon stays visible (radio is still on).
+            post { applyWifiLevel(0) }
+        }
+    }
+
+    // WiFi radio on/off → show/hide the icon. Initial state is set from wifiManager.isWifiEnabled
+    // in onAttachedToWindow; this receiver handles subsequent changes.
+    private val wifiStateReceiver = object : BroadcastReceiver() {
+        override fun onReceive(context: Context, intent: Intent) {
+            when (intent.getIntExtra(WifiManager.EXTRA_WIFI_STATE, WifiManager.WIFI_STATE_UNKNOWN)) {
+                WifiManager.WIFI_STATE_ENABLED -> showWifiIcon(true)
+                WifiManager.WIFI_STATE_DISABLED -> {
+                    wifiNetworks.clear()
+                    applyWifiLevel(0)
+                    showWifiIcon(false)
+                }
             }
         }
     }
@@ -140,12 +149,6 @@ class StatusBarView @JvmOverloads constructor(
         }
     }
 
-    // Same idea as the Wi-Fi set, for the mobile-data network. The meter is about data:
-    // with mobile data switched off there is nothing for it to report, so it leaves the
-    // bar rather than sitting at zero bars, which would read as "data on, no coverage".
-    private val cellularNetworks = HashSet<Network>()
-    private var cellularNetworkCallback: ConnectivityManager.NetworkCallback? = null
-
     init {
         orientation = if (context.isPortrait) VERTICAL else HORIZONTAL
         gravity = Gravity.CENTER_VERTICAL
@@ -165,9 +168,10 @@ class StatusBarView @JvmOverloads constructor(
         )
         initialBattery?.let(::applyBatteryIntent)
 
-        // Re-attaching does not re-run the layout's starting visibility, and a network
-        // that is already gone sends no onLost, so start hidden and let onAvailable show it.
-        showWifiIcon(false)
+        // Set initial visibility from the current radio state; wifiStateReceiver handles
+        // subsequent on/off changes. Network callback handles RSSI updates.
+        showWifiIcon(wifiManager.isWifiEnabled)
+        context.registerReceiver(wifiStateReceiver, IntentFilter(WifiManager.WIFI_STATE_CHANGED_ACTION))
         val wifiRequest = NetworkRequest.Builder()
             .addTransportType(NetworkCapabilities.TRANSPORT_WIFI)
             .build()
@@ -184,9 +188,9 @@ class StatusBarView @JvmOverloads constructor(
         super.onDetachedFromWindow()
         context.unregisterReceiver(timeReceiver)
         context.unregisterReceiver(batteryReceiver)
+        context.unregisterReceiver(wifiStateReceiver)
         connectivityManager.unregisterNetworkCallback(networkCallback)
-        // Re-attaching replays onAvailable for networks already up; clear so the icon
-        // does not stay hidden when it reconnects without sending onLost first.
+        // Clear so re-attaching gets a fresh onCapabilitiesChanged for networks already up.
         wifiNetworks.clear()
         unregisterCellular()
 
@@ -252,6 +256,8 @@ class StatusBarView @JvmOverloads constructor(
 
     // Three gates: cellularEnabled (user toggle), telephony available on API 31+, and
     // READ_PHONE_STATE granted. All must hold or nothing is registered and the icon stays hidden.
+    // Icon is shown as soon as the callback is registered; signal level (0 = no coverage)
+    // comes from the callback — no separate data-network tracking needed.
     private fun registerCellular() {
         showCellularIcon(false)
         if (!cellularStore.enabled) return
@@ -267,15 +273,11 @@ class StatusBarView @JvmOverloads constructor(
         }
         signalCallback = cb
         tm.registerTelephonyCallback(context.mainExecutor, cb)
-        watchCellularNetwork()
+        showCellularIcon(true)
     }
 
     private fun unregisterCellular() {
         showCellularIcon(false)
-        cellularNetworkCallback?.let { connectivityManager.unregisterNetworkCallback(it) }
-        cellularNetworkCallback = null
-        // Clear so re-registering gets a fresh onAvailable for networks already up.
-        cellularNetworks.clear()
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
             signalCallback?.let { telephonyManager?.unregisterTelephonyCallback(it) }
         }
@@ -302,37 +304,6 @@ class StatusBarView @JvmOverloads constructor(
 
     private fun speedUnitString(metric: Boolean): String =
         context.getString(if (metric) R.string.units_kmh else R.string.units_mph)
-
-    private fun watchCellularNetwork() {
-        val callback = object : ConnectivityManager.NetworkCallback() {
-            override fun onAvailable(network: Network) {
-                if (cellularNetworks.add(network) && cellularNetworks.size == 1) {
-                    post { showCellularIcon(true) }
-                }
-            }
-
-            override fun onLost(network: Network) {
-                if (!cellularNetworks.remove(network) || cellularNetworks.isNotEmpty()) return
-                post {
-                    // Empty the meter while it is hidden so switching data back on cannot
-                    // flash the old strength before the first signal callback arrives.
-                    applyCellularLevel(0)
-                    showCellularIcon(false)
-                }
-            }
-        }
-        cellularNetworkCallback = callback
-        connectivityManager.registerNetworkCallback(
-            NetworkRequest.Builder()
-                .addTransportType(NetworkCapabilities.TRANSPORT_CELLULAR)
-                // NET_CAPABILITY_INTERNET is what makes this "mobile data" rather than
-                // "the radio is on": many devices keep an IMS connection up for VoLTE with
-                // data switched off, and that is a TRANSPORT_CELLULAR network too.
-                .addCapability(NetworkCapabilities.NET_CAPABILITY_INTERNET)
-                .build(),
-            callback,
-        )
-    }
 
     private fun applyBatteryDisplay() {
         when (batteryStore.display) {

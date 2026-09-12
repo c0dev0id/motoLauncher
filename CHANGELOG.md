@@ -8,6 +8,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Changed
+- Wi-Fi and cellular icons now show zero bars instead of disappearing when signal is weak or coverage is lost. The icon is hidden only when the radio is off (Wi-Fi) or the feature is disabled in app settings (cellular) — not when signal drops to zero.
 - Activity transitions (Home ↔ All Apps, pick-mode open/close) are now instant — no slide animation.
 - App list is now cached at the process level. Navigating back and forth between Home and All Apps no longer re-decodes all app icons on every visit — the list loads once and stays loaded until an app is installed or removed.
 - Home screen favorite icons are now cached across resumes. Returning from the navigation app no longer triggers Binder IPC and icon decoding on the main thread for each favorite slot — the resolved entries are reused until a package change or slot reassignment invalidates them.
