@@ -134,6 +134,10 @@ class ParkActivity : AppCompatActivity() {
     override fun onResume() {
         super.onResume()
         setRequestedOrientation(orientationStore.orientation)
+        // The parked flag is this screen's own invariant — "only this may be in front" —
+        // so it is set here rather than by whoever launched us. No entry point has to
+        // remember a protocol, and HomeActivity's restore path is simply re-entering here.
+        if (!setMode) store.isParked = true
         // Pinning is requested here, not in onCreate: startLockTask needs a resumed
         // activity, which also covers the restore-after-reboot path.
         val active = readLockTaskState()
@@ -307,7 +311,7 @@ class ParkActivity : AppCompatActivity() {
         ): Boolean = parked && !setMode && !finishing && !lockTaskActive &&
             sinceLastRequestMs >= LOCK_TASK_SETTLE_MS
 
-        /** Shows the keypad and asks for pinning. The caller sets ParkStore.isParked. */
+        /** Shows the keypad, marks the launcher parked and asks for pinning. */
         fun lockIntent(context: Context) = Intent(context, ParkActivity::class.java)
 
         /** Enter-twice PIN setup. Never pins: setup happens at a desk, not at a kerb. */

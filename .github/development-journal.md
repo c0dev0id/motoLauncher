@@ -318,7 +318,11 @@
   had for free, so it is bought back explicitly: `HomeActivity.onResume` re-launches the
   park screen whenever `ParkStore.isParked` is set. That single path covers both cases lock
   task mode cannot — a reboot, which pinning does not survive, and a Home press on a device
-  that refused pinning. `AppListActivity` finishes itself if it resumes while parked.
+  that refused pinning. The parked flag is set by `ParkActivity` itself rather than by
+  whoever launches it, so no entry point has to remember a protocol, and the Park lock tile
+  finishes the app list as it starts the lock screen — leaving the home task at
+  `HomeActivity` is what makes a finish-if-parked guard unnecessary rather than something
+  to clean up one activity later.
   **Measured on the device** (7" tablet, gesture nav), since none of this is testable in
   CI: an app calling `startLockTask()` on *itself* is **not** asked to confirm — the
   confirmation dialog belongs to pinning started from Recents — so parking is one tap, and
