@@ -37,7 +37,10 @@ class ParkActivity : AppCompatActivity() {
     private val store by lazy { ParkStore(this) }
     private val orientationStore by lazy { OrientationStore(this) }
 
-    private val setMode by lazy { intent.getBooleanExtra(EXTRA_SET_PIN, false) }
+    // Read from the current intent, not cached: this activity is singleInstance, so a
+    // later lockIntent arrives at the same instance through onNewIntent. An abandoned
+    // set-PIN screen would otherwise come back as set-PIN when the user parks.
+    private val setMode get() = intent.getBooleanExtra(EXTRA_SET_PIN, false)
 
     private val entered = StringBuilder()
     // Set mode only: the first of the two entries, held until the repeat confirms it.
@@ -55,13 +58,25 @@ class ParkActivity : AppCompatActivity() {
 
         onBackPressedDispatcher.addCallback(this) { /* the whole point is not leaving */ }
 
-        digitKeys().forEach { (view, digit) -> view.setOnClickListener { onDigit(digit) } }
+        digitKeys().forEach { (view, digit) ->
+            view.text = digit.toString()
+            view.setOnClickListener { onDigit(digit) }
+        }
         binding.keyClear.setOnClickListener { entered.clear(); render() }
         binding.keyDelete.setOnClickListener {
             if (entered.isNotEmpty()) entered.setLength(entered.length - 1)
             render()
         }
 
+        render()
+    }
+
+    override fun onNewIntent(intent: Intent) {
+        super.onNewIntent(intent)
+        setIntent(intent)
+        entered.clear()
+        firstEntry = null
+        message = null
         render()
     }
 
@@ -145,9 +160,11 @@ class ParkActivity : AppCompatActivity() {
         }
     }
 
-    private fun isLockTaskActive(): Boolean =
-        getSystemService(ActivityManager::class.java)?.lockTaskModeState !=
-            ActivityManager.LOCK_TASK_MODE_NONE
+    private fun isLockTaskActive(): Boolean {
+        val state = getSystemService(ActivityManager::class.java)?.lockTaskModeState
+            ?: ActivityManager.LOCK_TASK_MODE_NONE
+        return state != ActivityManager.LOCK_TASK_MODE_NONE
+    }
 
     // Both calls are best effort: the system refuses lock task mode outright on a device
     // with screen pinning switched off, and stopLockTask throws if it was never entered.
