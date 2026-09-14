@@ -174,7 +174,10 @@ Package layout under `de.codevoid.motolauncher`:
   reused `singleInstance` gets later intents through `onNewIntent`. The restore path is
   `HomeActivity.onResume`: while `ParkStore.isParked` is set it re-launches this screen,
   covering both a reboot (pinning does not survive one) and a Home press where pinning was
-  refused; `AppListActivity` finishes itself in the same situation. Keypad keys are
+  refused. `ParkActivity` sets `isParked` itself in `onResume`, so no entry point carries a
+  protocol, and the Park lock tile finishes the app list as it launches — the home task is
+  already back at `HomeActivity`, so unlocking returns to Home and nothing needs a
+  finish-if-parked guard. Keypad keys are
   `focusable="false"` — the remote must never drive it. Entry point is the Park lock tile in
   the app list's settings mode (tap to lock or set a PIN, long-press to change it), placed
   after the update tile so `UPDATE_TILE_INDEX` stays valid.

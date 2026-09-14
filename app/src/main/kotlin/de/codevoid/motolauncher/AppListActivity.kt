@@ -147,13 +147,6 @@ class AppListActivity : AppCompatActivity() {
 
     override fun onResume() {
         super.onResume()
-        // Nothing but the park screen may be in front while parked. Finishing hands back
-        // to Home, which re-launches it.
-        if (parkStore.isParked) {
-            finish()
-            noTransition()
-            return
-        }
         setRequestedOrientation(orientationStore.orientation)
         // Enumerating apps is the most expensive thing this app does; reload only when the
         // installed-app set actually changed (uninstall, install) since the last load.
@@ -258,24 +251,28 @@ class AppListActivity : AppCompatActivity() {
 
         // Deliberately after the update tile: UPDATE_TILE_INDEX hard-codes position 2 for
         // in-place download progress, so nothing may be inserted before it.
+        val hasPin = parkStore.hasPin
+        val openSetPin = {
+            startActivity(ParkActivity.setPinIntent(this@AppListActivity))
+            noTransition()
+        }
         tiles.add(TileItem(
             label = getString(R.string.park_lock),
-            subtitle = getString(if (parkStore.hasPin) R.string.park_lock_now else R.string.park_set_pin),
+            subtitle = getString(if (hasPin) R.string.park_lock_now else R.string.park_set_pin),
             onClick = {
                 settingsTilesCache = null
-                if (parkStore.hasPin) {
-                    parkStore.isParked = true
+                if (hasPin) {
                     startActivity(ParkActivity.lockIntent(this@AppListActivity))
+                    noTransition()
+                    // Leave the home task at HomeActivity rather than parked behind the
+                    // lock screen: unlocking then returns to Home, and nothing has to
+                    // finish this screen after the fact.
+                    finish()
                 } else {
-                    startActivity(ParkActivity.setPinIntent(this@AppListActivity))
+                    openSetPin()
                 }
-                noTransition()
             },
-            onLongClick = if (!parkStore.hasPin) null else ({
-                startActivity(ParkActivity.setPinIntent(this@AppListActivity))
-                noTransition()
-                true
-            }),
+            onLongClick = if (hasPin) ({ openSetPin(); true }) else null,
         ))
 
         tiles.add(permissionToggleTile(
