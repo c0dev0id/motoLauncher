@@ -50,7 +50,21 @@ class ParkActivity : AppCompatActivity() {
     // set-PIN screen would otherwise come back as set-PIN when the user parks.
     private val setMode get() = intent.getBooleanExtra(EXTRA_SET_PIN, false)
 
+    // Cached: looked up several times a second by the guard, and fixed for the life of
+    // the activity.
+    private val activityManager by lazy { getSystemService(ActivityManager::class.java) }
+
     private var lastLockTaskRequestAt = 0L
+    private var lastRenderedLockTask: Boolean? = null
+    // Set when a request demonstrably did not take *and* pinning has never worked on this
+    // screen. Screen pinning being switched off is a device setting, so retrying it
+    // several times a second buys nothing and costs a failed Binder call plus a caught
+    // exception each time. Gated on everPinned so that a re-pin which merely takes longer
+    // than the settle window cannot disarm the guard on a device where pinning does work —
+    // that would reopen the unpin hatch silently. Cleared on focus gain, which is how
+    // switching the setting on and coming back is picked up.
+    private var lockTaskUnavailable = false
+    private var everPinned = false
 
     // Polling is the only way to notice an unpin: there is no callback for it outside a
     // device-owner DeviceAdminReceiver. Armed only while this screen is resumed and
@@ -58,10 +72,27 @@ class ParkActivity : AppCompatActivity() {
     private val lockTaskGuard = object : Runnable {
         override fun run() {
             // Disarmed: stop rearming rather than keep polling a screen on its way out.
-            if (setMode || isFinishing || !store.isParked) return
-            if (requestLockTask()) render()
+            if (setMode || isFinishing || !store.isParked || lockTaskUnavailable) return
+            // One lockTaskModeState read per pass — it is a Binder round trip, and both
+            // the request and the status line want the same answer.
+            val active = readLockTaskState()
+            if (active != lastRenderedLockTask) render(active)
+            requestLockTask(active)
             binding.root.postDelayed(this, GUARD_INTERVAL_MS)
         }
+    }
+
+    // Runs once the system server has settled after a request, so it sees the real state.
+    // A field rather than a fresh lambda per request: this way disarming cancels it too,
+    // instead of leaving callbacks that outlive the screen they were posted from.
+    private val settleRender = Runnable {
+        if (isFinishing) return@Runnable
+        val active = readLockTaskState()
+        if (!active && !setMode && !everPinned) {
+            lockTaskUnavailable = true
+            disarmLockTaskGuard()
+        }
+        render(active)
     }
 
     private val entered = StringBuilder()
@@ -89,8 +120,6 @@ class ParkActivity : AppCompatActivity() {
             if (entered.isNotEmpty()) entered.setLength(entered.length - 1)
             render()
         }
-
-        render()
     }
 
     override fun onNewIntent(intent: Intent) {
@@ -107,9 +136,10 @@ class ParkActivity : AppCompatActivity() {
         setRequestedOrientation(orientationStore.orientation)
         // Pinning is requested here, not in onCreate: startLockTask needs a resumed
         // activity, which also covers the restore-after-reboot path.
-        requestLockTask()
+        val active = readLockTaskState()
+        requestLockTask(active)
+        render(active)
         armLockTaskGuard()
-        render()
     }
 
     override fun onPause() {
@@ -118,13 +148,17 @@ class ParkActivity : AppCompatActivity() {
     }
 
     // A second re-assert point alongside the guard, for the case where focus returns
-    // before the next poll is due.
+    // before the next poll is due — and the one event-driven retry after polling gave up,
+    // which is what picks up screen pinning being switched on and the user coming back.
     override fun onWindowFocusChanged(hasFocus: Boolean) {
         super.onWindowFocusChanged(hasFocus)
         if (!hasFocus) return
         window.enableImmersiveMode(showNavBar = false)
-        requestLockTask()
-        render()
+        lockTaskUnavailable = false
+        val active = readLockTaskState()
+        requestLockTask(active)
+        render(active)
+        armLockTaskGuard()
     }
 
     private fun digitKeys(): List<Pair<TextView, Char>> = listOf(
@@ -179,7 +213,8 @@ class ParkActivity : AppCompatActivity() {
         }
     }
 
-    private fun render() {
+    private fun render(lockTaskActive: Boolean = isLockTaskActive()) {
+        lastRenderedLockTask = lockTaskActive
         binding.parkPrompt.text = message ?: when {
             !setMode -> getString(R.string.park_enter_pin)
             firstEntry == null ->
@@ -191,52 +226,57 @@ class ParkActivity : AppCompatActivity() {
         }
         binding.parkStatus.text = when {
             setMode -> ""
-            isLockTaskActive() -> getString(R.string.park_pinned)
+            lockTaskActive -> getString(R.string.park_pinned)
             else -> getString(R.string.park_not_pinned)
         }
     }
 
     private fun isLockTaskActive(): Boolean {
-        val state = getSystemService(ActivityManager::class.java)?.lockTaskModeState
-            ?: ActivityManager.LOCK_TASK_MODE_NONE
+        val state = activityManager?.lockTaskModeState ?: ActivityManager.LOCK_TASK_MODE_NONE
         return state != ActivityManager.LOCK_TASK_MODE_NONE
     }
 
+    /** One Binder read, remembering that pinning has worked here at least once. */
+    private fun readLockTaskState(): Boolean =
+        isLockTaskActive().also { if (it) everPinned = true }
+
     /**
      * The single place that asks for lock task mode — onResume, focus gain and the guard
-     * all come through here, so they cannot drift apart.
-     *
-     * @return true when a request was actually made.
+     * all come through here, so they cannot drift apart. Takes the current state rather
+     * than reading it, so one Binder round trip serves the whole pass.
      */
-    private fun requestLockTask(): Boolean {
+    private fun requestLockTask(lockTaskActive: Boolean) {
         if (!shouldRequestLockTask(
                 parked = store.isParked,
                 setMode = setMode,
                 finishing = isFinishing,
-                lockTaskActive = isLockTaskActive(),
+                lockTaskActive = lockTaskActive,
                 sinceLastRequestMs = SystemClock.elapsedRealtime() - lastLockTaskRequestAt,
             )
         ) {
-            return false
+            return
         }
         lastLockTaskRequestAt = SystemClock.elapsedRealtime()
         runCatching { startLockTask() }
         // The system server updates lockTaskModeState asynchronously, so reading it
-        // straight after a successful request still reports NONE — the status line would
-        // claim the screen is unprotected when it is not, and the guard would fire a
-        // second request, and a second system toast, into the same window. Hence both the
-        // delayed re-render and the sinceLastRequestMs term in shouldRequestLockTask.
-        binding.root.postDelayed({ if (!isFinishing) render() }, LOCK_TASK_SETTLE_MS)
-        return true
+        // straight after a request still reports NONE — the status line would claim the
+        // screen is unprotected when it is not, and the guard would fire a second request,
+        // and a second system toast, into the same window. Hence both the settle render
+        // and the sinceLastRequestMs term in shouldRequestLockTask.
+        binding.root.removeCallbacks(settleRender)
+        binding.root.postDelayed(settleRender, LOCK_TASK_SETTLE_MS)
     }
 
     private fun armLockTaskGuard() {
-        if (setMode) return
+        if (setMode || lockTaskUnavailable) return
         binding.root.removeCallbacks(lockTaskGuard)
         binding.root.postDelayed(lockTaskGuard, GUARD_INTERVAL_MS)
     }
 
-    private fun disarmLockTaskGuard() = binding.root.removeCallbacks(lockTaskGuard)
+    private fun disarmLockTaskGuard() {
+        binding.root.removeCallbacks(lockTaskGuard)
+        binding.root.removeCallbacks(settleRender)
+    }
 
     // Best effort like the request: stopLockTask throws if it was never entered, which is
     // the normal case on a device with screen pinning switched off.
