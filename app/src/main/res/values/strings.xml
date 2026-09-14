@@ -56,4 +56,17 @@
     <string name="link_url_hint">URL</string>
     <string name="link_action_edit">Edit link</string>
     <string name="link_action_remove">Remove</string>
+    <string name="park_lock">Park lock</string>
+    <string name="park_set_pin">Set a PIN</string>
+    <string name="park_lock_now">Lock now</string>
+    <string name="park_change_pin">Change PIN</string>
+    <string name="park_enter_pin">Enter PIN</string>
+    <string name="park_new_pin">New PIN</string>
+    <string name="park_repeat_pin">Repeat PIN</string>
+    <string name="park_wrong_pin">Wrong PIN</string>
+    <string name="park_pin_mismatch">PINs did not match</string>
+    <string name="park_key_clear">C</string>
+    <string name="park_key_delete">\u232b</string>
+    <string name="park_pinned">Screen pinned</string>
+    <string name="park_not_pinned">Not pinned \u2014 enable screen pinning in Android settings</string>
 </resources>

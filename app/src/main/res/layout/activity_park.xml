@@ -1,0 +1,80 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Keypad rows are weighted LinearLayouts, the same shape the home grid uses: the row
+     divides its width during the layout pass, so key size needs no code. Keys are
+     deliberately not focusable — the handlebar remote must not be able to drive them. -->
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:orientation="vertical"
+    android:gravity="center"
+    android:background="@color/background"
+    android:padding="@dimen/screen_padding">
+
+    <TextView
+        android:id="@+id/parkPrompt"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:textColor="@color/on_surface"
+        android:textSize="@dimen/text_park_prompt" />
+
+    <TextView
+        android:id="@+id/parkDots"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="@dimen/park_dots_margin"
+        android:layout_marginBottom="@dimen/park_dots_margin"
+        android:textColor="@color/on_surface"
+        android:textSize="@dimen/text_park_dots" />
+
+    <LinearLayout
+        android:layout_width="@dimen/keypad_width"
+        android:layout_height="wrap_content"
+        android:orientation="vertical">
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal">
+            <TextView android:id="@+id/key1" style="@style/Widget.MotoLauncher.Keypad" android:text="1" />
+            <TextView android:id="@+id/key2" style="@style/Widget.MotoLauncher.Keypad" android:text="2" />
+            <TextView android:id="@+id/key3" style="@style/Widget.MotoLauncher.Keypad" android:text="3" />
+        </LinearLayout>
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal">
+            <TextView android:id="@+id/key4" style="@style/Widget.MotoLauncher.Keypad" android:text="4" />
+            <TextView android:id="@+id/key5" style="@style/Widget.MotoLauncher.Keypad" android:text="5" />
+            <TextView android:id="@+id/key6" style="@style/Widget.MotoLauncher.Keypad" android:text="6" />
+        </LinearLayout>
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal">
+            <TextView android:id="@+id/key7" style="@style/Widget.MotoLauncher.Keypad" android:text="7" />
+            <TextView android:id="@+id/key8" style="@style/Widget.MotoLauncher.Keypad" android:text="8" />
+            <TextView android:id="@+id/key9" style="@style/Widget.MotoLauncher.Keypad" android:text="9" />
+        </LinearLayout>
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal">
+            <TextView android:id="@+id/keyClear" style="@style/Widget.MotoLauncher.Keypad" android:text="@string/park_key_clear" />
+            <TextView android:id="@+id/key0" style="@style/Widget.MotoLauncher.Keypad" android:text="0" />
+            <TextView android:id="@+id/keyDelete" style="@style/Widget.MotoLauncher.Keypad" android:text="@string/park_key_delete" />
+        </LinearLayout>
+    </LinearLayout>
+
+    <!-- Says whether the screen is actually pinned. Without pinning the park screen is
+         only a deterrent against a stray tap, so the difference has to be visible. -->
+    <TextView
+        android:id="@+id/parkStatus"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="@dimen/park_dots_margin"
+        android:textColor="@color/on_surface_muted"
+        android:textSize="@dimen/text_tile_subtitle" />
+</LinearLayout>

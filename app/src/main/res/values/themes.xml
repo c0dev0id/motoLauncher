@@ -55,4 +55,20 @@
         <item name="android:textColor">@color/on_surface</item>
         <item name="android:textSize">@dimen/text_dialog_action</item>
     </style>
+
+    <!-- One key of the park keypad. parent="" because a dotted name would otherwise be
+         read as inheriting from a Widget.MotoLauncher style that does not exist. Not
+         focusable: the remote must never be able to drive the park screen. -->
+    <style name="Widget.MotoLauncher.Keypad" parent="">
+        <item name="android:layout_width">0dp</item>
+        <item name="android:layout_height">@dimen/keypad_key_size</item>
+        <item name="android:layout_weight">1</item>
+        <item name="android:layout_margin">@dimen/keypad_key_margin</item>
+        <item name="android:background">@drawable/tile_background</item>
+        <item name="android:gravity">center</item>
+        <item name="android:clickable">true</item>
+        <item name="android:focusable">false</item>
+        <item name="android:textColor">@color/on_surface</item>
+        <item name="android:textSize">@dimen/text_keypad_key</item>
+    </style>
 </resources>
