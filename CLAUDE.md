@@ -16,7 +16,7 @@ it, so none of them can be executed locally (see *Build & CI*). They are listed 
 they are what a change is judged by:
 
 ```sh
-# what Check runs on a branch or PR, in one invocation
+# what Check runs on a branch push, in one invocation
 ./gradlew --continue lintDebug testDebugUnitTest assembleDebug
 
 ./gradlew lintDebug            # Android lint + AAPT resource linking, debug variant
@@ -178,8 +178,8 @@ Package layout under `de.codevoid.motolauncher`:
   refused. `ParkActivity` sets `isParked` itself in `onResume`, so no entry point carries a
   protocol, and the Park lock tile finishes the app list as it launches — the home task is
   already back at `HomeActivity`, so unlocking returns to Home and nothing needs a
-  finish-if-parked guard. Keypad keys are
-  `focusable="false"` — the remote must never drive it. Entry point is the Park lock tile in
+  finish-if-parked guard. The keypad sits in a `TouchOnlyRow`, so the whole
+  subtree is invisible to dpad traversal — the remote must never drive it. Entry point is the Park lock tile in
   the app list's settings mode (tap to lock or set a PIN, long-press to change it), placed
   after the update tile so `UPDATE_TILE_INDEX` stays valid.
 - `data/AppRepository` — thin wrapper over `LauncherApps` (not `PackageManager`),
@@ -313,15 +313,20 @@ platform and the firewall blocks AGP — do not work around this. All builds run
 Correctness depends on careful API use and reading before writing.
 
 Two workflows. **`Check`** (`.github/workflows/check.yml`) is the pre-merge gate: every
-push to a branch other than `main`, every pull request, and `workflow_dispatch`. It is a
+push to a branch other than `main`, plus `workflow_dispatch`. It is a
 single job running one Gradle invocation — `./gradlew --continue lintDebug
 testDebugUnitTest assembleDebug` — because the three tasks share `compileDebugKotlin` and
 one daemon start-up, and `lintDebug` analyses one variant where `lint` does debug and
-release. The debug build is unminified, unshrunk and debug-signed; no APK is published.
-`--continue` means one run reports lint, test and compile failures together. Push and
-`pull_request` events for a branch share a concurrency group (`head_ref || ref_name`), so
-a push to a branch with an open PR yields one run rather than two — if required status
-checks are ever enabled, drop the push trigger instead of relying on which run wins.
+release. The debug build is unminified, unshrunk and debug-signed, and is uploaded as
+the `app-debug` artifact — with a `.debug` `applicationIdSuffix`, so it installs alongside
+the release build and a branch can be tested on the device without disturbing the launcher
+in daily use. `--continue` means one run reports lint, test and compile failures together.
+There is deliberately **no `pull_request` trigger**: a check run attaches to the head
+commit, so the push run's result already shows on a PR, and the event only added a second
+run when a PR was opened onto an already-built branch. The consequence is that opening a
+PR triggers nothing — the newest result is whatever the last push produced — and that pull
+requests from forks would go unchecked. The concurrency group (`check-<ref_name>`,
+`cancel-in-progress`) now only supersedes an older run when you push twice quickly.
 
 **`Build`** (`.github/workflows/build.yml`) runs **only on push to `main`** and is the
 only thing that produces a release artifact. Three parallel jobs plus a follow-up release
@@ -331,7 +336,7 @@ step:
 - `./gradlew testDebugUnitTest` — JUnit4 + Robolectric JVM unit tests in
   `app/src/test/kotlin` (`isIncludeAndroidResources = true`, so real resources and view
   inflation work; see *Commands* for running a single class or test).
-  Six classes, and the shape they set: `AppRepositoryTest` (the pure `sortApps` /
+  Eight classes, and the shape they set: `AppRepositoryTest` (the pure `sortApps` /
   `filterApps`), `FavoritesStoreTest` (app and link slot round-trips against real
   `SharedPreferences`, the two representations cleaning each other up, and
   `clearSlotsForPackage` matching whole package names and leaving link slots alone),
@@ -340,7 +345,11 @@ step:
   handle `showTileActionsDialog` returns: row order, optional rows hidden, one callback per
   row, dismissal), `EscapeKeysTest` (short vs. held Escape, dispatched through a real
   `KeyEvent.DispatcherState` so the framework's tracking rules are exercised rather than
-  assumed), `StatusBarViewTest` (`wifiIconLevel` across platform rating ranges).
+  assumed), `StatusBarViewTest` (`wifiIconLevel` across platform rating ranges), `ParkStoreTest`
+  (PIN round-trips against real `SharedPreferences`, the parked flag read back through a
+  second instance — the path a reboot takes — and that the PIN is never written in the
+  clear) and `ParkLockTaskGuardTest` (the pure `shouldRequestLockTask` rule, including the
+  settle window that stops a redundant second pin request).
   Write new behaviour so it lands in that surface — a pure function, a store, or
   something a Robolectric activity can reach. No device is ever available to check it.
   The job caches `~/.m2/repository/org/robolectric` separately: Robolectric fetches its
