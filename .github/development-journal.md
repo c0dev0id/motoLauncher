@@ -269,6 +269,31 @@
   any write since `getStringSet()` returns the live internal reference. Visibility
   (show/hide) is a second boolean pref in the same file. Both live under `hidden_apps`.
 
+- **Two CI workflows: a fast `Check` gate for branches, `Build` only on `main`.** For a
+  long time `build.yml` (push to `main` only) was the entire pipeline, so a branch got no
+  signal at all and everything before a merge was verified by reading — on a project that
+  cannot be built locally, that put every mistake one merge downstream. `check.yml` runs
+  on every non-`main` branch push, every pull request and `workflow_dispatch`.
+  It is deliberately *one* job with *one* Gradle invocation
+  (`./gradlew --continue lintDebug testDebugUnitTest assembleDebug`), not a copy of
+  `Build`'s three parallel jobs: parallel jobs each pay their own checkout, JDK setup,
+  cache restore and daemon start-up, and each recompiles the same debug sources, whereas
+  one invocation shares `compileDebugKotlin` across the tests and the APK. `lintDebug`
+  rather than `lint` halves the lint work (`lint` analyses debug *and* release), and the
+  debug build skips minification, resource shrinking and signing. `--continue` is what
+  makes a single run worth as much as three jobs: lint, test and compile failures all
+  report from the same run instead of stopping at the first.
+  The gate stops short of the release variant on purpose — R8 shrinking and the signing
+  config need the release keystore secrets and roughly double the build, and they are the
+  one thing `Build` still adds on `main`. A green `Check` is therefore not proof that
+  `assembleRelease` will succeed.
+  Push and `pull_request` both fire for a branch with an open PR; they share the
+  concurrency group `check-${{ github.head_ref || github.ref_name }}` (the two
+  expressions resolve to the same branch name) with `cancel-in-progress`, so one of the
+  pair cancels the other and a single run survives. That trade is only safe while no
+  required status check depends on the `pull_request` run — if one is ever added, drop
+  the push trigger rather than letting the race decide.
+
 ## Core Features
 
 - Fixed 4×3 favorites grid, remote- and glove-operable.
