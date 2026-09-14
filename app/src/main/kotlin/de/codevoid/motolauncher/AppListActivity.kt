@@ -32,6 +32,7 @@ import de.codevoid.motolauncher.data.FavoritesStore
 import de.codevoid.motolauncher.data.HiddenAppsStore
 import de.codevoid.motolauncher.data.NavAppStore
 import de.codevoid.motolauncher.data.NavBarStore
+import de.codevoid.motolauncher.data.ParkStore
 import de.codevoid.motolauncher.data.SlotEntry
 import de.codevoid.motolauncher.data.OrientationStore
 import de.codevoid.motolauncher.data.SpeedStore
@@ -65,6 +66,7 @@ class AppListActivity : AppCompatActivity() {
     private val hiddenAppsStore by lazy { HiddenAppsStore(this) }
     private val navBarStore by lazy { NavBarStore(this) }
     private val orientationStore by lazy { OrientationStore(this) }
+    private val parkStore by lazy { ParkStore(this) }
     private val columns get() = if (isPortrait) 4 else 5
     private val defaultSettingsTint by lazy { ColorStateList.valueOf(ContextCompat.getColor(this, R.color.tile_default)) }
     private val activeSettingsTint by lazy { ColorStateList.valueOf(ContextCompat.getColor(this, R.color.tile_focused)) }
@@ -145,6 +147,13 @@ class AppListActivity : AppCompatActivity() {
 
     override fun onResume() {
         super.onResume()
+        // Nothing but the park screen may be in front while parked. Finishing hands back
+        // to Home, which re-launches it.
+        if (parkStore.isParked) {
+            finish()
+            noTransition()
+            return
+        }
         setRequestedOrientation(orientationStore.orientation)
         // Enumerating apps is the most expensive thing this app does; reload only when the
         // installed-app set actually changed (uninstall, install) since the last load.
@@ -244,6 +253,28 @@ class AppListActivity : AppCompatActivity() {
                         }
                     },
                 )
+            }),
+        ))
+
+        // Deliberately after the update tile: UPDATE_TILE_INDEX hard-codes position 2 for
+        // in-place download progress, so nothing may be inserted before it.
+        tiles.add(TileItem(
+            label = getString(R.string.park_lock),
+            subtitle = getString(if (parkStore.hasPin) R.string.park_lock_now else R.string.park_set_pin),
+            onClick = {
+                settingsTilesCache = null
+                if (parkStore.hasPin) {
+                    parkStore.isParked = true
+                    startActivity(ParkActivity.lockIntent(this@AppListActivity))
+                } else {
+                    startActivity(ParkActivity.setPinIntent(this@AppListActivity))
+                }
+                noTransition()
+            },
+            onLongClick = if (!parkStore.hasPin) null else ({
+                startActivity(ParkActivity.setPinIntent(this@AppListActivity))
+                noTransition()
+                true
             }),
         ))
 
