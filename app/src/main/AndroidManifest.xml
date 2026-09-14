@@ -56,6 +56,19 @@
             android:name=".AppListActivity"
             android:exported="false" />
 
+        <!-- Own task, deliberately: HomeActivity is singleTask and the root of the home
+             task, so a Home press clears anything stacked above it. A separate task also
+             keeps the park screen out of the home task for lock task mode. Excluded from
+             recents so it is not offered as a thumbnail when pinning is unavailable. -->
+        <activity
+            android:name=".ParkActivity"
+            android:exported="false"
+            android:launchMode="singleInstance"
+            android:taskAffinity=".park"
+            android:excludeFromRecents="true"
+            android:stateNotNeeded="true"
+            android:configChanges="keyboard|keyboardHidden|navigation" />
+
         <provider
             android:name="androidx.core.content.FileProvider"
             android:authorities="${applicationId}.fileprovider"

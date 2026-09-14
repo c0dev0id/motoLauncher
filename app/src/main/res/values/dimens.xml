@@ -37,4 +37,12 @@
     <dimen name="dialog_action_margin_top">8dp</dimen>
     <dimen name="text_dialog_action">17sp</dimen>
     <dimen name="dialog_min_width">320dp</dimen>
+
+    <dimen name="keypad_width">252dp</dimen>
+    <dimen name="keypad_key_size">58dp</dimen>
+    <dimen name="keypad_key_margin">3dp</dimen>
+    <dimen name="park_dots_margin">10dp</dimen>
+    <dimen name="text_keypad_key">24sp</dimen>
+    <dimen name="text_park_prompt">18sp</dimen>
+    <dimen name="text_park_dots">26sp</dimen>
 </resources>
