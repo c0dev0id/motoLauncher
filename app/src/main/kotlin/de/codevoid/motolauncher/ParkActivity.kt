@@ -22,11 +22,13 @@ import de.codevoid.motolauncher.ui.noTransition
  * a park screen stacked there with it. Its own task is also what makes lock task mode
  * applicable at all.
  *
- * Lock task mode (screen pinning, the user-confirmed variant — no device owner) is what
- * blocks Recents and the notification shade. It is best effort: if the device has screen
- * pinning disabled, startLockTask does nothing and the park screen degrades to a
- * deterrent against a stray tap. The status line says which of the two you have, because
- * the difference matters and is otherwise invisible.
+ * Lock task mode (screen pinning, without device owner) is what blocks Recents and the
+ * notification shade. An app pinning *itself* is not asked to confirm — the confirmation
+ * dialog belongs to pinning started from Recents — so parking is a single tap. It is
+ * still best effort: a device with screen pinning switched off refuses it and the park
+ * screen degrades to a deterrent against a stray tap, so the status line says which of
+ * the two is in force. What pinning does not close is the system's own unpin gesture
+ * (hold Back + Recents); that hatch is inherent to lock task mode without device owner.
  *
  * Even unpinned, the Home gesture is covered: it starts the home app, and HomeActivity
  * re-launches this screen while ParkStore.isParked is set.
@@ -85,13 +87,21 @@ class ParkActivity : AppCompatActivity() {
         setRequestedOrientation(orientationStore.orientation)
         // Pinning is requested here, not in onCreate: startLockTask needs a resumed
         // activity, which also covers the restore-after-reboot path.
-        if (!setMode) enterLockTask()
+        requestLockTask()
         render()
     }
 
+    // Also the re-assert point: the system's unpin gesture (hold Back + Recents) can drop
+    // lock task mode under a park screen that stays up, and regaining focus is the first
+    // moment this activity hears about anything. Re-requesting does not close that hatch —
+    // whoever unpinned can still leave before this runs — it stops an unpin from silently
+    // leaving the screen unprotected for the rest of the stop.
     override fun onWindowFocusChanged(hasFocus: Boolean) {
         super.onWindowFocusChanged(hasFocus)
-        if (hasFocus) window.enableImmersiveMode(showNavBar = false)
+        if (!hasFocus) return
+        window.enableImmersiveMode(showNavBar = false)
+        requestLockTask()
+        render()
     }
 
     private fun digitKeys(): List<Pair<TextView, Char>> = listOf(
@@ -168,9 +178,15 @@ class ParkActivity : AppCompatActivity() {
 
     // Both calls are best effort: the system refuses lock task mode outright on a device
     // with screen pinning switched off, and stopLockTask throws if it was never entered.
-    private fun enterLockTask() {
-        if (isLockTaskActive()) return
+    // Never while finishing — a focus change during teardown could otherwise re-pin the
+    // screen the correct PIN just released.
+    private fun requestLockTask() {
+        if (setMode || isFinishing || isLockTaskActive()) return
         runCatching { startLockTask() }
+        // The system server updates lockTaskModeState asynchronously, so reading it
+        // straight after a successful request still reports NONE and the status line
+        // would claim the screen is unprotected when it is not.
+        binding.root.postDelayed({ if (!isFinishing) render() }, LOCK_TASK_SETTLE_MS)
     }
 
     private fun exitLockTask() {
@@ -180,6 +196,7 @@ class ParkActivity : AppCompatActivity() {
 
     companion object {
         private const val EXTRA_SET_PIN = "set_pin"
+        private const val LOCK_TASK_SETTLE_MS = 400L
 
         /** Shows the keypad and asks for pinning. The caller sets ParkStore.isParked. */
         fun lockIntent(context: Context) = Intent(context, ParkActivity::class.java)

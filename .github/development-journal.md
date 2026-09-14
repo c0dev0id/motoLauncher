@@ -319,6 +319,18 @@
   park screen whenever `ParkStore.isParked` is set. That single path covers both cases lock
   task mode cannot — a reboot, which pinning does not survive, and a Home press on a device
   that refused pinning. `AppListActivity` finishes itself if it resumes while parked.
+  **Measured on the device** (7" tablet, gesture nav), since none of this is testable in
+  CI: an app calling `startLockTask()` on *itself* is **not** asked to confirm — the
+  confirmation dialog belongs to pinning started from Recents — so parking is one tap, and
+  no permission appears in the app's permission list. The shade pulls down a few pixels and
+  is blank; the navigation bar can be revealed but Home, Back and Recents are all inert.
+  The system's unpin gesture (hold Back + Recents) still works and is advertised by a
+  system notification after a double Home/Back press — that hatch cannot be closed without
+  device owner. `lockTaskModeState` is updated **asynchronously**: read straight after a
+  successful `startLockTask()` it still returns `LOCK_TASK_MODE_NONE`, which made the
+  status line claim the screen was unprotected until the next render (the first keypad
+  digit). Hence the delayed re-render, and the re-request on focus gain, guarded by
+  `isFinishing` so a teardown focus change cannot re-pin the screen the PIN just released.
   Pinning is best effort and its state is **shown on screen**: pinned means Recents and the
   shade are blocked, unpinned means the screen is only a deterrent against a stray tap, and
   the user cannot tell which they have any other way. Keypad keys are `focusable="false"` so
