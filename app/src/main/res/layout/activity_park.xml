@@ -1,7 +1,8 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!-- Keypad rows are weighted LinearLayouts, the same shape the home grid uses: the row
-     divides its width during the layout pass, so key size needs no code. Keys are
-     deliberately not focusable — the handlebar remote must not be able to drive them. -->
+     divides its width during the layout pass, so key size needs no code. The keypad sits
+     in a TouchOnlyRow so the whole subtree is invisible to dpad traversal — the handlebar
+     remote must never be able to drive the park screen. -->
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
@@ -26,7 +27,7 @@
         android:textColor="@color/on_surface"
         android:textSize="@dimen/text_park_dots" />
 
-    <LinearLayout
+    <de.codevoid.motolauncher.ui.TouchOnlyRow
         android:layout_width="@dimen/keypad_width"
         android:layout_height="wrap_content"
         android:orientation="vertical">
@@ -66,7 +67,7 @@
             <TextView android:id="@+id/key0" style="@style/Widget.MotoLauncher.Keypad" />
             <TextView android:id="@+id/keyDelete" style="@style/Widget.MotoLauncher.Keypad" android:text="@string/park_key_delete" />
         </LinearLayout>
-    </LinearLayout>
+    </de.codevoid.motolauncher.ui.TouchOnlyRow>
 
     <!-- Says whether the screen is actually pinned. Without pinning the park screen is
          only a deterrent against a stray tap, so the difference has to be visible. -->
