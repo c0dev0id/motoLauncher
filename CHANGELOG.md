@@ -13,6 +13,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Link tiles on the home screen.** In the app picker (slot-assign mode), a new "Add link" tile lets the user assign a URL to any favourite slot instead of an app. The dialog accepts a name and any URL; Android handles the intent, so deep links and custom schemes work the same as http URLs. Long-pressing a link tile on the home screen opens an "Edit link / Remove" menu. Re-opening the picker for a slot that holds a link pre-fills the dialog with the current values.
 
 ### Fixed
+- **Holding Escape on the handlebar remote now launches the navigation app.** It worked from a USB keyboard but did nothing from the remote: Android only reports a long press for input devices that auto-repeat a held key, and the remote sends a plain press and release. The hold is now measured from the key's own timestamps, so it behaves the same on every device.
 - Tapping "Download & install" in the update prompt no longer crashes the app. The progress string was built by concatenating a `"X% · "` prefix into a `String.format` template, causing Java to misparse the `%` in the percentage as a format specifier and throw `UnknownFormatConversionException` on the main thread.
 
 ### Changed

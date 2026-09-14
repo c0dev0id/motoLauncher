@@ -191,8 +191,9 @@
   the framework's own tracking, not a timer of ours: `onKeyDown` claims the DOWN and calls
   `event.startTracking()`, which is what makes Android deliver `onKeyLongPress` on the
   first key repeat (~500 ms); returning true there marks the press consumed, so the
-  following UP arrives canceled. The cost is that the short press had to move from
-  `onKeyDown` to `onKeyUp` — at DOWN it isn't yet known whether the press will become a
+  following UP arrives canceled. **Superseded — see the entry below on measuring the hold
+  ourselves; the framework callback never fired on the actual remote.** The cost is that
+  the short press had to move from `onKeyDown` to `onKeyUp` — at DOWN it isn't yet known whether the press will become a
   long one — so the app list now closes on key release. An empty slot or an uninstalled
   app is a silent no-op (`AppRepository.launchIfInstalled` gates on `isActivityEnabled`,
   because `startMainActivity` throws on a component that no longer exists): there is
@@ -361,6 +362,28 @@
   hashed — hygiene, not security: four digits fall to a trivial search by anyone who can
   read the prefs file, and anyone who can do that has adb, which defeats the park lock
   outright. Untestable without a device: the unit tests cover `ParkStore` only.
+
+- **Escape hold is timed, not delegated to `onKeyLongPress`.** Holding ESC to launch the
+  navigation app worked from a USB keyboard and did nothing from the handlebar remote —
+  the same code, different input device. The framework delivers `onKeyLongPress` off the
+  first key *repeat*: `ViewRootImpl` flags the repeat that arrives after the key-repeat
+  delay with `FLAG_LONG_PRESS`, and that is what becomes the callback. A device that does
+  not auto-repeat while held therefore never produces one, and the remote is such a
+  device — it reports a plain down and a plain up, nothing in between. No amount of
+  `startTracking()` wiring can conjure the missing repeat.
+  `EscapeKeys` now measures the press itself: on ACTION_UP, `eventTime - downTime` against
+  `ViewConfiguration.getLongPressTimeout()` (500 ms) decides short or long. `downTime` is
+  carried on the UP event by the input system, so this needs no state of our own and no
+  timer, and it behaves identically on every device — which is the real point, since the
+  bug existed precisely because behaviour depended on a device capability. The framework
+  path was removed rather than kept as a second route: two paths would need a
+  "already fired" flag to avoid a double launch, and one uniform path is easier to trust
+  than two that agree most of the time. `onKeyLongPress` is no longer wired in either
+  activity.
+  The remaining limit is stated in the KDoc: a remote that emits an instantaneous down/up
+  pair on release, rather than holding the key down, still cannot produce a hold — there
+  is no elapsed time to measure. If that turns out to be the case, `adb shell getevent -lt`
+  while holding the button shows the real timestamps.
 
 ## Core Features
 

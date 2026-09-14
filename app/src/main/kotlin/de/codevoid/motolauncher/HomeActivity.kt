@@ -130,9 +130,6 @@ class HomeActivity : AppCompatActivity() {
     override fun onKeyDown(keyCode: Int, event: KeyEvent): Boolean =
         escapeKeys.onKeyDown(keyCode, event) || super.onKeyDown(keyCode, event)
 
-    override fun onKeyLongPress(keyCode: Int, event: KeyEvent): Boolean =
-        escapeKeys.onKeyLongPress(keyCode, event) || super.onKeyLongPress(keyCode, event)
-
     override fun onKeyUp(keyCode: Int, event: KeyEvent): Boolean =
         escapeKeys.onKeyUp(keyCode, event) || super.onKeyUp(keyCode, event)
 
