@@ -8,6 +8,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- **CI on feature branches and pull requests.** A `Check` workflow runs Android lint, the unit tests and an unminified debug build on every branch push and pull request, so a change is verified before it reaches `main` instead of after. The existing `Build` workflow is unchanged and still produces the signed release APK and the `dev` pre-release on pushes to `main`.
 - **Link tiles on the home screen.** In the app picker (slot-assign mode), a new "Add link" tile lets the user assign a URL to any favourite slot instead of an app. The dialog accepts a name and any URL; Android handles the intent, so deep links and custom schemes work the same as http URLs. Long-pressing a link tile on the home screen opens an "Edit link / Remove" menu. Re-opening the picker for a slot that holds a link pre-fills the dialog with the current values.
 
 ### Fixed
