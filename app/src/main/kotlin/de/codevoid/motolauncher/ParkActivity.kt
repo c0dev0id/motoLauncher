@@ -59,17 +59,7 @@ class ParkActivity : AppCompatActivity() {
         override fun run() {
             // Disarmed: stop rearming rather than keep polling a screen on its way out.
             if (setMode || isFinishing || !store.isParked) return
-            if (shouldRequestLockTask(
-                    parked = store.isParked,
-                    setMode = setMode,
-                    finishing = isFinishing,
-                    lockTaskActive = isLockTaskActive(),
-                    sinceLastRequestMs = SystemClock.elapsedRealtime() - lastLockTaskRequestAt,
-                )
-            ) {
-                startLockTaskNow()
-                render()
-            }
+            if (requestLockTask()) render()
             binding.root.postDelayed(this, GUARD_INTERVAL_MS)
         }
     }
@@ -212,16 +202,23 @@ class ParkActivity : AppCompatActivity() {
         return state != ActivityManager.LOCK_TASK_MODE_NONE
     }
 
-    // Both calls are best effort: the system refuses lock task mode outright on a device
-    // with screen pinning switched off, and stopLockTask throws if it was never entered.
-    // Never while finishing — a focus change during teardown could otherwise re-pin the
-    // screen the correct PIN just released.
-    private fun requestLockTask() {
-        if (setMode || isFinishing || isLockTaskActive()) return
-        startLockTaskNow()
-    }
-
-    private fun startLockTaskNow() {
+    /**
+     * The single place that asks for lock task mode — onResume, focus gain and the guard
+     * all come through here, so they cannot drift apart.
+     *
+     * @return true when a request was actually made.
+     */
+    private fun requestLockTask(): Boolean {
+        if (!shouldRequestLockTask(
+                parked = store.isParked,
+                setMode = setMode,
+                finishing = isFinishing,
+                lockTaskActive = isLockTaskActive(),
+                sinceLastRequestMs = SystemClock.elapsedRealtime() - lastLockTaskRequestAt,
+            )
+        ) {
+            return false
+        }
         lastLockTaskRequestAt = SystemClock.elapsedRealtime()
         runCatching { startLockTask() }
         // The system server updates lockTaskModeState asynchronously, so reading it
@@ -230,6 +227,7 @@ class ParkActivity : AppCompatActivity() {
         // second request, and a second system toast, into the same window. Hence both the
         // delayed re-render and the sinceLastRequestMs term in shouldRequestLockTask.
         binding.root.postDelayed({ if (!isFinishing) render() }, LOCK_TASK_SETTLE_MS)
+        return true
     }
 
     private fun armLockTaskGuard() {
@@ -240,6 +238,8 @@ class ParkActivity : AppCompatActivity() {
 
     private fun disarmLockTaskGuard() = binding.root.removeCallbacks(lockTaskGuard)
 
+    // Best effort like the request: stopLockTask throws if it was never entered, which is
+    // the normal case on a device with screen pinning switched off.
     private fun exitLockTask() {
         if (!isLockTaskActive()) return
         runCatching { stopLockTask() }
