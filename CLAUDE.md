@@ -161,11 +161,16 @@ Package layout under `de.codevoid.motolauncher`:
   parking is one tap. Both lock-task calls are best effort, since a device with screen
   pinning switched off refuses them, and `parkStatus` reports which state is in force; that
   status is re-rendered on a delay because `lockTaskModeState` is updated asynchronously
-  and reads as `NONE` straight after a successful request. Re-requesting on focus is what
-  keeps an unpin (hold Back + Recents, a hatch lock task mode cannot close without device
-  owner) from silently leaving the rest of the stop unprotected; it is skipped while
-  `isFinishing`, or a focus change during teardown would re-pin the screen the correct PIN
-  just released. `setMode` is read from the *current* intent, never cached, because a
+  and reads as `NONE` straight after a successful request. The system's unpin gesture (hold Back + Recents) cannot be
+  blocked, so it is undone: `lockTaskGuard` polls `lockTaskModeState` every 300 ms while
+  parked and re-pins, and `onWindowFocusChanged` re-asserts too. `shouldRequestLockTask` is
+  the pure, unit-tested rule behind both — parked, not in set mode, not finishing, not
+  already pinned, and past the settle window that covers the asynchronous state update.
+  Order on unlock is load-bearing: disarm the guard and clear `isParked` *before*
+  `stopLockTask()`, or an in-flight guard run re-pins the screen the correct PIN just
+  released. The guard is armed in `onResume` and disarmed in `onPause`, so a parked device
+  with the screen off polls nothing. **It also means the PIN is the only way out** short of
+  adb or reinstalling — a forgotten PIN strands the device. `setMode` is read from the *current* intent, never cached, because a
   reused `singleInstance` gets later intents through `onNewIntent`. The restore path is
   `HomeActivity.onResume`: while `ParkStore.isParked` is set it re-launches this screen,
   covering both a reboot (pinning does not survive one) and a Home press where pinning was
