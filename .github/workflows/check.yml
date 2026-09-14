@@ -1,0 +1,64 @@
+name: Check
+
+# Pre-merge gate: lint, unit tests and an unminified debug build on every branch
+# and pull request. The signed, minified release build and the `dev` pre-release
+# stay in build.yml, which runs only on push to main.
+on:
+  push:
+    branches-ignore: [main]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+# Pushing to a branch that already has an open PR fires both events. Both land in
+# the same group — head_ref for the pull_request event, ref_name for the push — so
+# the later one cancels the earlier and a single run survives. If required status
+# checks are ever enabled on PRs, drop the push trigger rather than relying on
+# which of the two wins.
+concurrency:
+  group: check-${{ github.head_ref || github.ref_name }}
+  cancel-in-progress: true
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    permissions:
+      contents: read
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 17
+
+      - uses: gradle/actions/setup-gradle@v4
+
+      # Same reason as build.yml's test job: Robolectric fetches its ~100 MB
+      # android-all jar at test runtime with its own resolver, into ~/.m2 —
+      # outside the Gradle cache setup-gradle restores.
+      - name: Cache Robolectric SDK jars
+        uses: actions/cache@v4
+        with:
+          path: ~/.m2/repository/org/robolectric
+          key: robolectric-${{ hashFiles('app/build.gradle.kts') }}
+          restore-keys: robolectric-
+
+      # One Gradle invocation rather than three jobs: all three tasks share
+      # compileDebugKotlin and a single daemon start-up, and lintDebug covers one
+      # variant instead of lint's debug + release. --continue reports lint, test
+      # and compile failures from the same run instead of stopping at the first.
+      - name: Lint, test and build debug
+        run: ./gradlew --continue lintDebug testDebugUnitTest assembleDebug
+
+      - name: Upload reports
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: check-reports
+          path: |
+            app/build/reports/tests/testDebugUnitTest
+            app/build/reports/lint-results-debug.html
+          if-no-files-found: ignore
