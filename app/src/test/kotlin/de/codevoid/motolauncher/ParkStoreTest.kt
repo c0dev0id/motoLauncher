@@ -3,7 +3,6 @@ package de.codevoid.motolauncher
 import android.content.Context
 import androidx.test.core.app.ApplicationProvider
 import de.codevoid.motolauncher.data.ParkStore
-import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNotEquals
 import org.junit.Assert.assertTrue
@@ -45,14 +44,6 @@ class ParkStoreTest {
     }
 
     @Test
-    fun clearPinRemovesIt() {
-        store.setPin("1234")
-        store.clearPin()
-        assertFalse(store.hasPin)
-        assertFalse(store.verify("1234"))
-    }
-
-    @Test
     fun parkedFlagRoundTrips() {
         assertFalse(store.isParked)
         store.isParked = true
@@ -80,11 +71,5 @@ class ParkStoreTest {
         val first = prefs.getString("park_pin_hash", null)
         store.setPin("1234")
         assertNotEquals(first, prefs.getString("park_pin_hash", null))
-    }
-
-    @Test
-    fun hashIsStableForTheSameSaltAndPin() {
-        assertEquals(ParkStore.hash("1234", "c2FsdA=="), ParkStore.hash("1234", "c2FsdA=="))
-        assertNotEquals(ParkStore.hash("1234", "c2FsdA=="), ParkStore.hash("1235", "c2FsdA=="))
     }
 }

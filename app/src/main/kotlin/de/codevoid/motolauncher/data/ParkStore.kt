@@ -39,8 +39,6 @@ class ParkStore(context: Context) {
         return stored == hash(pin, salt)
     }
 
-    fun clearPin() = prefs.edit().remove(KEY_SALT).remove(KEY_HASH).apply()
-
     companion object {
         private const val PREFS = "settings"
         private const val KEY_PARKED = "parked"
@@ -50,8 +48,7 @@ class ParkStore(context: Context) {
 
         const val PIN_LENGTH = 4
 
-        /** Pure so it is unit-testable without a Context. */
-        fun hash(pin: String, salt: String): String =
+        private fun hash(pin: String, salt: String): String =
             MessageDigest.getInstance("SHA-256")
                 .digest((salt + pin).toByteArray(Charsets.UTF_8))
                 .encode()
