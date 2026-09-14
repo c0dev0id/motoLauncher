@@ -5,13 +5,19 @@ It is designed for glove use and handlebar remote operation.
 
 ## Features
 
-- Fixed home grid with configurable favourite apps
-- All Apps screen with search
-- Tap to launch apps from the home screen or app list
-- Tile actions for app info, uninstall, and favourite reassignment
-- Manual update check and install prompt
-- Home status bar with time, Wi-Fi, cellular, and battery indicators
-- Usable with remote control keys dpad-left/right/up/down, return and escape. 
+- Fixed home grid of favourite apps, configured by tapping an empty "+" tile
+- Any slot can hold a **link** instead of an app — a name and a URL, opened with the
+  system handler
+- All Apps screen with a search filter, and a per-app Hide so the list stays short
+- Tap to launch from the home screen or the app list; long press a tile for App info,
+  Uninstall, or Remove
+- Settings live in the All Apps screen: theme, navigation app, update check, orientation,
+  navigation bar, and what the status bar shows
+- Home status bar with time, Wi-Fi, cellular, battery, and an optional GPS speed readout
+  in km/h or mph
+- Manual update check with an install prompt — nothing is downloaded unless you ask
+- Operable with the remote keys dpad-left/right/up/down, Enter and Escape; holding
+  Escape launches the configured navigation app from anywhere in the app
 
 ## Screenshots
 
