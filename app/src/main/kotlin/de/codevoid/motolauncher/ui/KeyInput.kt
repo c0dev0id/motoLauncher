@@ -2,6 +2,7 @@ package de.codevoid.motolauncher.ui
 
 import android.view.KeyEvent
 import android.view.View
+import android.view.ViewConfiguration
 
 // Route DPAD_CENTER / ENTER through performClick() on ACTION_UP without arming the
 // framework's long-press timer. Touch long-press (setOnLongClickListener) still works;
@@ -35,24 +36,32 @@ fun View.blockKeyLongPress() {
 /**
  * ESC from the handlebar remote (and any USB/BT keyboard): a short press runs
  * [onShortPress] — the screen's own "back", since Android doesn't route ESC to the back
- * dispatcher — while holding the key past the framework's key-repeat delay (~500 ms)
- * runs [onLongPress] instead.
+ * dispatcher — while holding the key for [longPressTimeoutMs] or more runs [onLongPress]
+ * instead.
  *
- * The short action can only run on key-up: at ACTION_DOWN it isn't known yet whether the
- * press will become a long one. [onKeyDown] claims the DOWN and calls `startTracking()`,
- * which is what makes the framework deliver [onKeyLongPress] on the first repeat;
- * returning true from there marks the press consumed, so the following UP arrives
- * canceled and the short action skips itself. All three must be wired from the activity —
- * with [onKeyDown] missing, the framework never tracks the key and the long press is
- * never reported.
+ * Both decisions are made on ACTION_UP from the key's own timestamps
+ * (`eventTime - downTime`), **not** from the framework's `onKeyLongPress`. That callback
+ * is delivered off the first key *repeat*, so it only ever arrives from an input device
+ * that auto-repeats while held. The handlebar remote does not — it reports a plain down
+ * and up — so the framework never reported a long press and holding ESC did nothing,
+ * while the identical code worked from a USB keyboard. Measuring the gap ourselves
+ * behaves the same on every device, which is the point: this action must not depend on a
+ * capability of whatever is plugged in.
  *
- * Whether a long press is reachable at all is a property of the remote: a button that
- * emits an instantaneous down/up pair instead of holding the key can't produce one. The
+ * [onKeyDown] still claims the DOWN and calls `startTracking()` — that is what makes the
+ * UP arrive with `isTracking` set, which is how an UP whose DOWN went to another window
+ * (a press that began before this one had focus) is told apart from a real press and
+ * ignored. Both methods must be wired from the activity; there is no longer an
+ * `onKeyLongPress` to wire.
+ *
+ * A remote that emits an instantaneous down/up pair on release, rather than holding the
+ * key down, still cannot produce a long press — there is no elapsed time to measure. The
  * short press works either way.
  */
 class EscapeKeys(
     private val onLongPress: () -> Unit,
     private val onShortPress: () -> Unit = {},
+    private val longPressTimeoutMs: Long = ViewConfiguration.getLongPressTimeout().toLong(),
 ) {
     fun onKeyDown(keyCode: Int, event: KeyEvent): Boolean {
         if (keyCode != KeyEvent.KEYCODE_ESCAPE) return false
@@ -60,17 +69,12 @@ class EscapeKeys(
         return true
     }
 
-    fun onKeyLongPress(keyCode: Int, event: KeyEvent): Boolean {
-        if (keyCode != KeyEvent.KEYCODE_ESCAPE) return false
-        onLongPress()
-        return true
-    }
-
     fun onKeyUp(keyCode: Int, event: KeyEvent): Boolean {
         if (keyCode != KeyEvent.KEYCODE_ESCAPE) return false
         // Not tracking: the DOWN went to someone else, so this UP ends a press that was
-        // never ours (it started before this window had focus).
-        if (event.isTracking && !event.isCanceled) onShortPress()
+        // never ours. Canceled: something else already consumed the press.
+        if (!event.isTracking || event.isCanceled) return true
+        if (event.eventTime - event.downTime >= longPressTimeoutMs) onLongPress() else onShortPress()
         return true
     }
 }

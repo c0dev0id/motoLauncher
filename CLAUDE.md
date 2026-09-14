@@ -230,11 +230,16 @@ Package layout under `de.codevoid.motolauncher`:
   long-press still works). `EscapeKeys` is the whole Escape contract — short press to
   `onShortPress` (AppList: leave settings mode, else `finish()`, since Android doesn't
   route Escape to the back dispatcher; Home: nothing), hold to `onLongPress` (both:
-  `launchNavApp()`). Its three methods must all be wired from the activity: `onKeyDown`
-  claiming the DOWN and calling `startTracking()` is what makes the framework deliver
-  `onKeyLongPress`, and the short action runs on key-up precisely because a DOWN can still
-  become a hold. Whether a hold is reachable at all depends on the remote reporting a held
-  key. The file stays pure key plumbing — the action lives in `ui/QuickLaunch.kt`
+  `launchNavApp()`). **Short vs. hold is decided on ACTION_UP from the event's own
+  timestamps** (`eventTime - downTime` against `ViewConfiguration.getLongPressTimeout()`),
+  never from the framework's `onKeyLongPress` — that callback is delivered off the first
+  key *repeat*, so it only ever arrives from a device that auto-repeats while held, and
+  the handlebar remote does not. Do not reintroduce it: the whole point is that the action
+  cannot depend on a capability of whatever is plugged in. Two methods are wired from the
+  activity, `onKeyDown` and `onKeyUp`; the DOWN is claimed and `startTracking()` called so
+  the UP arrives with `isTracking` set, which is how an UP whose DOWN went to another
+  window is told apart from a real press. A remote that emits an instantaneous down/up
+  pair on release still cannot produce a hold — there is no elapsed time to measure. The file stays pure key plumbing — the action lives in `ui/QuickLaunch.kt`
   (`Context.launchNavApp()`: `NavAppStore` → `AppRepository.launchIfInstalled`).
 - `ui/TouchOnlyRow` — a `LinearLayout` whose `addFocusables()` contributes nothing, so
   its children are invisible to dpad traversal but still take touch focus (an `EditText`
