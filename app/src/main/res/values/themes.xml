@@ -57,8 +57,9 @@
     </style>
 
     <!-- One key of the park keypad. parent="" because a dotted name would otherwise be
-         read as inheriting from a Widget.MotoLauncher style that does not exist. Not
-         focusable: the remote must never be able to drive the park screen. -->
+         read as inheriting from a Widget.MotoLauncher style that does not exist. Keeping
+         the remote away from these is the enclosing TouchOnlyRow's job, not a per-key
+         flag — a future focusable child of the keypad is then covered too. -->
     <style name="Widget.MotoLauncher.Keypad" parent="">
         <item name="android:layout_width">0dp</item>
         <item name="android:layout_height">@dimen/keypad_key_size</item>
@@ -67,7 +68,6 @@
         <item name="android:background">@drawable/tile_background</item>
         <item name="android:gravity">center</item>
         <item name="android:clickable">true</item>
-        <item name="android:focusable">false</item>
         <item name="android:textColor">@color/on_surface</item>
         <item name="android:textSize">@dimen/text_keypad_key</item>
     </style>
