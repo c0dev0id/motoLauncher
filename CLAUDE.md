@@ -156,10 +156,16 @@ Package layout under `de.codevoid.motolauncher`:
 - `ParkActivity` — the park lock: a PIN keypad for short unattended stops, in **its own
   task** (`singleInstance` + `taskAffinity`), which is load-bearing — `HomeActivity` is
   `singleTask` and the root of the home task, so a Home press clears anything stacked above
-  it. `onResume` calls `startLockTask()` (screen pinning, the user-confirmed variant, no
-  device owner) to block Recents and the shade; both lock-task calls are best effort, since
-  a device with screen pinning switched off refuses them, and `parkStatus` reports which
-  state is in force. `setMode` is read from the *current* intent, never cached, because a
+  it. `onResume` and `onWindowFocusChanged` call `startLockTask()` (screen pinning, no device
+  owner) to block Recents and the shade — an app pinning itself is not asked to confirm, so
+  parking is one tap. Both lock-task calls are best effort, since a device with screen
+  pinning switched off refuses them, and `parkStatus` reports which state is in force; that
+  status is re-rendered on a delay because `lockTaskModeState` is updated asynchronously
+  and reads as `NONE` straight after a successful request. Re-requesting on focus is what
+  keeps an unpin (hold Back + Recents, a hatch lock task mode cannot close without device
+  owner) from silently leaving the rest of the stop unprotected; it is skipped while
+  `isFinishing`, or a focus change during teardown would re-pin the screen the correct PIN
+  just released. `setMode` is read from the *current* intent, never cached, because a
   reused `singleInstance` gets later intents through `onNewIntent`. The restore path is
   `HomeActivity.onResume`: while `ParkStore.isParked` is set it re-launches this screen,
   covering both a reboot (pinning does not survive one) and a Home press where pinning was
