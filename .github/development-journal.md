@@ -332,8 +332,8 @@
   system notification after a double Home/Back press — that hatch cannot be closed without
   device owner. `lockTaskModeState` is updated **asynchronously**: read straight after a
   successful `startLockTask()` it still returns `LOCK_TASK_MODE_NONE`, which made the
-  status line claim the screen was unprotected until the next render (the first keypad
-  digit). Hence the delayed re-render, and the re-request on focus gain, guarded by
+  then-present status line claim the screen was unprotected until the next render (the
+  first keypad digit). Hence the delayed re-render, and the re-request on focus gain, guarded by
   `isFinishing` so a teardown focus change cannot re-pin the screen the PIN just released.
   **The unpin hatch is closed by undoing it, not by blocking it.** Nothing can block the
   system's hold-Back+Recents gesture, and there is no unpin callback for an ordinary app —
@@ -351,9 +351,11 @@
   the device at the roadside. That was accepted deliberately, with the trade stated, and it
   is why the device-owner variants were still rejected — those would have added a credential
   the rider could be locked out by even without the park lock involved.
-  Pinning is best effort and its state is **shown on screen**: pinned means Recents and the
-  shade are blocked, unpinned means the screen is only a deterrent against a stray tap, and
-  the user cannot tell which they have any other way. Keypad keys are `focusable="false"` so
+  Pinning is best effort, and whether it took is **not** surfaced. A status line under the
+  keypad reported it while the mechanism was being proven on the device; once pinning was
+  confirmed working it came out again, as a technical detail with no action attached — the
+  screen is the same lock to its user either way. The state is still read internally, to
+  stop the guard retrying on a device that refuses pinning. Keypad keys are `focusable="false"` so
   the handlebar remote cannot drive the screen; the remote is unpowered while parked in any
   case, which is also why hold-Escape needed no special handling. The PIN is salted and
   hashed — hygiene, not security: four digits fall to a trivial search by anyone who can
