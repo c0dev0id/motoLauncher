@@ -294,6 +294,40 @@
   required status check depends on the `pull_request` run — if one is ever added, drop
   the push trigger rather than letting the race decide.
 
+- **Park lock: own task, lock task mode, no device owner.** The device deliberately runs
+  with no lock screen — a credential that has to be entered at a red light or after a
+  reboot on the road is worse than the risk it covers — but a parked bike wants the
+  opposite. Android has no API to suppress an existing credential on demand:
+  `setKeyguardDisabled` is device-owner-only and documented as having no effect while a
+  PIN is set, `KeyguardLock.disableKeyguard` only ever worked on a non-secure keyguard,
+  and `TrustAgentService` needs the signature-level `BIND_TRUST_AGENT`. Toggling the
+  credential itself needs `resetPasswordWithToken`, so device owner, so a factory reset.
+  Rejected: the park lock must not be able to lock the rider out of their own device.
+  What remains for an ordinary app is **lock task mode** (`startLockTask`, the
+  user-confirmed screen-pinning variant), which blocks Recents and the notification shade
+  without touching any credential. The home/recents *gesture* itself cannot be swallowed —
+  `setSystemGestureExclusionRects` covers only the Back edges and is capped at 200dp per
+  edge — so pinning is the only lever, and `ACTION_CLOSE_SYSTEM_DIALOGS` has been closed
+  to third-party apps since Android 12.
+  `ParkActivity` lives in **its own task** (`singleInstance` + `taskAffinity`), not as a
+  render mode of `HomeActivity` like settings mode in the app list. `HomeActivity` is
+  `singleTask` and the root of the home task, so a Home press routes the intent through
+  `onNewIntent` and clears everything above the root — a park screen stacked there would
+  be destroyed by the one gesture it exists to survive.
+  The separate task costs the graceful degradation that a Home-mode park screen would have
+  had for free, so it is bought back explicitly: `HomeActivity.onResume` re-launches the
+  park screen whenever `ParkStore.isParked` is set. That single path covers both cases lock
+  task mode cannot — a reboot, which pinning does not survive, and a Home press on a device
+  that refused pinning. `AppListActivity` finishes itself if it resumes while parked.
+  Pinning is best effort and its state is **shown on screen**: pinned means Recents and the
+  shade are blocked, unpinned means the screen is only a deterrent against a stray tap, and
+  the user cannot tell which they have any other way. Keypad keys are `focusable="false"` so
+  the handlebar remote cannot drive the screen; the remote is unpowered while parked in any
+  case, which is also why hold-Escape needed no special handling. The PIN is salted and
+  hashed — hygiene, not security: four digits fall to a trivial search by anyone who can
+  read the prefs file, and anyone who can do that has adb, which defeats the park lock
+  outright. Untestable without a device: the unit tests cover `ParkStore` only.
+
 ## Core Features
 
 - Fixed 4×3 favorites grid, remote- and glove-operable.

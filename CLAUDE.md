@@ -153,6 +153,20 @@ Package layout under `de.codevoid.motolauncher`:
   `registerForActivityResult(RequestPermission())`; the store flips to enabled only on
   grant. A short Escape exits settings mode before finishing. Activity transitions are
   disabled (`noTransition()`) in both directions.
+- `ParkActivity` — the park lock: a PIN keypad for short unattended stops, in **its own
+  task** (`singleInstance` + `taskAffinity`), which is load-bearing — `HomeActivity` is
+  `singleTask` and the root of the home task, so a Home press clears anything stacked above
+  it. `onResume` calls `startLockTask()` (screen pinning, the user-confirmed variant, no
+  device owner) to block Recents and the shade; both lock-task calls are best effort, since
+  a device with screen pinning switched off refuses them, and `parkStatus` reports which
+  state is in force. `setMode` is read from the *current* intent, never cached, because a
+  reused `singleInstance` gets later intents through `onNewIntent`. The restore path is
+  `HomeActivity.onResume`: while `ParkStore.isParked` is set it re-launches this screen,
+  covering both a reboot (pinning does not survive one) and a Home press where pinning was
+  refused; `AppListActivity` finishes itself in the same situation. Keypad keys are
+  `focusable="false"` — the remote must never drive it. Entry point is the Park lock tile in
+  the app list's settings mode (tap to lock or set a PIN, long-press to change it), placed
+  after the update tile so `UPDATE_TILE_INDEX` stays valid.
 - `data/AppRepository` — thin wrapper over `LauncherApps` (not `PackageManager`),
   iterating all `UserManager` profiles. `launch` → `startMainActivity` (and
   `launchIfInstalled` for a stored component, gated on `isActivityEnabled` because
@@ -172,7 +186,8 @@ Package layout under `de.codevoid.motolauncher`:
   a package-name `Set` plus `showHidden`, and always returns a copy because
   `getStringSet` hands out its live internal set. Everything else shares the `settings`
   file: `ThemeStore` (default dark, drives `AppCompatDelegate.setDefaultNightMode`),
-  `NavAppStore`, `OrientationStore`, `NavBarStore`, `CellularStore`, `SpeedStore`
+  `NavAppStore`, `OrientationStore`, `NavBarStore`, `CellularStore`, `SpeedStore`,
+  `ParkStore` (parked flag + salted-hash park PIN; the hash is hygiene, not security)
   (enabled + metric), `BatteryStore` (`BatteryDisplay` enum). `StatusBarView` listens to
   that file by key, so a new status-bar setting is a new public `KEY_*` constant plus a
   branch in its `prefsListener`, not new lifecycle wiring.
