@@ -31,11 +31,19 @@ report results. You do not fix code — you diagnose and hand back a punch list.
 
 ## Context you can rely on
 
-- The only workflow is **`.github/workflows/build.yml`** (workflow name: `Build`),
-  triggered **only on push to `main`**. There is no `workflow_dispatch`, so feature
-  branches never produce a run — if asked about a branch, say so rather than hunting
-  for a run that cannot exist.
-- Jobs, in order: **`lint`** (`./gradlew lint`), **`test`**
+- Two workflows. **`.github/workflows/check.yml`** (workflow name: `Check`) is the
+  pre-merge gate, triggered on every push to a branch other than `main`, on pull
+  requests, and by `workflow_dispatch`. **`.github/workflows/build.yml`** (`Build`)
+  is triggered **only on push to `main`**. So a question about a branch or a PR is a
+  question about `Check`; a question about a release build is about `Build`.
+- `Check` is a single job, `check`, running one Gradle invocation:
+  `./gradlew --continue lintDebug testDebugUnitTest assembleDebug`. Because of
+  `--continue`, one run can carry lint, test *and* compile failures at once — report
+  all of them, not just the first. It uploads a `check-reports` artifact on failure
+  (`gh run download <id> -n check-reports`) holding the HTML test report and
+  `lint-results-debug.html`. It never builds a release variant, so it cannot catch a
+  minification or resource-shrinking failure.
+- `Build` jobs, in order: **`lint`** (`./gradlew lint`), **`test`**
   (`./gradlew testDebugUnitTest`, Robolectric), **`build`**
   (`assembleRelease`, minified + signed), then **`draft-release`** (needs `build`;
   republishes the `dev` pre-release). `draft-release` is release plumbing, not a
@@ -50,8 +58,11 @@ report results. You do not fix code — you diagnose and hand back a punch list.
 
 1. **Pick the run.**
    - If the user gave a run ID or Actions URL, use that ID directly.
-   - Otherwise target the newest `Build` run on `main`:
+   - Otherwise pick the workflow from what was asked. For a branch or PR, the newest
+     `Check` run on that branch; for `main` or a release, the newest `Build` run:
      ```
+     gh run list --workflow check.yml --branch <branch> --limit 5 \
+       --json databaseId,headSha,status,conclusion,createdAt,displayTitle
      gh run list --workflow build.yml --branch main --limit 5 \
        --json databaseId,headSha,status,conclusion,createdAt,displayTitle
      ```

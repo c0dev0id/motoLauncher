@@ -16,8 +16,15 @@ it, so none of them can be executed locally (see *Build & CI*). They are listed 
 they are what a change is judged by:
 
 ```sh
-./gradlew lint                 # Android lint + AAPT resource linking
+# what Check runs on a branch or PR, in one invocation
+./gradlew --continue lintDebug testDebugUnitTest assembleDebug
+
+./gradlew lintDebug            # Android lint + AAPT resource linking, debug variant
 ./gradlew testDebugUnitTest    # JUnit4 + Robolectric, app/src/test/kotlin
+./gradlew assembleDebug        # unminified, debug-signed
+
+# what Build adds on main
+./gradlew lint                 # debug + release variants
 ./gradlew assembleRelease -PappVersionName=dev-<sha> -PappVersionCode=<run>
 
 # one test class, or one test
@@ -275,10 +282,20 @@ for from their settings tile.
 platform and the firewall blocks AGP — do not work around this. All builds run in CI.
 Correctness depends on careful API use and reading before writing.
 
-CI (`.github/workflows/build.yml`) runs **only on push to `main`** — there is no
-`workflow_dispatch`, so a feature branch cannot be built on demand and gets no CI until
-it is merged. Everything before a merge is verified by reading. Three parallel jobs plus a
-follow-up release step:
+Two workflows. **`Check`** (`.github/workflows/check.yml`) is the pre-merge gate: every
+push to a branch other than `main`, every pull request, and `workflow_dispatch`. It is a
+single job running one Gradle invocation — `./gradlew --continue lintDebug
+testDebugUnitTest assembleDebug` — because the three tasks share `compileDebugKotlin` and
+one daemon start-up, and `lintDebug` analyses one variant where `lint` does debug and
+release. The debug build is unminified, unshrunk and debug-signed; no APK is published.
+`--continue` means one run reports lint, test and compile failures together. Push and
+`pull_request` events for a branch share a concurrency group (`head_ref || ref_name`), so
+a push to a branch with an open PR yields one run rather than two — if required status
+checks are ever enabled, drop the push trigger instead of relying on which run wins.
+
+**`Build`** (`.github/workflows/build.yml`) runs **only on push to `main`** and is the
+only thing that produces a release artifact. Three parallel jobs plus a follow-up release
+step:
 
 - `./gradlew lint`
 - `./gradlew testDebugUnitTest` — JUnit4 + Robolectric JVM unit tests in
@@ -308,8 +325,12 @@ follow-up release step:
   the update endpoint stays a single stable URL and "keep only the latest" needs no
   cleanup.
 
+Neither workflow can be run locally, and a green `Check` is the first real signal a
+branch gets — it does not cover the release build, so a minification or shrinking failure
+still surfaces only after a merge.
+
 Read CI results through the **`ci-verifier`** subagent (`.claude/agents/ci-verifier.md`):
-it fetches only the failed-step logs for the latest `Build` run and hands back a punch
-list, keeping the large log output out of the main conversation. It is written against
+it fetches only the failed-step logs for the latest run of either workflow and hands back
+a punch list, keeping the large log output out of the main conversation. It is written against
 `gh`; in sessions where `gh` is not installed, the GitHub MCP tools (`actions_list`,
 `actions_get`, `get_job_logs`) reach the same runs. There is no `.gh_token` in the repo.
