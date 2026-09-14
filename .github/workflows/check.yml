@@ -1,20 +1,20 @@
 name: Check
 
 # Pre-merge gate: lint, unit tests and an unminified debug build on every branch
-# and pull request. The signed, minified release build and the `dev` pre-release
-# stay in build.yml, which runs only on push to main.
+# push. There is no pull_request trigger: a check run attaches to the head commit, so
+# the push run's result already shows on a PR, and adding the event only produced a
+# second run whenever a PR was opened onto an already-built branch. The signed,
+# minified release build and the `dev` pre-release stay in build.yml, which runs only
+# on push to main.
 on:
   push:
     branches-ignore: [main]
   workflow_dispatch:
 
-# Pushing to a branch that already has an open PR fires both events. Both land in
-# the same group — head_ref for the pull_request event, ref_name for the push — so
-# the later one cancels the earlier and a single run survives. If required status
-# checks are ever enabled on PRs, drop the push trigger rather than relying on
-# which of the two wins.
+# Two pushes in quick succession: the newer run cancels the older, so a superseded
+# build does not sit on a runner producing a result nobody wants.
 concurrency:
-  group: check-${{ github.head_ref || github.ref_name }}
+  group: check-${{ github.ref_name }}
   cancel-in-progress: true
 
 jobs:
