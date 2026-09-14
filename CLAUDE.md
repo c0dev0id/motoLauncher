@@ -9,6 +9,22 @@ motoLauncher is an Android **launcher / home app** for a motorcycle navigation d
 replace — it launches it). The launcher must be operable while wearing gloves and via a
 handlebar remote, not just by touch.
 
+## Commands
+
+These run in CI, not here — AGP is unavailable on this platform and the firewall blocks
+it, so none of them can be executed locally (see *Build & CI*). They are listed because
+they are what a change is judged by:
+
+```sh
+./gradlew lint                 # Android lint + AAPT resource linking
+./gradlew testDebugUnitTest    # JUnit4 + Robolectric, app/src/test/kotlin
+./gradlew assembleRelease -PappVersionName=dev-<sha> -PappVersionCode=<run>
+
+# one test class, or one test
+./gradlew testDebugUnitTest --tests "de.codevoid.motolauncher.AppRepositoryTest"
+./gradlew testDebugUnitTest --tests "de.codevoid.motolauncher.AppRepositoryTest.sortsCaseInsensitively"
+```
+
 ## Authority / overrides
 
 The project's founding intent statement (original `README.md`, commit `55c188a`, since
@@ -267,8 +283,7 @@ follow-up release step:
 - `./gradlew lint`
 - `./gradlew testDebugUnitTest` — JUnit4 + Robolectric JVM unit tests in
   `app/src/test/kotlin` (`isIncludeAndroidResources = true`, so real resources and view
-  inflation work). Single test:
-  `./gradlew testDebugUnitTest --tests "de.codevoid.motolauncher.AppRepositoryTest.sortsCaseInsensitively"`
+  inflation work; see *Commands* for running a single class or test).
   Six classes, and the shape they set: `AppRepositoryTest` (the pure `sortApps` /
   `filterApps`), `FavoritesStoreTest` (app and link slot round-trips against real
   `SharedPreferences`, the two representations cleaning each other up, and
