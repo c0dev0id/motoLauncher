@@ -331,6 +331,22 @@
   status line claim the screen was unprotected until the next render (the first keypad
   digit). Hence the delayed re-render, and the re-request on focus gain, guarded by
   `isFinishing` so a teardown focus change cannot re-pin the screen the PIN just released.
+  **The unpin hatch is closed by undoing it, not by blocking it.** Nothing can block the
+  system's hold-Back+Recents gesture, and there is no unpin callback for an ordinary app —
+  `DeviceAdminReceiver.onLockTaskModeExiting` is device-owner only. So a guard polls
+  `lockTaskModeState` every 300 ms while parked and re-pins; in practice an unpin is undone
+  well before anyone can reach Recents and pick an app. The decision is one pure function,
+  `shouldRequestLockTask`, so the rule is unit-testable without a device, and the settle
+  window in it exists because `lockTaskModeState` lags a successful request — without it
+  the first poll after parking fires a redundant second request and a second system toast.
+  The guard is armed in `onResume`, disarmed in `onPause` (a parked device with the screen
+  off polls nothing) and disarmed *before* `stopLockTask()` on a correct PIN, or an
+  in-flight run would re-pin what the PIN opened.
+  This is the one place where the feature can hurt its owner: with the guard, the PIN is
+  the only way out short of adb or reinstalling the launcher, so a forgotten PIN strands
+  the device at the roadside. That was accepted deliberately, with the trade stated, and it
+  is why the device-owner variants were still rejected — those would have added a credential
+  the rider could be locked out by even without the park lock involved.
   Pinning is best effort and its state is **shown on screen**: pinned means Recents and the
   shade are blocked, unpinned means the screen is only a deterrent against a stray tap, and
   the user cannot tell which they have any other way. Keypad keys are `focusable="false"` so
