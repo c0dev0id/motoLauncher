@@ -159,9 +159,10 @@ Package layout under `de.codevoid.motolauncher`:
   it. `onResume` and `onWindowFocusChanged` call `startLockTask()` (screen pinning, no device
   owner) to block Recents and the shade — an app pinning itself is not asked to confirm, so
   parking is one tap. Both lock-task calls are best effort, since a device with screen
-  pinning switched off refuses them, and `parkStatus` reports which state is in force; that
-  status is re-rendered on a delay because `lockTaskModeState` is updated asynchronously
-  and reads as `NONE` straight after a successful request. The system's unpin gesture (hold Back + Recents) cannot be
+  pinning switched off refuses them — which state is in force is deliberately not shown on
+  the screen. `settleCheck` runs after a delay because `lockTaskModeState` is updated
+  asynchronously and reads as `NONE` straight after a successful request; it is what
+  notices that a request never took. The system's unpin gesture (hold Back + Recents) cannot be
   blocked, so it is undone: `lockTaskGuard` polls `lockTaskModeState` every 300 ms while
   parked and re-pins, and `onWindowFocusChanged` re-asserts too. `shouldRequestLockTask` is
   the pure, unit-tested rule behind both — parked, not in set mode, not finishing, not
