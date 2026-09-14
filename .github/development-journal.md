@@ -200,15 +200,22 @@
   held key at all; a button that emits an instantaneous down/up pair can't produce a long
   press, and then only the short press works.
 
-- **Update UI: button label for progress, dialogs for outcomes (`ui/UpdateFlow.kt`).**
-  The header row of the app list has no room for a status line, and a transient line is
-  easy to miss on a handlebar-mounted screen. `runUpdateFlow(button)` shows "Checking…" /
-  "Downloading…" on the button while disabled, and each result (latest build, update
-  available with install prompt, error) is an `AlertDialog`. Stock alert buttons are
-  acceptable here, unlike the tile menu, because updating is an off-bike, touch-only
-  task. `AlertDialog.Builder(context)` picks the launcher look up from
-  `alertDialogTheme` (`ThemeOverlay.MotoLauncher.Dialog.Alert`); no call site names a
-  theme.
+- **Update UI: tile subtitle for progress, dialogs for outcomes (`ui/UpdateFlow.kt`).**
+  There is no room for a status line of its own, and a transient one is easy to miss on a
+  handlebar-mounted screen, so progress rides on the update tile that started it.
+  `runUpdateFlow(setClickable, setSubtitle)` takes two callbacks rather than a view: the
+  caller is made unclickable for the duration, and the subtitle carries "Checking…" and
+  then the download percentage and rate (`"45% · 2.2 MB/s"`, throttled to 500 ms). Each
+  result (latest build, update available with install prompt, error) is an `AlertDialog`.
+  Stock alert buttons are acceptable here, unlike the tile menu, because updating is an
+  off-bike, touch-only task. `AlertDialog.Builder(context)` picks the launcher look up
+  from `alertDialogTheme` (`ThemeOverlay.MotoLauncher.Dialog.Alert`); no call site names a
+  theme. The settings tile is the only caller: it keeps the in-flight state in
+  `AppListViewModel` so a theme recreate can't strand a check, and patches the subtitle in
+  place through `adapter.updateItem(UPDATE_TILE_INDEX, …)` instead of re-rendering the
+  list on every progress callback. The percentage is concatenated onto the formatted rate,
+  never passed through `String.format` — a `%` in a format template threw
+  `UnknownFormatConversionException` on the main thread once.
 - **App list survives the theme toggle's recreate via a ViewModel.** Enumerating and
   rasterising every installed app is the most expensive thing the app does. With the
   theme toggle on the same screen, `AppCompatDelegate.setDefaultNightMode` recreates the
