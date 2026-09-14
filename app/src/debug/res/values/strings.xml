@@ -1,0 +1,5 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Debug-variant override so the two installs are told apart in the home-app chooser. -->
+<resources>
+    <string name="app_name">motoLauncher (debug)</string>
+</resources>
