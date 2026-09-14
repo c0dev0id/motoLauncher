@@ -296,6 +296,10 @@ follow-up release step:
   assumed), `StatusBarViewTest` (`wifiIconLevel` across platform rating ranges).
   Write new behaviour so it lands in that surface — a pure function, a store, or
   something a Robolectric activity can reach. No device is ever available to check it.
+  The job caches `~/.m2/repository/org/robolectric` separately: Robolectric fetches its
+  ~100 MB `android-all` jar at test runtime with its own resolver, outside the Gradle
+  cache `setup-gradle` restores. The cache key hashes `app/build.gradle.kts`, so any
+  edit to that file costs one re-download.
 - `./gradlew assembleRelease -PappVersionName=dev-<sha> -PappVersionCode=<run>` —
   minified + shrunk, signed via the `SIGNING_KEYSTORE_*` / `SIGNING_KEY_*` env vars
   (already configured on the repo; do not add or commit signing material). Without
