@@ -16,6 +16,7 @@ import de.codevoid.motolauncher.data.AppRepository
 import de.codevoid.motolauncher.data.FavoritesStore
 import de.codevoid.motolauncher.data.NavBarStore
 import de.codevoid.motolauncher.data.OrientationStore
+import de.codevoid.motolauncher.data.ParkStore
 import de.codevoid.motolauncher.data.SlotEntry
 import de.codevoid.motolauncher.databinding.ActivityHomeBinding
 import de.codevoid.motolauncher.databinding.ItemAppTileBinding
@@ -36,6 +37,7 @@ class HomeActivity : AppCompatActivity() {
     private lateinit var repository: AppRepository
     private val orientationStore by lazy { OrientationStore(this) }
     private val navBarStore by lazy { NavBarStore(this) }
+    private val parkStore by lazy { ParkStore(this) }
     private val columns get() = if (isPortrait) 3 else 4
     private val rows get() = if (isPortrait) 4 else 3
     private val tiles = ArrayList<ItemAppTileBinding>(12)
@@ -108,6 +110,14 @@ class HomeActivity : AppCompatActivity() {
 
     override fun onResume() {
         super.onResume()
+        // The park screen is restored from here, which covers both cases lock task mode
+        // cannot: a reboot (pinning does not survive one) and a Home press on a device
+        // where pinning was refused, since Home starts the launcher and lands here.
+        if (parkStore.isParked) {
+            startActivity(ParkActivity.lockIntent(this))
+            noTransition()
+            return
+        }
         setRequestedOrientation(orientationStore.orientation)
         buildGrid()
     }

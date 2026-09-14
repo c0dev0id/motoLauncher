@@ -131,7 +131,8 @@ class ParkActivity : AppCompatActivity() {
     private fun render() {
         binding.parkPrompt.text = message ?: when {
             !setMode -> getString(R.string.park_enter_pin)
-            firstEntry == null -> getString(R.string.park_new_pin)
+            firstEntry == null ->
+                getString(if (store.hasPin) R.string.park_change_pin else R.string.park_new_pin)
             else -> getString(R.string.park_repeat_pin)
         }
         binding.parkDots.text = buildString {
