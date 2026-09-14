@@ -27,6 +27,30 @@ journal's *Key Decisions* before proposing structural changes — most of them w
 reached after a failed simpler attempt, and the journal records why. Where the journal
 and this file disagree, the code wins and the stale one gets fixed in the same task.
 
+## Commands
+
+**Never build locally.** Android Studio / AGP are unavailable on this platform and the
+firewall blocks AGP — do not work around it. Correctness comes from reading carefully,
+then from three CI checks that run **only on push to `main`** (there is no
+`workflow_dispatch`, so a feature branch gets no CI at all until it merges):
+
+```
+./gradlew lint
+./gradlew testDebugUnitTest
+./gradlew assembleRelease
+```
+
+A single test:
+
+```
+./gradlew testDebugUnitTest --tests "de.codevoid.motolauncher.AppRepositoryTest.sortsCaseInsensitively"
+```
+
+After pushing to `main`, read the run through the **`ci-verifier`** subagent rather than
+fetching logs yourself. *Build & CI* at the end of this file has the rest: what each job
+does, the six test classes and the surface they set for new tests, signing, and the `dev`
+pre-release.
+
 ## Hard UX constraints (glove + remote usage)
 
 These drive nearly every UI decision — violating them defeats the point of the app:
@@ -255,22 +279,14 @@ for from their settings tile.
 
 ## Build & CI
 
-**Do not attempt to build locally.** Android Studio / AGP are unavailable on this
-platform and the firewall blocks AGP — do not work around this. All builds run in CI.
-Correctness depends on careful API use and reading before writing.
-
-CI (`.github/workflows/build.yml`) runs **only on push to `main`** — there is no
-`workflow_dispatch`, so a feature branch cannot be built on demand and gets no CI until
-it is merged. Everything before a merge is verified by reading. Three parallel jobs plus a
-follow-up release step:
+`.github/workflows/build.yml`, on push to `main` only (see *Commands*). Three parallel
+jobs plus a follow-up release step:
 
 - `./gradlew lint`
 - `./gradlew testDebugUnitTest` — JUnit4 + Robolectric JVM unit tests in
   `app/src/test/kotlin` (`isIncludeAndroidResources = true`, so real resources and view
-  inflation work). Single test:
-  `./gradlew testDebugUnitTest --tests "de.codevoid.motolauncher.AppRepositoryTest.sortsCaseInsensitively"`
-  Six classes, and the shape they set: `AppRepositoryTest` (the pure `sortApps` /
-  `filterApps`), `FavoritesStoreTest` (app and link slot round-trips against real
+  inflation work). Six classes, and the shape they set: `AppRepositoryTest` (the pure
+  `sortApps` / `filterApps`), `FavoritesStoreTest` (app and link slot round-trips against real
   `SharedPreferences`, the two representations cleaning each other up, and
   `clearSlotsForPackage` matching whole package names and leaving link slots alone),
   `UpdateCheckerTest` (`parseRelease` / `isNewer` / `deleteInstalledUpdate` over JSON
