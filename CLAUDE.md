@@ -62,8 +62,9 @@ These drive nearly every UI decision — violating them defeats the point of the
   values plus `FULL_SENSOR`, "Sensor", which auto-rotates through all four). Rotation
   under Sensor reshapes the grid only because no activity lists `orientation` in its
   `configChanges` — the system recreates them and `isPortrait` is read afresh. Adding
-  `orientation` there would freeze the layout in whatever shape it started in. The device is a 7" landscape screen; portrait exists for phones. Both
-  activities call `setRequestedOrientation` in `onCreate` and `onResume`; grid shape
+  `orientation` there would freeze the layout in whatever shape it started in. The device
+  is a 7" landscape screen; portrait exists for phones. Every activity calls
+  `setRequestedOrientation` in `onCreate` and `onResume`; grid shape
   follows `Context.isPortrait` (`ui/LayoutUtils.kt`): Home is 4×3 landscape / 3×4
   portrait, the app list 5 / 4 columns, and the status bar has a `layout-port` variant.
   The status bar is always hidden (immersive mode); the navigation bar follows
@@ -120,8 +121,11 @@ Package layout under `de.codevoid.motolauncher`:
   `LinearLayout` rows once in `onCreate`, and `buildGrid()` rebinds them in `onResume`.
   Weighted layout divides space in the layout pass by construction, which is what fixed
   the cold-start "third row cut off" first-frame race. `buildGrid` keeps the resolved
-  `AppEntry`s in `cachedApps`, keyed on (`packageGeneration`, current slot list), so
-  returning from the navigation app costs no Binder calls or icon decoding. A slot is a
+  `AppEntry`s in `FavoritesCache`, a `ViewModel`, keyed on (`packageGeneration`, current
+  slot list), so returning from the navigation app costs no Binder calls or icon decoding.
+  It is a `ViewModel` rather than an activity field because a recreate — the theme toggle,
+  or a rotation under the Sensor orientation — would otherwise start it empty and redo the
+  whole resolve on the main thread in `onResume`. A slot is a
   `SlotEntry.App` (launch / App info / Uninstall / Remove), a `SlotEntry.Link`
   (`ACTION_VIEW` on the URL / Edit link / Remove) or empty ("+" opens the picker for that
   slot). Back is swallowed; a short Escape does nothing and a held Escape runs

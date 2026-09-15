@@ -361,22 +361,26 @@ class AppListActivity : AppCompatActivity() {
         )
     }
 
-    private fun orientationTile(): TileItem {
-        val current = orientationStore.orientation
-        val idx = ORIENTATION_OPTIONS.indexOfFirst { it.first == current }.coerceAtLeast(0)
-        return TileItem(
-            label = getString(R.string.orientation),
-            subtitle = getString(ORIENTATION_OPTIONS[idx].second),
-            onClick = {
-                val cur = orientationStore.orientation
-                val next = ORIENTATION_OPTIONS[(ORIENTATION_OPTIONS.indexOfFirst { it.first == cur }.coerceAtLeast(0) + 1) % ORIENTATION_OPTIONS.size].first
-                orientationStore.orientation = next
-                requestedOrientation = next
-                settingsTilesCache = null
-                renderCurrentMode()
-            },
-        )
-    }
+    private fun orientationTile(): TileItem = TileItem(
+        label = getString(R.string.orientation),
+        subtitle = getString(ORIENTATION_OPTIONS[orientationIndex(orientationStore.orientation)].second),
+        onClick = {
+            // Re-read rather than close over the index above: the action must act on the
+            // value at click time, not at the time the tile was built.
+            val next = ORIENTATION_OPTIONS[
+                (orientationIndex(orientationStore.orientation) + 1) % ORIENTATION_OPTIONS.size
+            ].first
+            orientationStore.orientation = next
+            requestedOrientation = next
+            settingsTilesCache = null
+            renderCurrentMode()
+        },
+    )
+
+    // coerceAtLeast covers a stored value no longer in the list — only reachable if a
+    // future release drops an option an older one wrote.
+    private fun orientationIndex(value: Int): Int =
+        ORIENTATION_OPTIONS.indexOfFirst { it.first == value }.coerceAtLeast(0)
 
     private fun render(apps: List<AppEntry>) {
         val tiles = ArrayList<TileItem>(apps.size + 1)
