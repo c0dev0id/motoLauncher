@@ -8,6 +8,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- **The Orientation setting is now a picker.** Tapping it opens a list of the five orientations and applies the one chosen, instead of cycling one step per tap — which used to rotate the screen through every orientation on the way to the wanted one.
+
 - **"Sensor" orientation.** The Orientation setting now offers a fifth option that follows the device's accelerometer and auto-rotates between all four orientations, instead of pinning the screen to one. It rotates regardless of Android's own auto-rotate switch — choosing it here is the choice.
 - **Park lock.** A manual PIN lock for short unattended stops, in All Apps → Settings → Park lock. The launcher stays free of any system lock screen — there is no device PIN to fumble with at a red light — but tapping Park lock puts up a glove-sized keypad and asks Android to pin the screen, which blocks Recents and the notification shade. The correct PIN releases it, and nothing re-locks on its own. Long-press the tile to change the PIN. Parking is a single tap — Android does not ask an app to confirm pinning itself. Where pinning is unavailable the park screen still holds against the Home gesture. Android's own unpin gesture (hold Back + Recents) cannot be blocked, so the park screen undoes it: while parked it re-pins itself within a few hundred milliseconds, and only the correct PIN stops that. **Note the consequence: while parked, the PIN is the only way back in** — short of adb or reinstalling the launcher, a forgotten PIN strands the device.
 - **CI on feature branches and pull requests.** A `Check` workflow runs Android lint, the unit tests and an unminified debug build on every branch push and pull request, so a change is verified before it reaches `main` instead of after. The existing `Build` workflow is unchanged and still produces the signed release APK and the `dev` pre-release on pushes to `main`.
@@ -18,6 +20,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Tapping "Download & install" in the update prompt no longer crashes the app. The progress string was built by concatenating a `"X% · "` prefix into a `String.format` template, causing Java to misparse the `%` in the percentage as a format specifier and throw `UnknownFormatConversionException` on the main thread.
 
 ### Changed
+- **Orientation now defaults to Sensor** (auto-rotate) instead of Landscape. This only affects installs that never picked an orientation; an explicit choice is already stored and is left alone.
 - App tile long-press on the home screen now shows **Remove** instead of **Reassign app**. Removing a favourite clears the slot and turns it back into an empty "+" tile; tapping "+" opens the app picker to fill it again.
 - Wi-Fi and cellular icons now show zero bars instead of disappearing when signal is weak or coverage is lost. The icon is hidden only when the radio is off (Wi-Fi) or the feature is disabled in app settings (cellular) — not when signal drops to zero.
 - Activity transitions (Home ↔ All Apps, pick-mode open/close) are now instant — no slide animation.

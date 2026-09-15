@@ -58,8 +58,11 @@ These drive nearly every UI decision — violating them defeats the point of the
 - **Large touch targets.** Precise touch is hard with gloves; buttons must be big.
   Glove sizing is stated once in `values/dimens.xml` (phone, sw < 600dp) and
   `values-sw600dp/dimens.xml` (tablet — the original 7" 1920x1080 sizing), never per view.
-- **Orientation is a setting, landscape by default** (`OrientationStore`: four fixed
-  values plus `FULL_SENSOR`, "Sensor", which auto-rotates through all four). Rotation
+- **Orientation is a setting, Sensor by default** (`OrientationStore`: `FULL_SENSOR`,
+  "Sensor", which auto-rotates through all four, plus the four fixed values). The default
+  only reaches an install that never set the option — an explicit choice is already stored.
+  The tile opens a picker (`showOptionsDialog`), never a cycle: tapping through five values
+  would apply every one on the way, rotating the screen up to four times per change. Rotation
   under Sensor reshapes the grid only because no activity lists `orientation` in its
   `configChanges` — the system recreates them and `isPortrait` is read afresh. Adding
   `orientation` there would freeze the layout in whatever shape it started in. The device
@@ -260,6 +263,13 @@ Package layout under `de.codevoid.motolauncher`:
   palette) with `tile_background` buttons; dismisses itself before invoking the chosen
   callback. Dialog chrome lives in that theme and in the
   `ThemeOverlay.MotoLauncher.Dialog.Alert` sibling that `alertDialogTheme` points at.
+- `ui/OptionsDialog.kt` — `showOptionsDialog(context, title, options, selectedIndex,
+  onPick)`: pick one of a list, as tile-styled rows on `Theme.MotoLauncher.Dialog`. Rows are
+  *inflated* from `item_dialog_option` rather than constructed, so the style's `layout_*`
+  attributes are resolved by the parent as they are for the fixed rows; a style applied
+  through a `TextView` constructor would not carry them. The current value is drawn in
+  `tile_focused` — the tile that shows it is hidden behind the dialog. Reach for this over
+  a cycling tile whenever applying an intermediate value is itself disruptive.
 - `ui/LinkDialog.kt` — `Context.showLinkDialog(label, url, onConfirm)`: the one
   `AlertDialog` with text input (`dialog_add_link`); confirms only when both fields are
   non-blank. Any URL scheme is accepted — Android resolves the intent, and Home wraps the
@@ -348,7 +358,7 @@ step:
 - `./gradlew testDebugUnitTest` — JUnit4 + Robolectric JVM unit tests in
   `app/src/test/kotlin` (`isIncludeAndroidResources = true`, so real resources and view
   inflation work; see *Commands* for running a single class or test).
-  Eight classes, and the shape they set: `AppRepositoryTest` (the pure `sortApps` /
+  Nine classes, and the shape they set: `AppRepositoryTest` (the pure `sortApps` /
   `filterApps`), `FavoritesStoreTest` (app and link slot round-trips against real
   `SharedPreferences`, the two representations cleaning each other up, and
   `clearSlotsForPackage` matching whole package names and leaving link slots alone),
@@ -361,7 +371,9 @@ step:
   (PIN round-trips against real `SharedPreferences`, the parked flag read back through a
   second instance — the path a reboot takes — and that the PIN is never written in the
   clear) and `ParkLockTaskGuardTest` (the pure `shouldRequestLockTask` rule, including the
-  settle window that stops a redundant second pin request).
+  settle window that stops a redundant second pin request), and `OptionsDialogTest` (rows in
+  caller order, one index reported per pick, dismissal, and that the selected row is drawn
+  differently).
   Write new behaviour so it lands in that surface — a pure function, a store, or
   something a Robolectric activity can reach. No device is ever available to check it.
   The job caches `~/.m2/repository/org/robolectric` separately: Robolectric fetches its
