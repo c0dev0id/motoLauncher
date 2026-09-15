@@ -385,6 +385,21 @@
   is no elapsed time to measure. If that turns out to be the case, `adb shell getevent -lt`
   while holding the button shows the real timestamps.
 
+- **Sensor orientation is `FULL_SENSOR`, and works by *not* handling the config change.**
+  The fifth Orientation option auto-rotates. `FULL_SENSOR` rather than `SENSOR` (which
+  omits reverse portrait on most devices) or `USER` (which defers to Android's auto-rotate
+  switch): it is the exact superset of the four fixed options the setting already names, so
+  Sensor can reach every orientation in the list, and picking it in the launcher is meant to
+  be the whole decision rather than something that then needs Android's own toggle agreeing.
+  What makes rotation actually reshape the UI is that **no activity lists `orientation` in
+  `configChanges`**: the system recreates them, so `populateGrid()` re-runs with the new
+  `isPortrait` (4×3 ↔ 3×4), the app list's `GridLayoutManager` gets the new column count,
+  and the status bar's `layout-port` variant inflates. Adding `orientation` to
+  `configChanges` — an easy-looking optimisation — would freeze every one of those in the
+  shape it started in. The recreation also drops `HomeActivity.cachedApps`, so a rotation
+  costs one icon re-resolve; `AppListViewModel` survives it, as it already does for the
+  theme toggle.
+
 ## Core Features
 
 - Fixed 4×3 favorites grid, remote- and glove-operable.
