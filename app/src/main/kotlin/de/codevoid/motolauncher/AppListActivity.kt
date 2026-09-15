@@ -469,11 +469,18 @@ class AppListActivity : AppCompatActivity() {
         private const val NO_SLOT = -1
         private const val UPDATE_TILE_INDEX = 2 // theme=0, nav_app=1, update=2
 
+        // FULL_SENSOR rather than SENSOR or USER: it is the exact superset of the four
+        // fixed options above, so "Sensor" can reach every orientation the list can name,
+        // and it follows the accelerometer regardless of the system auto-rotate toggle —
+        // picking it here is the choice, it should not need a second one in Android's
+        // settings. Rotation reshapes the grid because no activity lists `orientation` in
+        // its configChanges, so the system recreates them and isPortrait is read afresh.
         private val ORIENTATION_OPTIONS = listOf(
             ActivityInfo.SCREEN_ORIENTATION_LANDSCAPE to R.string.orientation_landscape,
             ActivityInfo.SCREEN_ORIENTATION_PORTRAIT to R.string.orientation_portrait,
             ActivityInfo.SCREEN_ORIENTATION_REVERSE_LANDSCAPE to R.string.orientation_reverse_landscape,
             ActivityInfo.SCREEN_ORIENTATION_REVERSE_PORTRAIT to R.string.orientation_reverse_portrait,
+            ActivityInfo.SCREEN_ORIENTATION_FULL_SENSOR to R.string.orientation_sensor,
         )
 
         // Callers rebuild their grid in onResume, so no result contract is needed.

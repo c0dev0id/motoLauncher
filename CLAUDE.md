@@ -58,8 +58,11 @@ These drive nearly every UI decision — violating them defeats the point of the
 - **Large touch targets.** Precise touch is hard with gloves; buttons must be big.
   Glove sizing is stated once in `values/dimens.xml` (phone, sw < 600dp) and
   `values-sw600dp/dimens.xml` (tablet — the original 7" 1920x1080 sizing), never per view.
-- **Orientation is a setting, landscape by default** (`OrientationStore`, four fixed
-  values). The device is a 7" landscape screen; portrait exists for phones. Both
+- **Orientation is a setting, landscape by default** (`OrientationStore`: four fixed
+  values plus `FULL_SENSOR`, "Sensor", which auto-rotates through all four). Rotation
+  under Sensor reshapes the grid only because no activity lists `orientation` in its
+  `configChanges` — the system recreates them and `isPortrait` is read afresh. Adding
+  `orientation` there would freeze the layout in whatever shape it started in. The device is a 7" landscape screen; portrait exists for phones. Both
   activities call `setRequestedOrientation` in `onCreate` and `onResume`; grid shape
   follows `Context.isPortrait` (`ui/LayoutUtils.kt`): Home is 4×3 landscape / 3×4
   portrait, the app list 5 / 4 columns, and the status bar has a `layout-port` variant.
