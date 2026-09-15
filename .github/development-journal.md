@@ -398,7 +398,12 @@
   `configChanges` — an easy-looking optimisation — would freeze every one of those in the
   shape it started in. The recreation also drops `HomeActivity.cachedApps`, so a rotation
   costs one icon re-resolve; `AppListViewModel` survives it, as it already does for the
-  theme toggle.
+  theme toggle. The favourites cache was an activity field until this change and so was
+  thrown away on every rotation; it now lives in a `FavoritesCache` `ViewModel`, keyed on
+  exactly the same (`packageGeneration`, slots) pair. Per rotation that removes about a
+  dozen `LauncherApps` Binder round-trips and eleven icon decodes from the main thread in
+  `onResume` — work the cache existed to avoid in the first place, which only the
+  never-recreated path had been exercising.
 
 ## Core Features
 

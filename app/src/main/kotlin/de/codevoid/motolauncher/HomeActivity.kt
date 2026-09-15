@@ -10,7 +10,9 @@ import android.view.LayoutInflater
 import android.view.ViewGroup
 import android.widget.LinearLayout
 import androidx.activity.addCallback
+import androidx.activity.viewModels
 import androidx.appcompat.app.AppCompatActivity
+import androidx.lifecycle.ViewModel
 import de.codevoid.motolauncher.data.AppEntry
 import de.codevoid.motolauncher.data.AppRepository
 import de.codevoid.motolauncher.data.FavoritesStore
@@ -44,10 +46,13 @@ class HomeActivity : AppCompatActivity() {
 
     // Resolved on first resume and reused until either packageGeneration advances (app
     // installed/removed) or the slot list itself changes (reassign/clear). Avoids Binder
-    // IPC and icon decoding on every return from the navigation app.
-    private var cachedApps: Map<ComponentName, AppEntry> = emptyMap()
-    private var cacheGeneration: Int = -1
-    private var cacheSlots: List<SlotEntry?> = emptyList()
+    // IPC and icon decoding on every return from the navigation app — and, because it
+    // lives in a ViewModel rather than in the activity, on every recreate too. That
+    // matters since the Sensor orientation rotates the device: rotation recreates this
+    // activity (no `orientation` in configChanges, which is what reshapes the grid), and
+    // an activity-scoped cache would start empty each time and redo the whole resolve on
+    // the main thread in onResume — exactly the work it exists to avoid.
+    private val cache: FavoritesCache by viewModels()
 
     // A short ESC stays inert: Home is the launcher root, there is nowhere to go back to.
     // Holding it launches the configured navigation app — still only a launch, so the
@@ -136,13 +141,13 @@ class HomeActivity : AppCompatActivity() {
     private fun buildGrid() {
         val slots = favorites.allSlots()
         val generation = (application as MotoLauncherApp).packageGeneration
-        if (generation != cacheGeneration || slots != cacheSlots) {
+        if (generation != cache.generation || slots != cache.slots) {
             val appComponents = slots.filterIsInstance<SlotEntry.App>().map { it.component }
-            cachedApps = repository.loadByComponents(appComponents)
-            cacheGeneration = generation
-            cacheSlots = slots
+            cache.apps = repository.loadByComponents(appComponents)
+            cache.generation = generation
+            cache.slots = slots
         }
-        val apps = cachedApps
+        val apps = cache.apps
 
         slots.forEachIndexed { index, slotEntry ->
             when (slotEntry) {
@@ -253,4 +258,14 @@ class HomeActivity : AppCompatActivity() {
         noTransition()
     }
 
+}
+
+// Survives the activity, so a recreate — the theme toggle, or a rotation under the Sensor
+// orientation — reuses the resolved favourites instead of re-running loadByComponents and
+// re-decoding every icon on the main thread. Keyed by the same (packageGeneration, slots)
+// pair as before; nothing about when the cache is considered stale has changed.
+class FavoritesCache : ViewModel() {
+    var apps: Map<ComponentName, AppEntry> = emptyMap()
+    var generation: Int = -1
+    var slots: List<SlotEntry?> = emptyList()
 }
