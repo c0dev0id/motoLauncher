@@ -405,6 +405,19 @@
   `onResume` — work the cache existed to avoid in the first place, which only the
   never-recreated path had been exercising.
 
+- **Multi-valued settings get a picker, not a cycle, once applying the intermediate values
+  costs something.** The settings tiles cycle on tap, which is fine for two or three values
+  whose intermediate states are harmless (theme, units, nav bar). Orientation with five
+  values is not: reaching the fifth applies four unwanted orientations on the way, rotating
+  the screen each time. `ui/OptionsDialog.kt` is the generic answer — tile-styled rows on
+  the launcher's own dialog theme, the same surface as the tile-action menus rather than an
+  `AlertDialog`. Rows are **inflated** from `item_dialog_option`, not constructed: a style
+  applied through a `TextView` constructor does not carry its `layout_*` attributes, because
+  those are resolved by the parent from the inflated `AttributeSet`. The selected row is
+  drawn in `tile_focused`, since the tile showing the current value is hidden behind the
+  dialog while choosing. `batteryDisplayTile` still cycles and that remains right: three
+  values, no cost to passing through them.
+
 ## Core Features
 
 - Fixed 4×3 favorites grid, remote- and glove-operable.

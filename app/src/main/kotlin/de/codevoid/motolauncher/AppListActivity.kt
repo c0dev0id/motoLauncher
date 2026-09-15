@@ -47,6 +47,7 @@ import de.codevoid.motolauncher.ui.isPortrait
 import de.codevoid.motolauncher.ui.launchNavApp
 import de.codevoid.motolauncher.ui.runUpdateFlow
 import de.codevoid.motolauncher.ui.showLinkDialog
+import de.codevoid.motolauncher.ui.showOptionsDialog
 import de.codevoid.motolauncher.ui.showTileActionsDialog
 import kotlinx.coroutines.Deferred
 import kotlinx.coroutines.launch
@@ -361,19 +362,26 @@ class AppListActivity : AppCompatActivity() {
         )
     }
 
+    // A picker rather than a cycle: tapping through five orientations would apply every
+    // one on the way to the wanted one, rotating the screen up to four times for a single
+    // change.
     private fun orientationTile(): TileItem = TileItem(
         label = getString(R.string.orientation),
         subtitle = getString(ORIENTATION_OPTIONS[orientationIndex(orientationStore.orientation)].second),
         onClick = {
-            // Re-read rather than close over the index above: the action must act on the
-            // value at click time, not at the time the tile was built.
-            val next = ORIENTATION_OPTIONS[
-                (orientationIndex(orientationStore.orientation) + 1) % ORIENTATION_OPTIONS.size
-            ].first
-            orientationStore.orientation = next
-            requestedOrientation = next
-            settingsTilesCache = null
-            renderCurrentMode()
+            showOptionsDialog(
+                context = this,
+                title = getString(R.string.orientation),
+                options = ORIENTATION_OPTIONS.map { getString(it.second) },
+                // Read at click time, not closed over from when the tile was built.
+                selectedIndex = orientationIndex(orientationStore.orientation),
+            ) { index ->
+                val picked = ORIENTATION_OPTIONS[index].first
+                orientationStore.orientation = picked
+                requestedOrientation = picked
+                settingsTilesCache = null
+                renderCurrentMode()
+            }
         },
     )
 
