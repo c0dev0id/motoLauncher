@@ -181,17 +181,18 @@ Package layout under `de.codevoid.motolauncher`:
   `stopLockTask()`, or an in-flight guard run re-pins the screen the correct PIN just
   released. The guard is armed in `onResume` and disarmed in `onPause`, so a parked device
   with the screen off polls nothing. **It also means the PIN is the only way out** short of
-  adb or reinstalling — a forgotten PIN strands the device. `setMode` is read from the *current* intent, never cached, because a
-  reused `singleInstance` gets later intents through `onNewIntent`. The restore path is
+  adb or reinstalling — a forgotten PIN strands the device. `setMode` is read from the
+  *current* intent, never cached, because a reused `singleInstance` gets later intents
+  through `onNewIntent`. The restore path is
   `HomeActivity.onResume`: while `ParkStore.isParked` is set it re-launches this screen,
   covering both a reboot (pinning does not survive one) and a Home press where pinning was
   refused. `ParkActivity` sets `isParked` itself in `onResume`, so no entry point carries a
   protocol, and the Park lock tile finishes the app list as it launches — the home task is
   already back at `HomeActivity`, so unlocking returns to Home and nothing needs a
-  finish-if-parked guard. The keypad sits in a `TouchOnlyRow`, so the whole
-  subtree is invisible to dpad traversal — the remote must never drive it. Entry point is the Park lock tile in
-  the app list's settings mode (tap to lock or set a PIN, long-press to change it), placed
-  after the update tile so `UPDATE_TILE_INDEX` stays valid.
+  finish-if-parked guard. The keypad sits in a `TouchOnlyRow`, so the whole subtree is
+  invisible to dpad traversal — the remote must never drive it. Entry point is the Park
+  lock tile in the app list's settings mode (tap to lock or set a PIN, long-press to
+  change it), placed after the update tile so `UPDATE_TILE_INDEX` stays valid.
 - `data/AppRepository` — thin wrapper over `LauncherApps` (not `PackageManager`),
   iterating all `UserManager` profiles. `launch` → `startMainActivity` (and
   `launchIfInstalled` for a stored component, gated on `isActivityEnabled` because
@@ -211,9 +212,9 @@ Package layout under `de.codevoid.motolauncher`:
   a package-name `Set` plus `showHidden`, and always returns a copy because
   `getStringSet` hands out its live internal set. Everything else shares the `settings`
   file: `ThemeStore` (default dark, drives `AppCompatDelegate.setDefaultNightMode`),
-  `NavAppStore`, `OrientationStore`, `NavBarStore`, `CellularStore`, `SpeedStore`,
-  `ParkStore` (parked flag + salted-hash park PIN; the hash is hygiene, not security)
-  (enabled + metric), `BatteryStore` (`BatteryDisplay` enum). `StatusBarView` listens to
+  `NavAppStore`, `OrientationStore`, `NavBarStore`, `CellularStore`, `SpeedStore`
+  (enabled + metric), `BatteryStore` (`BatteryDisplay` enum), and `ParkStore` (parked
+  flag + salted-hash park PIN; the hash is hygiene, not security). `StatusBarView` listens to
   that file by key, so a new status-bar setting is a new public `KEY_*` constant plus a
   branch in its `prefsListener`, not new lifecycle wiring.
 - `update/UpdateChecker` — one-shot GET on the fixed `dev` release tag. `parseRelease`
@@ -249,7 +250,8 @@ Package layout under `de.codevoid.motolauncher`:
   activity, `onKeyDown` and `onKeyUp`; the DOWN is claimed and `startTracking()` called so
   the UP arrives with `isTracking` set, which is how an UP whose DOWN went to another
   window is told apart from a real press. A remote that emits an instantaneous down/up
-  pair on release still cannot produce a hold — there is no elapsed time to measure. The file stays pure key plumbing — the action lives in `ui/QuickLaunch.kt`
+  pair on release still cannot produce a hold — there is no elapsed time to measure. The
+  file stays pure key plumbing — the action lives in `ui/QuickLaunch.kt`
   (`Context.launchNavApp()`: `NavAppStore` → `AppRepository.launchIfInstalled`).
 - `ui/TouchOnlyRow` — a `LinearLayout` whose `addFocusables()` contributes nothing, so
   its children are invisible to dpad traversal but still take touch focus (an `EditText`
@@ -370,10 +372,10 @@ step:
   assumed), `StatusBarViewTest` (`wifiIconLevel` across platform rating ranges), `ParkStoreTest`
   (PIN round-trips against real `SharedPreferences`, the parked flag read back through a
   second instance — the path a reboot takes — and that the PIN is never written in the
-  clear) and `ParkLockTaskGuardTest` (the pure `shouldRequestLockTask` rule, including the
-  settle window that stops a redundant second pin request), and `OptionsDialogTest` (rows in
-  caller order, one index reported per pick, dismissal, and that the selected row is drawn
-  differently).
+  clear), `ParkLockTaskGuardTest` (the pure `shouldRequestLockTask` rule, including the
+  settle window that stops a redundant second pin request) and `OptionsDialogTest` (rows
+  in caller order, one index reported per pick, dismissal, and that the selected row is
+  drawn differently).
   Write new behaviour so it lands in that surface — a pure function, a store, or
   something a Robolectric activity can reach. No device is ever available to check it.
   The job caches `~/.m2/repository/org/robolectric` separately: Robolectric fetches its

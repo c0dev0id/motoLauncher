@@ -15,21 +15,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **CI on feature branches and pull requests.** A `Check` workflow runs Android lint, the unit tests and an unminified debug build on every branch push and pull request, so a change is verified before it reaches `main` instead of after. The existing `Build` workflow is unchanged and still produces the signed release APK and the `dev` pre-release on pushes to `main`.
 - **Link tiles on the home screen.** In the app picker (slot-assign mode), a new "Add link" tile lets the user assign a URL to any favourite slot instead of an app. The dialog accepts a name and any URL; Android handles the intent, so deep links and custom schemes work the same as http URLs. Long-pressing a link tile on the home screen opens an "Edit link / Remove" menu. Re-opening the picker for a slot that holds a link pre-fills the dialog with the current values.
 
-### Fixed
-- **Holding Escape on the handlebar remote now launches the navigation app.** It worked from a USB keyboard but did nothing from the remote: Android only reports a long press for input devices that auto-repeat a held key, and the remote sends a plain press and release. The hold is now measured from the key's own timestamps, so it behaves the same on every device.
-- Tapping "Download & install" in the update prompt no longer crashes the app. The progress string was built by concatenating a `"X% · "` prefix into a `String.format` template, causing Java to misparse the `%` in the percentage as a format specifier and throw `UnknownFormatConversionException` on the main thread.
-
-### Changed
-- **Orientation now defaults to Sensor** (auto-rotate) instead of Landscape. This only affects installs that never picked an orientation; an explicit choice is already stored and is left alone.
-- App tile long-press on the home screen now shows **Remove** instead of **Reassign app**. Removing a favourite clears the slot and turns it back into an empty "+" tile; tapping "+" opens the app picker to fill it again.
-- Wi-Fi and cellular icons now show zero bars instead of disappearing when signal is weak or coverage is lost. The icon is hidden only when the radio is off (Wi-Fi) or the feature is disabled in app settings (cellular) — not when signal drops to zero.
-- Activity transitions (Home ↔ All Apps, pick-mode open/close) are now instant — no slide animation.
-- App list is now cached at the process level. Navigating back and forth between Home and All Apps no longer re-decodes all app icons on every visit — the list loads once and stays loaded until an app is installed or removed.
-- Home screen favorite icons are now cached across resumes. Returning from the navigation app no longer triggers Binder IPC and icon decoding on the main thread for each favorite slot — the resolved entries are reused until a package change or slot reassignment invalidates them.
-- GPS speed listener is now paused while the home screen window is hidden (navigation app in the foreground) and resumed when the home screen comes back. Previously the 1 Hz location poll kept running in the background, consuming CPU that the navigation app needed.
-- GPS speed listener is also paused when the screen turns off and resumed when it comes back on.
-
-### Added
 - **Navigation app setting.** Settings tile in the All Apps settings mode lets the user pick any installed app as the navigation app. Holding Escape on the home screen or the app list now launches this configured app instead of whatever happened to be in slot 0. Slot 0 is now a plain favourite with no special behaviour.
 - **Download progress in settings tile.** While an update is downloading, the "Check for updates" tile subtitle shows percentage and speed (e.g. `45% · 2.2 MB/s`), updating every 500 ms.
 - **Navigation bar setting.** Settings tile toggles between Hidden (default) and Visible. The home grid and app list automatically make space for the bar when shown.
@@ -45,7 +30,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   A "Hidden apps" settings tile (in the All Apps settings mode) toggles between
   Hidden (default) and Showing (dimmed), letting you review and recover hidden apps
   without cluttering the list during normal use.
-
 
 - Glove- and remote-friendly home launcher for the DMD2 navigation device.
 - Home screen with a fixed 4×3 grid of large tiles: 11 configurable favorite slots
@@ -85,6 +69,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   has been uninstalled, does nothing.
 
 ### Changed
+- **Orientation now defaults to Sensor** (auto-rotate) instead of Landscape. This only affects installs that never picked an orientation; an explicit choice is already stored and is left alone.
+- App tile long-press on the home screen now shows **Remove** instead of **Reassign app**. Removing a favourite clears the slot and turns it back into an empty "+" tile; tapping "+" opens the app picker to fill it again.
+- Wi-Fi and cellular icons now show zero bars instead of disappearing when signal is weak or coverage is lost. The icon is hidden only when the radio is off (Wi-Fi) or the feature is disabled in app settings (cellular) — not when signal drops to zero.
+- Activity transitions (Home ↔ All Apps, pick-mode open/close) are now instant — no slide animation.
+- App list is now cached at the process level. Navigating back and forth between Home and All Apps no longer re-decodes all app icons on every visit — the list loads once and stays loaded until an app is installed or removed.
+- Home screen favorite icons are now cached across resumes. Returning from the navigation app no longer triggers Binder IPC and icon decoding on the main thread for each favorite slot — the resolved entries are reused until a package change or slot reassignment invalidates them.
+- GPS speed listener is now paused while the home screen window is hidden (navigation app in the foreground) and resumed when the home screen comes back. Previously the 1 Hz location poll kept running in the background, consuming CPU that the navigation app needed.
+- GPS speed listener is also paused when the screen turns off and resumed when it comes back on.
+
 - The home status bar hides the Wi-Fi indicator entirely when no Wi-Fi network is
   connected. An empty meter previously stood for both "no Wi-Fi at all" and "connected,
   signal gone".
@@ -117,6 +110,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   Michroma is bundled under the SIL Open Font License 1.1 — see `MICHROMA-LICENSE.txt`.
 
 ### Fixed
+- **Holding Escape on the handlebar remote now launches the navigation app.** It worked from a USB keyboard but did nothing from the remote: Android only reports a long press for input devices that auto-repeat a held key, and the remote sends a plain press and release. The hold is now measured from the key's own timestamps, so it behaves the same on every device.
+- Tapping "Download & install" in the update prompt no longer crashes the app. The progress string was built by concatenating a `"X% · "` prefix into a `String.format` template, causing Java to misparse the `%` in the percentage as a format specifier and throw `UnknownFormatConversionException` on the main thread.
+
 - Uninstalling an app now updates the launcher straight away: it is gone from the All Apps
   list when that screen comes back, and any home slot holding it is cleared instead of
   keeping a component that can never resolve again.
@@ -155,3 +151,4 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   workflow reached by tapping the empty "+" tiles on first-time setup, or by
   long-pressing "All Apps" once every slot is filled. Escape from All Apps and Settings
   still returns to the home screen.
+

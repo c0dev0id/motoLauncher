@@ -13,11 +13,17 @@ It is designed for glove use and handlebar remote operation.
   Uninstall, or Remove
 - Settings live in the All Apps screen: theme, navigation app, update check, orientation,
   navigation bar, and what the status bar shows
+- Orientation can be fixed to any of the four, or set to **Sensor** (the default) to
+  auto-rotate; the setting is a picker, so changing it never rotates you through the rest
+- **Park lock** for short unattended stops: a glove-sized PIN keypad that pins the screen
+  so Recents and the notification shade are blocked, with no system lock screen involved.
+  While parked, the PIN is the only way back in
 - Home status bar with time, Wi-Fi, cellular, battery, and an optional GPS speed readout
   in km/h or mph
 - Manual update check with an install prompt — nothing is downloaded unless you ask
 - Operable with the remote keys dpad-left/right/up/down, Enter and Escape; holding
-  Escape launches the configured navigation app from anywhere in the app
+  Escape launches the configured navigation app from anywhere in the app, on remotes
+  that do not auto-repeat a held key as well as on keyboards
 
 ## Screenshots
 
