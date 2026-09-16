@@ -418,12 +418,36 @@
   dialog while choosing. `batteryDisplayTile` still cycles and that remains right: three
   values, no cost to passing through them.
 
+- **The changelog is a user-facing document; until the first release it is a feature list.**
+  No user has had the app, so a fix or a change to behaviour that never shipped is news to
+  nobody: it is folded into the entry for the feature it belongs to, or dropped when it was
+  purely internal (caching, CI, a crash on a path no one has taken). `[Unreleased]`
+  therefore carries only `### Added`, one entry per feature, and entries describe what the
+  rider sees and does — no class names, permission constants, resource qualifiers or
+  build-pipeline vocabulary, which live here and in `CLAUDE.md` instead. The first pass
+  under this rule removed every Changed and Fixed entry and merged the small feature
+  entries into their parents (download progress into the update check, units into GPS
+  speed, the back button into All Apps); the CI description left the changelog entirely,
+  since it never runs on the device. Two claims were corrected on the way because the
+  code disagreed: the link-slot picker never pre-fills (only Edit link on the tile does),
+  and the first tap on Park lock sets the PIN rather than locking.
+
 ## Core Features
 
-- Fixed 4×3 favorites grid, remote- and glove-operable.
-- All-apps browser with touch search; settings mode (same screen) for theme toggle, update check, cellular permission, GPS speed toggle, and unit selection.
-- Tap-to-launch; long-press on a favourite for an App info / Uninstall / Remove menu.
-- Remote quick launch: holding Escape starts the configured navigation app from anywhere in the app.
-- Touch configuration of favorite slots.
-- User-triggered self-update from GitHub nightly.
-- GPS speed widget in the home screen status bar (optional, defaults off), with metric/imperial selection.
+- Fixed favourites grid (4×3 landscape / 3×4 portrait): 11 slots holding an app or a
+  link, plus the pinned "All Apps" tile. Remote- and glove-operable; no swiping.
+- All Apps browser with a touch-only search filter and per-app Hide/Unhide; touch
+  configuration of favourite slots from the empty "+" tiles.
+- Tap / Enter launches; touch long-press opens a tile-styled menu (App info / Uninstall /
+  Remove, or Edit link / Remove, or Hide/Unhide in the list).
+- Hold Escape launches the configured navigation app, from Home and the app list, on any
+  input device — the hold is timed from the key's own timestamps.
+- Settings mode inside All Apps: theme, navigation app, update check with download
+  progress, park lock, cellular indicator, GPS speed + units, battery display, hidden
+  apps, orientation (picker; Sensor by default), navigation bar.
+- Park lock: PIN keypad in its own task that enters lock task mode and re-pins itself if
+  unpinned; only the correct PIN releases it. Survives reboot via the persisted flag.
+- Home status bar: time, optional GPS speed, Wi-Fi, cellular, battery.
+- User-triggered self-update against the GitHub `dev` pre-release.
+- CI: `Check` on every branch push (lint, tests, debug APK artifact), `Build` on `main`
+  (signed release + `dev` pre-release).

@@ -8,150 +8,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
-- **The Orientation setting is now a picker.** Tapping it opens a list of the five orientations and applies the one chosen, instead of cycling one step per tap — which used to rotate the screen through every orientation on the way to the wanted one.
-
-- **"Sensor" orientation.** The Orientation setting now offers a fifth option that follows the device's accelerometer and auto-rotates between all four orientations, instead of pinning the screen to one. It rotates regardless of Android's own auto-rotate switch — choosing it here is the choice.
-- **Park lock.** A manual PIN lock for short unattended stops, in All Apps → Settings → Park lock. The launcher stays free of any system lock screen — there is no device PIN to fumble with at a red light — but tapping Park lock puts up a glove-sized keypad and asks Android to pin the screen, which blocks Recents and the notification shade. The correct PIN releases it, and nothing re-locks on its own. Long-press the tile to change the PIN. Parking is a single tap — Android does not ask an app to confirm pinning itself. Where pinning is unavailable the park screen still holds against the Home gesture. Android's own unpin gesture (hold Back + Recents) cannot be blocked, so the park screen undoes it: while parked it re-pins itself within a few hundred milliseconds, and only the correct PIN stops that. **Note the consequence: while parked, the PIN is the only way back in** — short of adb or reinstalling the launcher, a forgotten PIN strands the device.
-- **CI on feature branches and pull requests.** A `Check` workflow runs Android lint, the unit tests and an unminified debug build on every branch push and pull request, so a change is verified before it reaches `main` instead of after. The existing `Build` workflow is unchanged and still produces the signed release APK and the `dev` pre-release on pushes to `main`.
-- **Link tiles on the home screen.** In the app picker (slot-assign mode), a new "Add link" tile lets the user assign a URL to any favourite slot instead of an app. The dialog accepts a name and any URL; Android handles the intent, so deep links and custom schemes work the same as http URLs. Long-pressing a link tile on the home screen opens an "Edit link / Remove" menu. Re-opening the picker for a slot that holds a link pre-fills the dialog with the current values.
-
-### Fixed
-- **Holding Escape on the handlebar remote now launches the navigation app.** It worked from a USB keyboard but did nothing from the remote: Android only reports a long press for input devices that auto-repeat a held key, and the remote sends a plain press and release. The hold is now measured from the key's own timestamps, so it behaves the same on every device.
-- Tapping "Download & install" in the update prompt no longer crashes the app. The progress string was built by concatenating a `"X% · "` prefix into a `String.format` template, causing Java to misparse the `%` in the percentage as a format specifier and throw `UnknownFormatConversionException` on the main thread.
-
-### Changed
-- **Orientation now defaults to Sensor** (auto-rotate) instead of Landscape. This only affects installs that never picked an orientation; an explicit choice is already stored and is left alone.
-- App tile long-press on the home screen now shows **Remove** instead of **Reassign app**. Removing a favourite clears the slot and turns it back into an empty "+" tile; tapping "+" opens the app picker to fill it again.
-- Wi-Fi and cellular icons now show zero bars instead of disappearing when signal is weak or coverage is lost. The icon is hidden only when the radio is off (Wi-Fi) or the feature is disabled in app settings (cellular) — not when signal drops to zero.
-- Activity transitions (Home ↔ All Apps, pick-mode open/close) are now instant — no slide animation.
-- App list is now cached at the process level. Navigating back and forth between Home and All Apps no longer re-decodes all app icons on every visit — the list loads once and stays loaded until an app is installed or removed.
-- Home screen favorite icons are now cached across resumes. Returning from the navigation app no longer triggers Binder IPC and icon decoding on the main thread for each favorite slot — the resolved entries are reused until a package change or slot reassignment invalidates them.
-- GPS speed listener is now paused while the home screen window is hidden (navigation app in the foreground) and resumed when the home screen comes back. Previously the 1 Hz location poll kept running in the background, consuming CPU that the navigation app needed.
-- GPS speed listener is also paused when the screen turns off and resumed when it comes back on.
-
-### Added
-- **Navigation app setting.** Settings tile in the All Apps settings mode lets the user pick any installed app as the navigation app. Holding Escape on the home screen or the app list now launches this configured app instead of whatever happened to be in slot 0. Slot 0 is now a plain favourite with no special behaviour.
-- **Download progress in settings tile.** While an update is downloading, the "Check for updates" tile subtitle shows percentage and speed (e.g. `45% · 2.2 MB/s`), updating every 500 ms.
-- **Navigation bar setting.** Settings tile toggles between Hidden (default) and Visible. The home grid and app list automatically make space for the bar when shown.
-- **Battery display setting.** Settings tile cycles between Icon + text (default),
-  Icon only, and Text only. The status bar updates immediately on change.
-
-- **Phone / small-screen support.** All text sizes, icon sizes, padding, and tile heights
-  now scale down on phones (smallest-width < 600dp) via `values/dimens.xml` qualifiers,
-  while tablets (≥ 600dp) keep the original sizing unchanged.
-
-- **Hide apps from the All Apps list.** Long-pressing any app now shows a "Hide" option
-  in the tile-actions menu; long-pressing a hidden app shows "Unhide" instead.
-  A "Hidden apps" settings tile (in the All Apps settings mode) toggles between
-  Hidden (default) and Showing (dimmed), letting you review and recover hidden apps
-  without cluttering the list during normal use.
-
-
 - Glove- and remote-friendly home launcher for the DMD2 navigation device.
-- Home screen with a fixed 4×3 grid of large tiles: 11 configurable favorite slots
-  plus a dedicated "All Apps" tile. Fully operable by the handlebar remote
-  (dpad + Enter + Escape) via the native focus system — no swiping.
-- All-apps screen: scrollable, remote-navigable grid of every installed app, with a
-  touch search field to filter long lists.
-- Short tap / Enter launches an app; long press opens its system app-info screen.
-- Favorites are configured in place: an empty "+" tile, or "Reassign app" from a
-  favourite's long-press menu, opens the app picker for that slot.
-- Dark/Light theme toggle accessible from the All Apps settings mode (defaults to dark);
-  the choice is saved and restored on restart.
-- User-triggered update check from the All Apps settings mode, with download and hand-off
-  to the system installer (no automatic polling — the device is mostly offline).
-- **Settings mode** in the All Apps screen: tapping the "Settings" toggle switches the
-  RecyclerView from the app grid to a settings tile grid (theme, update check, cellular
-  permission), hiding the search field and showing settings tiles instead. Tapping
-  "Apps" or pressing Escape returns to app browse mode. Settings mode state survives the
-  activity recreation triggered by the theme tile.
-- GitHub Actions build: parallel lint and unit tests, signed release APK, and a
-  self-replacing `dev` pre-release.
-- **GPS Speed display** in the home screen status bar, center-aligned between the clock
-  and the status icons. Defaults to disabled. Enabled from the settings mode in the
-  All Apps screen: tapping the tile requests `ACCESS_FINE_LOCATION` on first enable;
-  if granted the tile flips to On immediately.
-- **Cellular indicator** in the home screen status bar is now a toggle (defaults to
-  disabled). Enabling it requests `READ_PHONE_STATE` on the spot; the tile reflects
-  the outcome without requiring a separate page load.
-- **Units setting** (Metric / Imperial) in the All Apps settings mode, shown as the
-  current unit (`km/h` or `mph`); controls the unit displayed by the GPS speed widget.
-- Settings tiles now update their subtitle immediately when tapped.
-- Custom home status bar showing the current time on the left and Wi-Fi, cellular, and
-  battery indicators on the right, aligned with the grid margins.
-- Visible back button on the app list screen for touch users.
-- Holding Escape on the remote launches the app in the first favourite slot (the top-left
-  home tile), from the home screen and from the app list. An empty slot, or one whose app
-  has been uninstalled, does nothing.
-
-### Changed
-- The home status bar hides the Wi-Fi indicator entirely when no Wi-Fi network is
-  connected. An empty meter previously stood for both "no Wi-Fi at all" and "connected,
-  signal gone".
-- The cellular indicator follows the same rule: it is hidden unless a mobile-data network
-  exists, so switching mobile data off (or flight mode, no SIM, or no coverage) removes it
-  from the bar instead of leaving an empty meter behind.
-- A short Escape closes the app list on key release rather than on key press, so holding
-  the key can be told apart from tapping it.
-- The "All Apps / Config" home tile is now labelled "All Apps"; it no longer leads to
-  a configuration screen.
-- Theme toggle, update check, and the cellular-permission ask moved from dedicated header
-  buttons to tile-sized controls in the All Apps settings mode. The separate Configure
-  Favorites screen is gone, along with the "All Apps" long-press that opened it.
-- Long-pressing an assigned favourite on the home screen now opens a tile-styled menu
-  with three large buttons instead of jumping straight to the system app-info screen:
-  **App info** opens the system screen as before, **Uninstall** hands the app to the
-  system uninstaller, and **Reassign app** opens the app picker for that slot and
-  stores the choice. Back or Escape closes the menu.
-- The app picker, when opened for a slot, starts with a **None** tile that clears the
-  slot.
-- Long-pressing an app in the All Apps list opens the same menu with **App info** and
-  **Uninstall** only.
-- Tapping an empty "+" tile on the home screen now opens the app picker for that slot
-  directly instead of the Configure Favorites screen. That screen is still reachable by
-  long-pressing "All Apps" for the theme, update, and cellular-indicator controls.
-- The Android status bar and navigation bar are now hidden app-wide so the full screen
-  is available for the launcher's own UI.
-- The custom home status bar now uses the Michroma display font, sits at larger sizes
-  (time 28sp, battery 24sp), and aligns its text with the favourites grid columns.
-  Michroma is bundled under the SIL Open Font License 1.1 — see `MICHROMA-LICENSE.txt`.
-
-### Fixed
-- Uninstalling an app now updates the launcher straight away: it is gone from the All Apps
-  list when that screen comes back, and any home slot holding it is cleared instead of
-  keeping a component that can never resolve again.
-- The tile menu's "Uninstall" now actually starts the system uninstaller. The launcher was
-  missing both the `REQUEST_DELETE_PACKAGES` permission and the package-visibility entry
-  the hand-off needs, and the request was being dropped without any error.
-- The Wi-Fi indicator no longer overstates the signal. The platform rates a link from 0 to
-  its reported maximum *inclusive*, and the launcher treated the top rating as out of
-  range: a 3-of-4 signal drew full bars and the three-bar state was never shown at all.
-- Unlit bars in the Wi-Fi and cellular indicators are now clearly darker than lit ones.
-  They were so close in the dark theme that full signal and no signal looked almost
-  identical at a glance.
-- GitHub Actions `lint`, `test`, and release builds no longer fail during resource
-  linking because the tile-actions dialog row style now opts out of Android's implicit
-  dotted-name parent lookup instead of inheriting from a non-existent
-  `Widget.MotoLauncher` base style.
-- The installer file of an update is deleted when the launcher starts after installing
-  it, and any older download is removed when a new one begins, so update APKs no longer
-  accumulate in the app cache.
-- Returning to the home screen no longer moves the remote's focus back to the top-left
-  tile; it stays on the tile the app was launched from.
-- Leaving the All Apps screen while an update check or download was in flight (theme
-  toggle, Home button, low memory) could crash the launcher when the interrupted flow
-  tried to show its result dialog on a screen that no longer existed.
-- Home grid no longer shows the bottom row cut off for the first frame on cold start.
-- The home status bar's battery icon now shows a fill level that tracks the percentage
-  (five buckets) and gains a lightning-bolt overlay while a charger is connected.
-- The dpad can no longer land on the app-list search field or the back / theme / update
-  buttons in the header rows — those controls are touch-only. Touch focus and text entry
-  in the search field still work as before.
-- Holding Enter (or the handlebar remote's centre button) on a home tile or app-list
-  cell no longer triggers a long-press, so keyboard users can't accidentally reach the
-  app-info screen or the settings picker from which the remote has no way back.
-  Long-pressing a tile with a finger still works.
-- Escape on the home screen no longer opens Settings. Configuration is a touch-only
-  workflow reached by tapping the empty "+" tiles on first-time setup, or by
-  long-pressing "All Apps" once every slot is filled. Escape from All Apps and Settings
-  still returns to the home screen.
+- **Home screen and orientation.** Home is a grid of 12 large tiles — 11 configurable favourite slots plus a dedicated "All Apps" tile — laid out 4×3 in landscape and 3×4 in portrait, fully operable by the handlebar remote (dpad + Enter + Escape), which moves a highlight between tiles; there is no swiping anywhere. Which shape shows follows the Orientation setting in the All Apps settings mode: tapping it opens a picker listing Landscape, Portrait, Reverse landscape, Reverse portrait and Sensor and applies only the one chosen, so the screen never rotates through the other orientations on the way. Sensor, the default, follows the device's accelerometer and auto-rotates between all four orientations regardless of Android's own auto-rotate switch: choosing it here is the choice. Coming back from an app, the remote's highlight is still on the tile it launched, unless the screen rotated in the meantime.
+- **Tile long-press menu.** Short tap / Enter launches an app; a touch long press opens a tile-styled menu with large buttons. On a Home favourite it offers **App info** (the system app-info screen), **Uninstall** (hands the app to the system uninstaller) and **Remove**, which clears the slot and turns it back into an empty "+" tile; tapping "+" opens the app picker for that slot, so favourites are configured in place; the picker starts with a None tile that clears the slot, and uninstalling an app clears any slot that held it. In the All Apps list the same menu offers **App info**, **Uninstall** and **Hide** — **Unhide** for a hidden app — and a "Hidden apps" settings tile (in the All Apps settings mode) toggles between Hidden (default) and Showing (dimmed), letting you review and recover hidden apps without cluttering the list during normal use. Back or Escape closes the menu. It opens on a touch long press only — holding Enter on the remote never opens it, so the remote can only ever launch.
+- **Link tiles on the home screen.** When picking what goes into a favourite slot, an "Add link" tile puts a web address or other link in the slot instead of an app. The dialog asks for a name and a link; Android opens it with whatever app handles that kind of link, so deep links and app-specific schemes work the same as web addresses. Long-pressing a link tile on the home screen opens an "Edit link / Remove" menu; Edit link re-opens the dialog with the current name and link filled in.
+- **All Apps screen.** A scrollable, remote-navigable grid of every launchable app, minus the ones you have hidden, with a touch-only back button and a search field to filter long lists. Screens switch instantly, with no transition animation.
+- **Settings mode** in the All Apps screen: configuration is a touch-only workflow with no separate settings screen — tapping an empty "+" tile on the home screen opens the app picker for that slot directly, the tile menus handle the rest of favourites and hiding in place, and the device-wide settings sit behind the "Settings" toggle in the All Apps header, which switches the grid from the app list to text-only settings tiles (theme, navigation app, update check, park lock, cellular indicator, GPS speed and units on devices with GPS, battery display, hidden apps, orientation, navigation bar); the search field stays and filters those tiles, tapping "Settings" again or a short Escape returns to app browse mode (a second Escape returns to the home screen, while a short Escape on the home screen does nothing), and switching the theme keeps you in settings mode. The header row — back button, search field and "Settings" toggle — is touch-only, so the remote can never land on it, while the search field can still be tapped and typed into; the "All Apps" home tile simply opens the app list and has no long-press.
+- **Theme.** Dark/Light toggle in the All Apps settings mode (defaults to dark); the choice is saved and restored on restart.
+- **Navigation app setting.** A settings tile in the All Apps settings mode lets you pick any app from the All Apps list as the navigation app (hidden apps are offered only while "Hidden apps" is set to Showing); the picker's None tile clears it. Holding Escape on the remote launches this configured app, from the home screen and from the app list alike. No navigation app configured, or one that has since been uninstalled, does nothing.
+- **Update check.** User-triggered update check from the All Apps settings mode, with download and hand-off to the system installer (no automatic polling — the device is mostly offline). While an update is downloading, the tile shows percentage and speed (e.g. `45% · 2.2 MB/s`), refreshed about twice a second. The installer file is deleted once the update it carried is running, and any earlier download is removed when a new one starts, so at most one update APK ever sits in the app's cache.
+- **Park lock.** A manual PIN lock for short unattended stops, in All Apps → Settings → Park lock. The launcher stays free of any system lock screen — there is no device PIN to fumble with at a red light. The first tap on Park lock sets a PIN (entered twice); from then on tapping it puts up a glove-sized keypad and asks Android to pin the screen, which blocks Recents and the notification shade, and long-pressing the tile changes the PIN. The correct PIN releases the lock, and nothing re-locks on its own. Parking is a single tap — Android does not ask an app to confirm pinning itself. Where pinning is unavailable the park screen still holds against the Home gesture. Android's own unpin gesture (hold Back + Recents) cannot be blocked, so the park screen undoes it: while parked it re-pins itself within a few hundred milliseconds, and only the correct PIN stops that. **Note the consequence: while parked, the PIN is the only way back in** — a forgotten PIN locks you out of the device until the launcher is reinstalled from a computer.
+- **Status bar.** A custom home status bar in the bundled Michroma font (SIL Open Font License 1.1 — see `MICHROMA-LICENSE.txt`), showing the current time on the left and Wi-Fi, cellular, and battery indicators on the right, aligned with the grid margins on tablet-sized screens. The signal meters show their bars down to zero rather than disappearing: the Wi-Fi icon is hidden only when the radio is off, the cellular icon only when its indicator is off or the launcher has no access to the signal. The battery icon fills in five steps with the charge level and shows a lightning bolt while a charger is connected.
+- **GPS speed display** in the home screen status bar — between the clock and the status icons in landscape, on its own row below them in portrait. Off by default; turned on from the settings mode in the All Apps screen (the tiles appear only on devices with GPS), where the first tap makes Android ask for location permission and the tile switches to On as soon as it is granted. A Units tile (Metric / Imperial), shown as the current unit (`km/h` or `mph`), picks what the speed is displayed in. Speed is only read while the home screen is showing and the display is on, so it costs nothing while the navigation app is in front.
+- **Cellular indicator** in the home screen status bar, off by default. Turning it on makes Android ask for permission to read the phone's signal state; the tile shows On or Off according to the answer straight away. Needs Android 12 or newer — on Android 11 the toggle can be switched on but no icon appears.
+- **Battery display setting.** A settings tile cycles between Icon + text (default), Icon only, and Text only. The status bar updates immediately on change.
+- **Navigation bar setting.** The Android status bar is always hidden so the full screen is available for the launcher's own UI; the Android navigation bar is a settings tile that toggles between Hidden (default) and Visible, and the home grid and app list automatically make space for the bar when shown.
+- **Phone / small-screen support.** All text, icons, padding and tile heights are sized for a 7-inch tablet-class screen like the navigation device, and scale down on phone-sized screens so the launcher stays usable there too.
