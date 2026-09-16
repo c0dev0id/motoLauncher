@@ -45,7 +45,10 @@ now that the live README no longer carries it.
 Two conventions the repo does follow, whatever the global preferences say: commits are
 authored as `c0dev0id <sh+git@codevoid.de>` with no trailers, and each change that
 affects behaviour or a load-bearing decision updates `CHANGELOG.md` (Keep a Changelog,
-under `[Unreleased]`) and `.github/development-journal.md` in the same task. Read the
+under `[Unreleased]`) and `.github/development-journal.md` in the same task. A version's
+entries must not contradict each other: `[Unreleased]` reads as the net description of the
+coming release, so when a change supersedes something an earlier unreleased entry says,
+fold it into that entry rather than adding a "now X instead of Y" beside it. Read the
 journal's *Key Decisions* before proposing structural changes — most of them were
 reached after a failed simpler attempt, and the journal records why. Where the journal
 and this file disagree, the code wins and the stale one gets fixed in the same task.
