@@ -3,6 +3,7 @@ package de.codevoid.motolauncher
 import android.app.ActivityManager
 import android.content.Context
 import android.content.Intent
+import android.os.Build
 import android.os.Bundle
 import android.os.SystemClock
 import android.widget.TextView
@@ -295,6 +296,23 @@ class ParkActivity : AppCompatActivity() {
             sinceLastRequestMs: Long,
         ): Boolean = parked && !setMode && !finishing && !lockTaskActive &&
             sinceLastRequestMs >= LOCK_TASK_SETTLE_MS
+
+        /**
+         * Whether the park lock is worth offering at all — the pure rule behind showing
+         * or hiding its settings tile. Both cases below leave a screen that still works
+         * but is not worth reaching.
+         *
+         * Below Android 15 the system asks the rider to confirm every `startLockTask()`.
+         * That turns [shouldRequestLockTask] into a dialog generator: the guard answers an
+         * unpin with a confirmation prompt instead of a silent re-pin, so the one hatch the
+         * guard exists to close stays open and parking costs a tap on every request.
+         *
+         * A device with a secure lock screen already has a better park lock, one button
+         * away — the power key. Offering this one beside it only asks for a second PIN at
+         * every stop and locks nothing the first PIN did not.
+         */
+        fun shouldOfferParkLock(sdkInt: Int, deviceSecure: Boolean): Boolean =
+            sdkInt >= Build.VERSION_CODES.VANILLA_ICE_CREAM && !deviceSecure
 
         /** Shows the keypad, marks the launcher parked and asks for pinning. */
         fun lockIntent(context: Context) = Intent(context, ParkActivity::class.java)

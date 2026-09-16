@@ -163,7 +163,8 @@ Package layout under `de.codevoid.motolauncher`:
   button, the search box and a single `settingsButton` (hidden in pick mode) that toggles
   settings mode; `renderCurrentMode()` then swaps the RecyclerView between the app grid
   and text-only settings tiles (theme, nav app, update check with live download progress,
-  cellular toggle, GPS speed toggle + units when the device has `FEATURE_LOCATION_GPS`,
+  park lock when `ParkActivity.shouldOfferParkLock` allows it, cellular toggle, GPS speed
+  toggle + units when the device has `FEATURE_LOCATION_GPS`,
   battery display, hidden apps, orientation, nav bar). The settings list is cached in
   `settingsTilesCache`; every tile that changes state sets it to `null` before
   re-rendering. `UPDATE_TILE_INDEX` hard-codes the update tile's position (theme 0, nav
@@ -201,7 +202,13 @@ Package layout under `de.codevoid.motolauncher`:
   finish-if-parked guard. The keypad sits in a `TouchOnlyRow`, so the whole subtree is
   invisible to dpad traversal — the remote must never drive it. Entry point is the Park
   lock tile in the app list's settings mode (tap to lock or set a PIN, long-press to
-  change it), placed after the update tile so `UPDATE_TILE_INDEX` stays valid.
+  change it), placed after the update tile so `UPDATE_TILE_INDEX` stays valid. That tile
+  is the only way in, and it appears only when `shouldOfferParkLock` — the second pure,
+  unit-tested rule here — says the lock is worth reaching: Android 15+ (below it the
+  system confirms every `startLockTask()`, so the guard raises a dialog instead of
+  re-pinning) and no secure lock screen (`KeyguardManager.isDeviceSecure`, whose power
+  button is the better park lock). Hiding the tile is enough because nothing else starts
+  this activity: the restore path only fires on an `isParked` the tile set.
 - `data/AppRepository` — thin wrapper over `LauncherApps` (not `PackageManager`),
   iterating all `UserManager` profiles. `launch` → `startMainActivity` (and
   `launchIfInstalled` for a stored component, gated on `isActivityEnabled` because
@@ -369,7 +376,7 @@ step:
 - `./gradlew testDebugUnitTest` — JUnit4 + Robolectric JVM unit tests in
   `app/src/test/kotlin` (`isIncludeAndroidResources = true`, so real resources and view
   inflation work; see *Commands* for running a single class or test).
-  Nine classes, and the shape they set: `AppRepositoryTest` (the pure `sortApps` /
+  Ten classes, and the shape they set: `AppRepositoryTest` (the pure `sortApps` /
   `filterApps`), `FavoritesStoreTest` (app and link slot round-trips against real
   `SharedPreferences`, the two representations cleaning each other up, and
   `clearSlotsForPackage` matching whole package names and leaving link slots alone),
@@ -382,7 +389,9 @@ step:
   (PIN round-trips against real `SharedPreferences`, the parked flag read back through a
   second instance — the path a reboot takes — and that the PIN is never written in the
   clear), `ParkLockTaskGuardTest` (the pure `shouldRequestLockTask` rule, including the
-  settle window that stops a redundant second pin request) and `OptionsDialogTest` (rows
+  settle window that stops a redundant second pin request), `ParkLockAvailabilityTest`
+  (the pure `shouldOfferParkLock` rule, with the API boundary written as numbers so it is
+  pinned independently of the constant) and `OptionsDialogTest` (rows
   in caller order, one index reported per pick, dismissal, and that the selected row is
   drawn differently).
   Write new behaviour so it lands in that surface — a pure function, a store, or

@@ -432,6 +432,28 @@
   code disagreed: the link-slot picker never pre-fills (only Edit link on the tile does),
   and the first tap on Park lock sets the PIN rather than locking.
 
+- **The park lock is hidden where it cannot work or is not needed, rather than degraded.**
+  Two devices get no Park lock tile at all. **Below Android 15** the system asks the user
+  to confirm every `startLockTask()`. The re-pinning guard is built on the opposite
+  assumption — that a request is silent, so an unpin can be undone within 300 ms without
+  the rider noticing — and against a confirmation dialog it degrades into a prompt
+  generator that never closes the hatch it exists to close. **With a secure lock screen
+  set** (`KeyguardManager.isDeviceSecure`) the device already has a park lock that is
+  strictly better than this one: one power-button press, backed by the system rather than
+  by an app asking politely to stay in front. Offering ours beside it means two PINs per
+  stop and no more security than one.
+  The rule is `ParkActivity.shouldOfferParkLock(sdkInt, deviceSecure)`, pure and
+  unit-tested beside `shouldRequestLockTask`, and it gates the settings tile only. That is
+  enough: the tile is the sole entry point, and `HomeActivity`'s restore path fires on an
+  `isParked` flag that only the park screen itself sets, so a hidden tile cannot strand a
+  device. The decision is computed in `buildSettingsTiles` and therefore cached with the
+  rest of `settingsTilesCache`; a lock screen set while the app list is alive leaves one
+  stale but still working tile until the next rebuild, which did not justify a resume hook.
+  The Android 15 boundary comes from device testing, not documentation: the owner's device
+  ran 14 (confirmed every pin) and later 16 (silent). **Android 15 itself is untested and
+  assumed to behave like 16** — if a 15 device turns out to confirm, the constant moves up
+  and nothing else changes.
+
 ## Core Features
 
 - Fixed favourites grid (4×3 landscape / 3×4 portrait): 11 slots holding an app or a

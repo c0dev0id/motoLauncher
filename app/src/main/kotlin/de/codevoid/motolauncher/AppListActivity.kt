@@ -2,6 +2,7 @@ package de.codevoid.motolauncher
 
 import android.Manifest
 import android.app.Application
+import android.app.KeyguardManager
 import android.content.ComponentName
 import android.content.Context
 import android.content.Intent
@@ -251,30 +252,43 @@ class AppListActivity : AppCompatActivity() {
         ))
 
         // Deliberately after the update tile: UPDATE_TILE_INDEX hard-codes position 2 for
-        // in-place download progress, so nothing may be inserted before it.
-        val hasPin = parkStore.hasPin
-        val openSetPin = {
-            startActivity(ParkActivity.setPinIntent(this@AppListActivity))
-            noTransition()
+        // in-place download progress, so nothing may be inserted before it. Everything
+        // below may come and go — only the first three positions are fixed.
+        //
+        // The park lock is hidden outright where it is not worth reaching; see
+        // shouldOfferParkLock. A secure lock screen can be set while this activity lives,
+        // and the decision is then as stale as the rest of settingsTilesCache until the
+        // next rebuild — a redundant tile that still works, which is not worth a resume
+        // hook to catch.
+        if (ParkActivity.shouldOfferParkLock(
+                sdkInt = Build.VERSION.SDK_INT,
+                deviceSecure = getSystemService(KeyguardManager::class.java)?.isDeviceSecure == true,
+            )
+        ) {
+            val hasPin = parkStore.hasPin
+            val openSetPin = {
+                startActivity(ParkActivity.setPinIntent(this@AppListActivity))
+                noTransition()
+            }
+            tiles.add(TileItem(
+                label = getString(R.string.park_lock),
+                subtitle = getString(if (hasPin) R.string.park_lock_now else R.string.park_set_pin),
+                onClick = {
+                    settingsTilesCache = null
+                    if (hasPin) {
+                        startActivity(ParkActivity.lockIntent(this@AppListActivity))
+                        noTransition()
+                        // Leave the home task at HomeActivity rather than parked behind the
+                        // lock screen: unlocking then returns to Home, and nothing has to
+                        // finish this screen after the fact.
+                        finish()
+                    } else {
+                        openSetPin()
+                    }
+                },
+                onLongClick = if (hasPin) ({ openSetPin(); true }) else null,
+            ))
         }
-        tiles.add(TileItem(
-            label = getString(R.string.park_lock),
-            subtitle = getString(if (hasPin) R.string.park_lock_now else R.string.park_set_pin),
-            onClick = {
-                settingsTilesCache = null
-                if (hasPin) {
-                    startActivity(ParkActivity.lockIntent(this@AppListActivity))
-                    noTransition()
-                    // Leave the home task at HomeActivity rather than parked behind the
-                    // lock screen: unlocking then returns to Home, and nothing has to
-                    // finish this screen after the fact.
-                    finish()
-                } else {
-                    openSetPin()
-                }
-            },
-            onLongClick = if (hasPin) ({ openSetPin(); true }) else null,
-        ))
 
         tiles.add(permissionToggleTile(
             label = getString(R.string.cellular_indicator),
