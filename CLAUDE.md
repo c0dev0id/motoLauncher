@@ -315,7 +315,11 @@ Package layout under `de.codevoid.motolauncher`:
   **GPS speed** has the same shape (`SpeedStore.enabled`, `FEATURE_LOCATION_GPS`,
   `ACCESS_FINE_LOCATION`), polls `GPS_PROVIDER` at 1 Hz, and is the one subscription that
   is paused while the window is hidden or the screen is off, because it costs CPU the
-  navigation app needs. Setting changes arrive through the `settings`
+  navigation app needs. **The clock** advances on `ACTION_TIME_TICK`, which the system
+  stops sending while the screen is off, so `ACTION_SCREEN_ON` sits on that same filter
+  (every action on it means "re-read the clock") and `onWindowVisibilityChanged(VISIBLE)`
+  re-reads it as well — without those a device picked up in the morning shows the minute
+  it went dark until the next tick lands. Setting changes arrive through the `settings`
   `OnSharedPreferenceChangeListener`. Uses the bundled Michroma font
   (`res/font/michroma.ttf`, OFL — see `MICHROMA-LICENSE.txt`).
 
@@ -385,7 +389,8 @@ step:
   handle `showTileActionsDialog` returns: row order, optional rows hidden, one callback per
   row, dismissal), `EscapeKeysTest` (short vs. held Escape, dispatched through a real
   `KeyEvent.DispatcherState` so the framework's tracking rules are exercised rather than
-  assumed), `StatusBarViewTest` (`wifiIconLevel` across platform rating ranges), `ParkStoreTest`
+  assumed), `StatusBarViewTest` (`wifiIconLevel` across platform rating ranges, and that the
+  clock is re-read when the bar returns to view but not when it leaves), `ParkStoreTest`
   (PIN round-trips against real `SharedPreferences`, the parked flag read back through a
   second instance — the path a reboot takes — and that the PIN is never written in the
   clear), `ParkLockTaskGuardTest` (the pure `shouldRequestLockTask` rule, including the

@@ -454,6 +454,28 @@
   assumed to behave like 16** — if a 15 device turns out to confirm, the constant moves up
   and nothing else changes.
 
+- **The clock needs waking, because `ACTION_TIME_TICK` does not arrive while the screen is
+  off.** The status bar drew the time once in `onAttachedToWindow` and then left it to the
+  minute tick. That is correct while the screen is on and wrong the moment it is not: the
+  system stops broadcasting the tick, so a device picked up after a night asleep showed the
+  minute it went dark, and corrected only when the next tick landed — up to a full minute of
+  confidently wrong time, read off a device whose whole job is to be glanced at. Reported
+  from the road, not from a test.
+  The fix is two refresh edges rather than a faster timer. `ACTION_SCREEN_ON` joined
+  `ACTION_TIME_TICK` on `timeReceiver`'s own filter, since every action on that filter means
+  the same single thing and the receiver body already ignored which one arrived;
+  `screenReceiver` keeps `ACTION_SCREEN_ON` separately for its GPS decision, which needs an
+  `isShown` guard the clock does not. `onWindowVisibilityChanged(VISIBLE)` re-reads it too.
+  That second edge is belt and braces: the view stays attached while the launcher is merely
+  stopped, so a plain app switch usually keeps its ticks — but a `SimpleDateFormat` and a
+  `setText` are cheaper than reasoning about which return path kept them, and the owner
+  asked for resume to be covered rather than one specific edge.
+  A polling clock was not considered seriously: the tick is free while it arrives, and
+  anything faster would burn CPU the navigation app wants. Still open, deliberately: a
+  manual time or timezone change self-corrects within a minute rather than at once, which
+  would be `ACTION_TIME_CHANGED` and `ACTION_TIMEZONE_CHANGED` on the same filter if a
+  border crossing ever makes that minute matter.
+
 ## Core Features
 
 - Fixed favourites grid (4×3 landscape / 3×4 portrait): 11 slots holding an app or a

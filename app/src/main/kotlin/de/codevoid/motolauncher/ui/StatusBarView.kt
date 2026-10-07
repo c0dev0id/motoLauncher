@@ -75,6 +75,9 @@ class StatusBarView @JvmOverloads constructor(
     private var lastBatteryIconLevel = -1
     private var lastCellularLevel = -1
 
+    // Every action on this receiver's filter means the same thing: re-read the clock. The
+    // minute tick carries it while the screen is on, and screen-on covers the gap where it
+    // does not arrive at all.
     private val timeReceiver = object : BroadcastReceiver() {
         override fun onReceive(context: Context, intent: Intent) = updateTime()
     }
@@ -170,7 +173,13 @@ class StatusBarView @JvmOverloads constructor(
         super.onAttachedToWindow()
 
         updateTime()
-        context.registerReceiver(timeReceiver, IntentFilter(Intent.ACTION_TIME_TICK))
+        // ACTION_TIME_TICK stops arriving while the screen is off, so a device picked up
+        // after a night asleep shows the minute it went dark until the next tick lands —
+        // up to a minute of confidently wrong time. ACTION_SCREEN_ON closes that window;
+        // it is on the clock's own filter because re-reading the clock is all it means.
+        context.registerReceiver(timeReceiver, IntentFilter(Intent.ACTION_TIME_TICK).also {
+            it.addAction(Intent.ACTION_SCREEN_ON)
+        })
         context.registerReceiver(screenReceiver,
             IntentFilter(Intent.ACTION_SCREEN_OFF).also { it.addAction(Intent.ACTION_SCREEN_ON) })
 
@@ -217,9 +226,19 @@ class StatusBarView @JvmOverloads constructor(
     // foreground) and resume it when the window comes back. Event-driven callbacks
     // (battery, network) are cheap enough to leave running; 1 Hz GPS polling is not.
     // Both registerGps/unregisterGps are idempotent, so no flag needed here.
+    //
+    // The clock is re-read on the way in as well. This view stays attached while the
+    // launcher is merely stopped, so the minute tick usually survives a plain app switch
+    // and this is belt and braces for the paths where it does not — a format and a
+    // setText, which is cheaper than reasoning about which of them kept their ticks.
     override fun onWindowVisibilityChanged(visibility: Int) {
         super.onWindowVisibilityChanged(visibility)
-        if (visibility == VISIBLE) registerGps() else unregisterGps()
+        if (visibility == VISIBLE) {
+            updateTime()
+            registerGps()
+        } else {
+            unregisterGps()
+        }
     }
 
     private fun updateTime() {
