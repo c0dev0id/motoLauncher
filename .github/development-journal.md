@@ -486,10 +486,12 @@
   no views. The radios were considered and left out: Wi-Fi and cellular re-deliver through
   their own callbacks once the network settles after a wake.
   A polling clock was not considered seriously: the tick is free while it arrives, and
-  anything faster would burn CPU the navigation app wants. Still open, deliberately: a
-  manual time or timezone change self-corrects within a minute rather than at once, which
-  would be `ACTION_TIME_CHANGED` and `ACTION_TIMEZONE_CHANGED` on the same filter if a
-  border crossing ever makes that minute matter.
+  anything faster would burn CPU the navigation app wants.
+  **Closed, not pending:** a manual time or timezone change still corrects at the next tick
+  rather than at once. `ACTION_TIME_CHANGED` and `ACTION_TIMEZONE_CHANGED` on the clock's
+  filter would fix it, and the owner weighed that and declined — both are rare enough that
+  a minute of lag does not justify the actions. Do not add them without being asked; the
+  resume refresh was worth it because sleeping is not rare, and that is the whole difference.
 
 ## Core Features
 
