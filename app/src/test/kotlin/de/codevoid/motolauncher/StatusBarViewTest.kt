@@ -1,5 +1,8 @@
 package de.codevoid.motolauncher
 
+import android.app.Application
+import android.content.Intent
+import android.os.BatteryManager
 import android.view.View
 import android.widget.TextView
 import androidx.test.core.app.ApplicationProvider
@@ -12,8 +15,8 @@ import org.robolectric.RobolectricTestRunner
 
 /**
  * Two things about the status bar that a device would otherwise be the only way to check:
- * how a platform signal rating maps onto the five icon states, and that the clock is
- * re-read when the bar comes back into view.
+ * how a platform signal rating maps onto the five icon states, and that the resume refresh
+ * re-reads the clock and the battery when the bar comes back into view.
  *
  * On the first: `WifiManager.calculateSignalLevel` rates a signal in `[0, maxSignalLevel]`
  * inclusive, so a device reporting a maximum of 4 has five ratings, not four. Treating the
@@ -25,6 +28,8 @@ class StatusBarViewTest {
     private fun statusBar() = StatusBarView(ApplicationProvider.getApplicationContext())
 
     private fun StatusBarView.timeText() = findViewById<TextView>(R.id.timeText)
+
+    private fun StatusBarView.batteryText() = findViewById<TextView>(R.id.batteryText)
 
     @Test
     fun mapsOneToOneOnAFiveRatingPlatform() {
@@ -93,8 +98,29 @@ class StatusBarViewTest {
         assertEquals(STALE, bar.timeText().text.toString())
     }
 
+    @Test
+    @Suppress("DEPRECATION") // sendStickyBroadcast is how a test plants one.
+    fun readsTheBatteryWhenTheBarComesBackIntoView() {
+        // What a change broadcast missed while the device slept would leave behind: the
+        // level from before it went on charge.
+        val app = ApplicationProvider.getApplicationContext<Application>()
+        app.sendStickyBroadcast(
+            Intent(Intent.ACTION_BATTERY_CHANGED)
+                .putExtra(BatteryManager.EXTRA_LEVEL, 42)
+                .putExtra(BatteryManager.EXTRA_SCALE, 100)
+                .putExtra(BatteryManager.EXTRA_PLUGGED, 0)
+        )
+
+        val bar = statusBar()
+        bar.batteryText().text = STALE
+        bar.dispatchWindowVisibilityChanged(View.VISIBLE)
+
+        // Format is the caller's business; that the sticky read landed is this test's.
+        assertTrue("left showing '${bar.batteryText().text}'", bar.batteryText().text.contains("42"))
+    }
+
     private companion object {
-        /** Cannot match [HH_MM]: the assertion has to prove a real clock was written. */
+        /** Cannot match [HH_MM] or a percentage: the assertion has to prove a real read. */
         const val STALE = "--:--"
         val HH_MM = Regex("\\d{2}:\\d{2}")
     }

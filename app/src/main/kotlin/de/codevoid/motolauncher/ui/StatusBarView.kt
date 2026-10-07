@@ -75,9 +75,8 @@ class StatusBarView @JvmOverloads constructor(
     private var lastBatteryIconLevel = -1
     private var lastCellularLevel = -1
 
-    // Every action on this receiver's filter means the same thing: re-read the clock. The
-    // minute tick carries it while the screen is on, and screen-on covers the gap where it
-    // does not arrive at all.
+    // Carries the clock while the screen is on. The gap where it does not arrive is
+    // covered by refreshOnResume, not here.
     private val timeReceiver = object : BroadcastReceiver() {
         override fun onReceive(context: Context, intent: Intent) = updateTime()
     }
@@ -117,10 +116,16 @@ class StatusBarView @JvmOverloads constructor(
         override fun onReceive(context: Context, intent: Intent) {
             when (intent.action) {
                 Intent.ACTION_SCREEN_OFF -> unregisterGps()
-                // Guard against the nav app still being in the foreground when the
-                // screen turns back on — window visibility hasn't changed in that case,
-                // so onWindowVisibilityChanged won't fire and we must not restart GPS.
-                Intent.ACTION_SCREEN_ON  -> if (isShown) registerGps()
+                Intent.ACTION_SCREEN_ON  -> {
+                    // Not behind isShown, unlike GPS below: the refresh is idempotent and
+                    // costs a format and two comparisons, which is less than working out
+                    // whether this wake also produced a visibility change.
+                    refreshOnResume()
+                    // Guard against the nav app still being in the foreground when the
+                    // screen turns back on — window visibility hasn't changed in that case,
+                    // so onWindowVisibilityChanged won't fire and we must not restart GPS.
+                    if (isShown) registerGps()
+                }
             }
         }
     }
@@ -173,13 +178,7 @@ class StatusBarView @JvmOverloads constructor(
         super.onAttachedToWindow()
 
         updateTime()
-        // ACTION_TIME_TICK stops arriving while the screen is off, so a device picked up
-        // after a night asleep shows the minute it went dark until the next tick lands —
-        // up to a minute of confidently wrong time. ACTION_SCREEN_ON closes that window;
-        // it is on the clock's own filter because re-reading the clock is all it means.
-        context.registerReceiver(timeReceiver, IntentFilter(Intent.ACTION_TIME_TICK).also {
-            it.addAction(Intent.ACTION_SCREEN_ON)
-        })
+        context.registerReceiver(timeReceiver, IntentFilter(Intent.ACTION_TIME_TICK))
         context.registerReceiver(screenReceiver,
             IntentFilter(Intent.ACTION_SCREEN_OFF).also { it.addAction(Intent.ACTION_SCREEN_ON) })
 
@@ -227,18 +226,43 @@ class StatusBarView @JvmOverloads constructor(
     // (battery, network) are cheap enough to leave running; 1 Hz GPS polling is not.
     // Both registerGps/unregisterGps are idempotent, so no flag needed here.
     //
-    // The clock is re-read on the way in as well. This view stays attached while the
-    // launcher is merely stopped, so the minute tick usually survives a plain app switch
-    // and this is belt and braces for the paths where it does not — a format and a
-    // setText, which is cheaper than reasoning about which of them kept their ticks.
+    // Coming back into view is also a resume edge, so it goes through refreshOnResume for
+    // the same reason screen-on does. This view stays attached while the launcher is
+    // merely stopped, so a plain app switch usually keeps its broadcasts; refreshing
+    // anyway is cheaper than reasoning about which return path kept which of them.
     override fun onWindowVisibilityChanged(visibility: Int) {
         super.onWindowVisibilityChanged(visibility)
         if (visibility == VISIBLE) {
-            updateTime()
+            refreshOnResume()
             registerGps()
         } else {
             unregisterGps()
         }
+    }
+
+    /**
+     * The single place that re-reads what may have gone stale while nothing was being
+     * delivered to this view. Both resume edges come through here so they cannot drift
+     * apart, the way `requestLockTask` serves every caller in `ParkActivity`.
+     *
+     * The clock needs it unconditionally: `ACTION_TIME_TICK` stops arriving while the
+     * screen is off, so a device picked up after a night asleep shows the minute it went
+     * dark until the next tick lands.
+     *
+     * The battery is only wrong if a change broadcast went missing while the device slept
+     * — being plugged in or unplugged with the screen off is the case that shows. Reading
+     * it costs nothing to be sure: `ACTION_BATTERY_CHANGED` is sticky, so a null receiver
+     * returns the current state synchronously without registering anything, and
+     * `applyBatteryIntent` compares against the last percent and icon level, so a refresh
+     * that finds no change touches no views.
+     *
+     * The radios are left alone deliberately: Wi-Fi and cellular re-deliver through their
+     * own callbacks once the network settles after a wake.
+     */
+    private fun refreshOnResume() {
+        updateTime()
+        context.registerReceiver(null, IntentFilter(Intent.ACTION_BATTERY_CHANGED))
+            ?.let(::applyBatteryIntent)
     }
 
     private fun updateTime() {

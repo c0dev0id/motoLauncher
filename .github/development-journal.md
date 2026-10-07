@@ -461,15 +461,30 @@
   minute it went dark, and corrected only when the next tick landed — up to a full minute of
   confidently wrong time, read off a device whose whole job is to be glanced at. Reported
   from the road, not from a test.
-  The fix is two refresh edges rather than a faster timer. `ACTION_SCREEN_ON` joined
-  `ACTION_TIME_TICK` on `timeReceiver`'s own filter, since every action on that filter means
-  the same single thing and the receiver body already ignored which one arrived;
-  `screenReceiver` keeps `ACTION_SCREEN_ON` separately for its GPS decision, which needs an
-  `isShown` guard the clock does not. `onWindowVisibilityChanged(VISIBLE)` re-reads it too.
-  That second edge is belt and braces: the view stays attached while the launcher is merely
-  stopped, so a plain app switch usually keeps its ticks — but a `SimpleDateFormat` and a
-  `setText` are cheaper than reasoning about which return path kept them, and the owner
-  asked for resume to be covered rather than one specific edge.
+  The fix is two refresh edges rather than a faster timer, both routed through one
+  `refreshOnResume`, on the same reasoning as `ParkActivity.requestLockTask`: a single place
+  that every caller reaches, so the edges cannot drift apart. The edges are
+  `ACTION_SCREEN_ON` on `screenReceiver`, which already had that action for its GPS
+  decision, and `onWindowVisibilityChanged(VISIBLE)`. Both are needed, and neither is
+  redundant: screen-on is the only one that fires when the screen wakes under a window that
+  was already hidden, and window visibility is the only one that fires when the launcher
+  comes back from the nav app with the screen never off. The GPS half of screen-on keeps its
+  `isShown` guard, which the refresh does not want.
+  An earlier shape put `ACTION_SCREEN_ON` on `timeReceiver`'s own filter instead, on the
+  grounds that every action there meant "re-read the clock". That stopped being true the
+  moment the battery joined the refresh, and it had `ACTION_SCREEN_ON` registered on two
+  receivers at once; one shared method is the honest version.
+  **The battery rides the same refresh.** It is far less exposed than the clock, and the
+  difference is worth keeping straight: the clock decays silently, so any sleep across a
+  minute boundary guaranteed a wrong reading, while the battery is event-driven and its last
+  value stays correct as long as nothing changed. It goes stale only when a change broadcast
+  is missed while the device sleeps, the case that shows being plugged in or unplugged with
+  the screen off. Reading it anyway costs nothing: `ACTION_BATTERY_CHANGED` is sticky, so
+  `registerReceiver(null, ...)` returns the current state synchronously with nothing
+  registered and nothing to unregister, and `applyBatteryIntent` already compares against
+  `lastBatteryPercent` and `lastBatteryIconLevel`, so a refresh that finds no change touches
+  no views. The radios were considered and left out: Wi-Fi and cellular re-deliver through
+  their own callbacks once the network settles after a wake.
   A polling clock was not considered seriously: the tick is free while it arrives, and
   anything faster would burn CPU the navigation app wants. Still open, deliberately: a
   manual time or timezone change self-corrects within a minute rather than at once, which
