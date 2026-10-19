@@ -1,6 +1,6 @@
 import unittest
 
-from changelog import play_notes, split_release
+from changelog import PLAY_LIMIT, play_notes, split_release
 
 URL = "https://example.org/releases/tag/v1.0.1"
 
@@ -76,7 +76,7 @@ class PlayNotesTest(unittest.TestCase):
 
     def test_stays_within_the_limit(self):
         notes = "### Added\n" + "".join(f"- Entry number {i} here.\n" for i in range(100))
-        self.assertLessEqual(len(play_notes(notes, URL)), 500)
+        self.assertLessEqual(len(play_notes(notes, URL)), PLAY_LIMIT)
 
     def test_only_the_link_when_no_entry_fits(self):
         self.assertEqual(

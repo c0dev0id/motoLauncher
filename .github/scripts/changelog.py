@@ -16,14 +16,13 @@ PLAY_LIMIT = 500
 def split_release(changelog, version, date):
     """Returns the changelog with its unreleased entries under a version heading, and the entries."""
     start = changelog.index(UNRELEASED) + len(UNRELEASED)
-    next_version = changelog.find("\n## [", start)
-    end = len(changelog) if next_version == -1 else next_version + 1
+    end = changelog.find("\n## [", start)
+    if end == -1:
+        end = len(changelog)
     notes = changelog[start:end].strip()
     if not notes:
         raise SystemExit("CHANGELOG.md has nothing under [Unreleased]")
-    older = changelog[end:]
-    updated = f"{changelog[:start]}\n\n## [{version}] - {date}\n\n{notes}\n"
-    return (updated + "\n" + older if older else updated), notes
+    return f"{changelog[:start]}\n\n## [{version}] - {date}\n\n{notes}\n{changelog[end:]}", notes
 
 
 def entries(notes):
@@ -50,14 +49,14 @@ def plain(text):
     return re.sub(r"\[([^\]]+)\]\([^)]*\)", r"\1", text)
 
 
-def play_notes(notes, url, limit=PLAY_LIMIT):
-    """Plain-text notes: leading whole entries that fit within limit, then a link to url."""
+def play_notes(notes, url):
+    """Plain-text notes: leading whole entries that fit within PLAY_LIMIT, then a link to url."""
     footer = f"Full release notes: {url}"
     lines, last_heading = [], None
     for heading, entry in entries(notes):
         added = [heading] if heading and heading != last_heading else []
         added.append("• " + plain(entry))
-        if len("\n".join(lines + added + ["", footer])) > limit:
+        if len("\n".join(lines + added + ["", footer])) > PLAY_LIMIT:
             break
         lines += added
         last_heading = heading
@@ -65,16 +64,17 @@ def play_notes(notes, url, limit=PLAY_LIMIT):
 
 
 def main(argv):
-    if argv[:1] == ["release"] and len(argv) == 3:
-        with open("CHANGELOG.md", encoding="utf-8") as f:
-            updated, notes = split_release(f.read(), argv[1], argv[2])
-        with open("CHANGELOG.md", "w", encoding="utf-8") as f:
-            f.write(updated)
-        print(notes)
-    elif argv[:1] == ["play-notes"] and len(argv) == 2:
-        sys.stdout.write(play_notes(sys.stdin.read(), argv[1]))
-    else:
-        raise SystemExit(__doc__)
+    match argv:
+        case ["release", version, date]:
+            with open("CHANGELOG.md", encoding="utf-8") as f:
+                updated, notes = split_release(f.read(), version, date)
+            with open("CHANGELOG.md", "w", encoding="utf-8") as f:
+                f.write(updated)
+            print(notes)
+        case ["play-notes", url]:
+            sys.stdout.write(play_notes(sys.stdin.read(), url))
+        case _:
+            raise SystemExit(__doc__)
 
 
 if __name__ == "__main__":
