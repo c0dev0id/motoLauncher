@@ -34,22 +34,6 @@ they are what a change is judged by:
 
 ## Conventions
 
-Commits are authored as `c0dev0id <sh+git@codevoid.de>` with no trailers. Each change
-that affects behaviour or a load-bearing decision updates `CHANGELOG.md` (Keep a
-Changelog, under `[Unreleased]`) and whichever development documents in `.github/` it
-touches, in the same task:
-
-| File | Holds |
-|---|---|
-| `overview.md` | The problem and how the app solves it |
-| `architecture.md` | Component, layer and persistent-state diagrams (Mermaid) |
-| `stackinfo.md` | Stack, versions, target devices, CI |
-| `decisions.md` | Key decisions with context and rationale; every "why" that is not a code comment |
-| `features.md` | Core features, developer-facing |
-
-User documentation is `README.md` (orientation, under ~100 lines) and
-`docs/user-guide.md` (one section per user flow).
-
 The changelog is written for the rider, not the developer, and a version's entries must
 not contradict each other: `[Unreleased]` reads as the net description of the coming
 release, so when a change supersedes something an earlier unreleased entry says, fold it
@@ -61,8 +45,8 @@ listed under Fixed or Changed, and no entry describes a change from a prior stat
 — no class names, permission constants, resource qualifiers or CI; that material belongs
 in `.github/`.
 
-Read `decisions.md` before proposing structural changes — most of them were reached
-after a failed simpler attempt, and it records why. Where `.github/` and this file
+Read `.github/decisions.md` before proposing structural changes — most of them were
+reached after a failed simpler attempt, and it records why. Where `.github/` and this file
 disagree, the code wins and the stale one gets fixed in the same task.
 
 ## Hard UX constraints (glove + remote usage)
