@@ -415,8 +415,6 @@ Neither workflow can be run locally, and a green `Check` is the first real signa
 branch gets — it does not cover the release build, so a minification or shrinking failure
 still surfaces only after a merge.
 
-Read CI results through the **`ci-verifier`** subagent (`.claude/agents/ci-verifier.md`):
-it fetches only the failed-step logs for the latest run of either workflow and hands back
-a punch list, keeping the large log output out of the main conversation. It is written against
-`gh`; in sessions where `gh` is not installed, the GitHub MCP tools (`actions_list`,
-`actions_get`, `get_job_logs`) reach the same runs. There is no `.gh_token` in the repo.
+Read CI results through the GitHub MCP tools (`actions_list`, `actions_get`,
+`get_job_logs`), fetching only the failed steps' logs — the full logs are large. There
+is no `.gh_token` in the repo.
