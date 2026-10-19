@@ -16,12 +16,12 @@ class ParkLockTaskGuardTest {
 
     private fun shouldRequest(
         parked: Boolean = true,
-        setMode: Boolean = false,
+        isSettingPin: Boolean = false,
         finishing: Boolean = false,
         lockTaskActive: Boolean = false,
         sinceLastRequestMs: Long = 10_000,
     ) = ParkActivity.shouldRequestLockTask(
-        parked, setMode, finishing, lockTaskActive, sinceLastRequestMs,
+        parked, isSettingPin, finishing, lockTaskActive, sinceLastRequestMs,
     )
 
     @Test
@@ -49,7 +49,7 @@ class ParkLockTaskGuardTest {
     @Test
     fun doesNotRequestWhileSettingAPin() {
         // PIN setup happens at a desk and never pins.
-        assertFalse(shouldRequest(setMode = true))
+        assertFalse(shouldRequest(isSettingPin = true))
     }
 
     @Test

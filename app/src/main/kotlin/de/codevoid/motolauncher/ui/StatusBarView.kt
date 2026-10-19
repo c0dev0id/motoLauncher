@@ -23,9 +23,9 @@ import android.telephony.TelephonyManager
 import android.util.AttributeSet
 import android.view.Gravity
 import android.view.LayoutInflater
-import android.view.View
 import android.widget.LinearLayout
 import androidx.core.content.ContextCompat
+import androidx.core.view.isVisible
 import de.codevoid.motolauncher.R
 import de.codevoid.motolauncher.data.BatteryDisplay
 import de.codevoid.motolauncher.data.BatteryStore
@@ -135,11 +135,11 @@ class StatusBarView @JvmOverloads constructor(
     private val wifiStateReceiver = object : BroadcastReceiver() {
         override fun onReceive(context: Context, intent: Intent) {
             when (intent.getIntExtra(WifiManager.EXTRA_WIFI_STATE, WifiManager.WIFI_STATE_UNKNOWN)) {
-                WifiManager.WIFI_STATE_ENABLED -> showWifiIcon(true)
+                WifiManager.WIFI_STATE_ENABLED -> binding.wifiIcon.isVisible = true
                 WifiManager.WIFI_STATE_DISABLED -> {
                     wifiNetworks.clear()
                     applyWifiLevel(0)
-                    showWifiIcon(false)
+                    binding.wifiIcon.isVisible = false
                 }
             }
         }
@@ -161,7 +161,7 @@ class StatusBarView @JvmOverloads constructor(
             SpeedStore.KEY_SPEED_ENABLED -> if (speedStore.enabled) registerGps() else unregisterGps()
             SpeedStore.KEY_SPEED_METRIC -> {
                 // Next GPS fix (~1 s) will overwrite this; just update the unit in the placeholder.
-                if (binding.speedText.visibility == View.VISIBLE) {
+                if (binding.speedText.isVisible) {
                     binding.speedText.text = "-- ${speedUnitString(speedStore.isMetric)}"
                 }
             }
@@ -192,7 +192,7 @@ class StatusBarView @JvmOverloads constructor(
 
         // Set initial visibility from the current radio state; wifiStateReceiver handles
         // subsequent on/off changes. Network callback handles RSSI updates.
-        showWifiIcon(wifiManager.isWifiEnabled)
+        binding.wifiIcon.isVisible = wifiManager.isWifiEnabled
         context.registerReceiver(wifiStateReceiver, IntentFilter(WifiManager.WIFI_STATE_CHANGED_ACTION))
         val wifiRequest = NetworkRequest.Builder()
             .addTransportType(NetworkCapabilities.TRANSPORT_WIFI)
@@ -296,10 +296,6 @@ class StatusBarView @JvmOverloads constructor(
         binding.wifiIcon.setImageLevel(level)
     }
 
-    private fun showWifiIcon(connected: Boolean) {
-        binding.wifiIcon.visibility = if (connected) View.VISIBLE else View.GONE
-    }
-
     private fun rssiToIconLevel(rssi: Int): Int =
         wifiIconLevel(wifiManager.calculateSignalLevel(rssi), wifiMaxSignalLevel)
 
@@ -309,14 +305,10 @@ class StatusBarView @JvmOverloads constructor(
         binding.cellularIcon.setImageLevel(level)
     }
 
-    private fun showCellularIcon(connected: Boolean) {
-        binding.cellularIcon.visibility = if (connected) View.VISIBLE else View.GONE
-    }
-
     // Three gates: cellularEnabled (user toggle), telephony available on API 31+, and
     // READ_PHONE_STATE granted. All must hold or nothing is registered and the icon stays hidden.
     private fun registerCellular() {
-        showCellularIcon(false)
+        binding.cellularIcon.isVisible = false
         if (!cellularStore.enabled) return
         val tm = telephonyManager
         if (tm == null || Build.VERSION.SDK_INT < Build.VERSION_CODES.S) return
@@ -331,11 +323,11 @@ class StatusBarView @JvmOverloads constructor(
         signalCallback = cb
         tm.registerTelephonyCallback(context.mainExecutor, cb)
         applyCellularLevel(0)
-        showCellularIcon(true)
+        binding.cellularIcon.isVisible = true
     }
 
     private fun unregisterCellular() {
-        showCellularIcon(false)
+        binding.cellularIcon.isVisible = false
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
             signalCallback?.let { telephonyManager?.unregisterTelephonyCallback(it) }
         }
@@ -343,32 +335,30 @@ class StatusBarView @JvmOverloads constructor(
     }
 
     private fun registerGps() {
-        binding.speedText.visibility = View.GONE
+        binding.speedText.isVisible = false
         if (!speedStore.enabled) return
-        if (!context.packageManager.hasSystemFeature(android.content.pm.PackageManager.FEATURE_LOCATION_GPS)) return
+        if (!context.packageManager.hasSystemFeature(PackageManager.FEATURE_LOCATION_GPS)) return
         if (ContextCompat.checkSelfPermission(context, Manifest.permission.ACCESS_FINE_LOCATION)
             != PackageManager.PERMISSION_GRANTED) return
         locationManager.requestLocationUpdates(
             LocationManager.GPS_PROVIDER, 1000L, 0f, locationListener, context.mainLooper
         )
         binding.speedText.text = "-- ${speedUnitString(speedStore.isMetric)}"
-        binding.speedText.visibility = View.VISIBLE
+        binding.speedText.isVisible = true
     }
 
     private fun unregisterGps() {
         locationManager.removeUpdates(locationListener)
-        binding.speedText.visibility = View.GONE
+        binding.speedText.isVisible = false
     }
 
     private fun speedUnitString(metric: Boolean): String =
         context.getString(if (metric) R.string.units_kmh else R.string.units_mph)
 
     private fun applyBatteryDisplay() {
-        when (batteryStore.display) {
-            BatteryDisplay.BOTH -> { binding.batteryIcon.visibility = View.VISIBLE; binding.batteryText.visibility = View.VISIBLE }
-            BatteryDisplay.ICON -> { binding.batteryIcon.visibility = View.VISIBLE; binding.batteryText.visibility = View.GONE }
-            BatteryDisplay.TEXT -> { binding.batteryIcon.visibility = View.GONE;    binding.batteryText.visibility = View.VISIBLE }
-        }
+        val display = batteryStore.display
+        binding.batteryIcon.isVisible = display != BatteryDisplay.TEXT
+        binding.batteryText.isVisible = display != BatteryDisplay.ICON
     }
 
     companion object {

@@ -50,7 +50,7 @@ class ParkActivity : AppCompatActivity() {
     // Read from the current intent, not cached: this activity is singleInstance, so a
     // later lockIntent arrives at the same instance through onNewIntent. An abandoned
     // set-PIN screen would otherwise come back as set-PIN when the user parks.
-    private val setMode get() = intent.getBooleanExtra(EXTRA_SET_PIN, false)
+    private val isSettingPin get() = intent.getBooleanExtra(EXTRA_SET_PIN, false)
 
     // Cached: looked up several times a second by the guard, and fixed for the life of
     // the activity.
@@ -73,7 +73,7 @@ class ParkActivity : AppCompatActivity() {
     private val lockTaskGuard = object : Runnable {
         override fun run() {
             // Disarmed: stop rearming rather than keep polling a screen on its way out.
-            if (setMode || isFinishing || !store.isParked || lockTaskUnavailable) return
+            if (isSettingPin || isFinishing || !store.isParked || lockTaskUnavailable) return
             // One lockTaskModeState read per pass: it is a Binder round trip.
             requestLockTask(readLockTaskState())
             binding.root.postDelayed(this, GUARD_INTERVAL_MS)
@@ -85,7 +85,7 @@ class ParkActivity : AppCompatActivity() {
     // than a fresh lambda per request: this way disarming cancels it too, instead of
     // leaving callbacks that outlive the screen they were posted from.
     private val settleCheck = Runnable {
-        if (isFinishing || setMode) return@Runnable
+        if (isFinishing || isSettingPin) return@Runnable
         if (!readLockTaskState() && !everPinned) {
             lockTaskUnavailable = true
             disarmLockTaskGuard()
@@ -135,7 +135,7 @@ class ParkActivity : AppCompatActivity() {
         // The parked flag is this screen's own invariant — "only this may be in front" —
         // so it is set here rather than by whoever launched us. No entry point has to
         // remember a protocol, and HomeActivity's restore path is simply re-entering here.
-        if (!setMode) store.isParked = true
+        if (!isSettingPin) store.isParked = true
         // Pinning is requested here, not in onCreate: startLockTask needs a resumed
         // activity, which also covers the restore-after-reboot path.
         requestLockTask(readLockTaskState())
@@ -176,7 +176,7 @@ class ParkActivity : AppCompatActivity() {
     private fun submit() {
         val pin = entered.toString()
         entered.clear()
-        if (setMode) submitSetPin(pin) else submitUnlock(pin)
+        if (isSettingPin) submitSetPin(pin) else submitUnlock(pin)
     }
 
     private fun submitSetPin(pin: String) {
@@ -214,7 +214,7 @@ class ParkActivity : AppCompatActivity() {
 
     private fun render() {
         binding.parkPrompt.text = message ?: when {
-            !setMode -> getString(R.string.park_enter_pin)
+            !isSettingPin -> getString(R.string.park_enter_pin)
             firstEntry == null ->
                 getString(if (store.hasPin) R.string.park_change_pin else R.string.park_new_pin)
             else -> getString(R.string.park_repeat_pin)
@@ -241,7 +241,7 @@ class ParkActivity : AppCompatActivity() {
     private fun requestLockTask(lockTaskActive: Boolean) {
         if (!shouldRequestLockTask(
                 parked = store.isParked,
-                setMode = setMode,
+                isSettingPin = isSettingPin,
                 finishing = isFinishing,
                 lockTaskActive = lockTaskActive,
                 sinceLastRequestMs = SystemClock.elapsedRealtime() - lastLockTaskRequestAt,
@@ -260,7 +260,7 @@ class ParkActivity : AppCompatActivity() {
     }
 
     private fun armLockTaskGuard() {
-        if (setMode || lockTaskUnavailable) return
+        if (isSettingPin || lockTaskUnavailable) return
         binding.root.removeCallbacks(lockTaskGuard)
         binding.root.postDelayed(lockTaskGuard, GUARD_INTERVAL_MS)
     }
@@ -292,11 +292,11 @@ class ParkActivity : AppCompatActivity() {
          */
         fun shouldRequestLockTask(
             parked: Boolean,
-            setMode: Boolean,
+            isSettingPin: Boolean,
             finishing: Boolean,
             lockTaskActive: Boolean,
             sinceLastRequestMs: Long,
-        ): Boolean = parked && !setMode && !finishing && !lockTaskActive &&
+        ): Boolean = parked && !isSettingPin && !finishing && !lockTaskActive &&
             sinceLastRequestMs >= LOCK_TASK_SETTLE_MS
 
         /**

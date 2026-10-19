@@ -53,7 +53,7 @@ class HomeActivity : AppCompatActivity() {
     // activity (no `orientation` in configChanges, which is what reshapes the grid), and
     // an activity-scoped cache would start empty each time and redo the whole resolve on
     // the main thread in onResume — exactly the work it exists to avoid.
-    private val cache: FavoritesCache by viewModels()
+    private val favoritesCache: FavoritesCache by viewModels()
 
     // A short ESC stays inert: Home is the launcher root, there is nowhere to go back to.
     // Holding it launches the configured navigation app — still only a launch, so the
@@ -143,13 +143,13 @@ class HomeActivity : AppCompatActivity() {
     private fun buildGrid() {
         val slots = favorites.allSlots()
         val generation = (application as MotoLauncherApp).packageGeneration
-        if (generation != cache.generation || slots != cache.slots) {
+        if (generation != favoritesCache.generation || slots != favoritesCache.slots) {
             val appComponents = slots.filterIsInstance<SlotEntry.App>().map { it.component }
-            cache.apps = repository.loadByComponents(appComponents)
-            cache.generation = generation
-            cache.slots = slots
+            favoritesCache.apps = repository.loadByComponents(appComponents)
+            favoritesCache.generation = generation
+            favoritesCache.slots = slots
         }
-        val apps = cache.apps
+        val apps = favoritesCache.apps
 
         slots.forEachIndexed { index, slotEntry ->
             when (slotEntry) {

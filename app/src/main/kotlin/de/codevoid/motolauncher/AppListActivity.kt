@@ -262,7 +262,7 @@ class AppListActivity : AppCompatActivity() {
             onEnable = { cellularPermissionLauncher.launch(Manifest.permission.READ_PHONE_STATE) },
         ))
 
-        if (packageManager.hasSystemFeature(android.content.pm.PackageManager.FEATURE_LOCATION_GPS)) {
+        if (packageManager.hasSystemFeature(PackageManager.FEATURE_LOCATION_GPS)) {
             tiles.add(permissionToggleTile(
                 label = getString(R.string.gps_speed),
                 enabled = speedStore.enabled,
