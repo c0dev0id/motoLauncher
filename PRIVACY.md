@@ -24,4 +24,4 @@ The Google Play version makes no network connections. The version from the GitHu
 page connects to GitHub only when you tap the update check, to look for and download a
 newer version.
 
-Questions: <https://github.com/c0dev0id/motoLauncher/issues>
+Questions: https://github.com/c0dev0id/motoLauncher/issues

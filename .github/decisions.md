@@ -428,7 +428,8 @@ releases, hence the status input.
 ### The privacy policy is shown, not linked
 Play requires a privacy policy linked in the Console and shown or linked inside the app.
 The device is mostly offline, so the settings tile shows the text itself. `PRIVACY.md`
-is the copy the Console links to; the two are kept identical by hand.
+is the copy the Console links to; `PrivacyPolicyTest` fails when the in-app text is not
+its body.
 
 ## Build and CI
 

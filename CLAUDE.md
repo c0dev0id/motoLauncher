@@ -106,7 +106,7 @@ These drive nearly every UI decision — violating them defeats the point of the
   pre-release, and offers the install if they differ. Must be **user-triggered** (the
   device is mostly offline — never auto-poll the network).
 - **Privacy policy** shown as text from the settings mode (Play requires it in-app);
-  keep `privacy_policy_text` identical to `PRIVACY.md`.
+  `privacy_policy_text` is the body of `PRIVACY.md`, and `PrivacyPolicyTest` compares them.
 
 ## Architecture
 
@@ -389,13 +389,14 @@ republishes the `dev` pre-release. Three parallel jobs plus a follow-up release 
   unit tests in `app/src/test/kotlin` (`isIncludeAndroidResources = true`, so real resources and view
   inflation work; see *Commands* for running a single class or test).
   Robolectric runs them against SDK 36, which needs JDK 21 — hence JDK 21 in CI.
-  Eleven classes, and the shape they set: `AppRepositoryTest` (the pure `sortApps` /
+  Twelve classes, and the shape they set: `AppRepositoryTest` (the pure `sortApps` /
   `filterApps`), `FavoritesStoreTest` (app and link slot round-trips against real
   `SharedPreferences`, the two representations cleaning each other up, and
   `clearSlotsForPackage` matching whole package names and leaving link slots alone),
   `UpdateCheckerTest` (`parseRelease` / `isNewer` / `releaseApiUrl` /
   `deleteInstalledUpdate` over JSON fixtures and temp files), `ImmersiveTest` (content
-  padding follows dispatched bar and cutout insets), `TileActionsDialogTest` (inflates the dialog through the
+  padding follows dispatched bar and cutout insets), `PrivacyPolicyTest` (the in-app text is
+  the body of `PRIVACY.md`, read from the module's parent directory), `TileActionsDialogTest` (inflates the dialog through the
   handle `showTileActionsDialog` returns: row order, optional rows hidden, one callback per
   row, dismissal), `EscapeKeysTest` (short vs. held Escape, dispatched through a real
   `KeyEvent.DispatcherState` so the framework's tracking rules are exercised rather than
