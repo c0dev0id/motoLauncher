@@ -145,11 +145,13 @@ update-check state and the download subtitle, so the theme toggle's `recreate()`
 returns to settings mode. A short Escape leaves settings mode before it leaves the
 screen.
 
-### The first three settings tiles are fixed
-`UPDATE_TILE_INDEX` is 2 (theme, navigation app, update) so download progress can patch
-one tile in place instead of re-rendering the list on every progress callback.
-Conditional tiles go after it. The play flavor has no update tile and nothing reads the
-index there.
+### Download progress finds the update tile by its label
+Progress patches one tile in place instead of re-rendering the list on every callback.
+The tile used to be addressed as position 2 of the settings list, but the adapter does
+not always show that list: a search filter shortens it, which crashed on the first
+progress tick or overwrote another tile, and leaving settings mode during a download put
+the update tile over an app. The tile is now matched by its label in the settings cache
+and, only while settings mode shows, in the adapter. Tile order carries no meaning.
 
 ### Hidden apps are stored per package
 `HiddenAppsStore` keeps a `Set<String>` of package names, read once per render.

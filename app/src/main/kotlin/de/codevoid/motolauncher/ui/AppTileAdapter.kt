@@ -19,8 +19,11 @@ class AppTileAdapter(private var items: List<TileItem>) :
         notifyDataSetChanged()
     }
 
-    fun updateItem(position: Int, item: TileItem) {
-        items = items.toMutableList().also { it[position] = item }
+    /** Replaces the first item that [matches] with [update] of it; does nothing when none matches. */
+    fun updateItem(matches: (TileItem) -> Boolean, update: (TileItem) -> TileItem) {
+        val position = items.indexOfFirst(matches)
+        if (position == -1) return
+        items = items.toMutableList().also { it[position] = update(it[position]) }
         notifyItemChanged(position)
     }
 

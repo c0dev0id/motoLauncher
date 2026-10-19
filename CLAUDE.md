@@ -165,9 +165,9 @@ Package layout under `de.codevoid.motolauncher`:
   cellular toggle, GPS speed toggle + units when the device has `FEATURE_LOCATION_GPS`,
   battery display, hidden apps, orientation, nav bar, privacy policy). The settings list
   is cached in `settingsTilesCache`; every tile that changes state sets it to `null` before
-  re-rendering. `UPDATE_TILE_INDEX` hard-codes the update tile's position (theme 0, nav
-  app 1, update 2) for in-place progress updates — reorder the first three tiles and the
-  progress lands on the wrong tile. Permission-gated toggles (cellular, GPS) go through
+  re-rendering. Download progress patches the update tile in place, found by its label:
+  in `settingsTilesCache`, and on screen only while settings mode shows, because the
+  adapter may hold a search-filtered list or the app grid. Permission-gated toggles (cellular, GPS) go through
   `registerForActivityResult(RequestPermission())`; the store flips to enabled only on
   grant. A short Escape exits settings mode before finishing. Activity transitions are
   disabled (`noTransition()`) in both directions.
@@ -200,7 +200,7 @@ Package layout under `de.codevoid.motolauncher`:
   finish-if-parked guard. The keypad sits in a `TouchOnlyRow`, so the whole subtree is
   invisible to dpad traversal — the remote must never drive it. Entry point is the Park
   lock tile in the app list's settings mode (tap to lock or set a PIN, long-press to
-  change it), placed after the update tile so `UPDATE_TILE_INDEX` stays valid. That tile
+  change it). That tile
   is the only way in, and it appears only when `shouldOfferParkLock` — the second pure,
   unit-tested rule here — says the lock is worth reaching: Android 15+ (below it the
   system confirms every `startLockTask()`, so the guard raises a dialog instead of
@@ -244,8 +244,9 @@ Package layout under `de.codevoid.motolauncher`:
   (not by Home). Callers compose a `List<TileItem>` (label, optional subtitle, optional
   icon, `dimmed`); the adapter stays dumb, calls `blockKeyLongPress()` once per view
   holder, and resets icon/subtitle visibility and `isLongClickable` on every bind because
-  recycled holders carry the previous item's state. `updateItem` rebinds one position for
-  the download-progress subtitle.
+  recycled holders carry the previous item's state. `updateItem` replaces the first item
+  matching a predicate, and does nothing when none matches, for the download-progress
+  subtitle.
 - `ui/UpdateFlow.kt` — `AppCompatActivity.runUpdateFlow(setClickable, setSubtitle)`: the
   whole check / prompt / download / error flow; outcomes as `AlertDialog`s, progress
   (`"45% · 2.2 MB/s"`, throttled to 500 ms) through `setSubtitle`. The percentage is
@@ -389,14 +390,16 @@ republishes the `dev` pre-release. Three parallel jobs plus a follow-up release 
   unit tests in `app/src/test/kotlin` (`isIncludeAndroidResources = true`, so real resources and view
   inflation work; see *Commands* for running a single class or test).
   Robolectric runs them against SDK 36, which needs JDK 21 — hence JDK 21 in CI.
-  Twelve classes, and the shape they set: `AppRepositoryTest` (the pure `sortApps` /
+  Thirteen classes, and the shape they set: `AppRepositoryTest` (the pure `sortApps` /
   `filterApps`), `FavoritesStoreTest` (app and link slot round-trips against real
   `SharedPreferences`, the two representations cleaning each other up, and
   `clearSlotsForPackage` matching whole package names and leaving link slots alone),
   `UpdateCheckerTest` (`parseRelease` / `isNewer` / `releaseApiUrl` /
   `deleteInstalledUpdate` over JSON fixtures and temp files), `ImmersiveTest` (content
   padding follows dispatched bar and cutout insets), `PrivacyPolicyTest` (the in-app text is
-  the body of `PRIVACY.md`, read from the module's parent directory), `TileActionsDialogTest` (inflates the dialog through the
+  the body of `PRIVACY.md`, read from the module's parent directory), `AppTileAdapterTest`
+  (`updateItem` patches only the matching tile and ignores a missing one),
+  `TileActionsDialogTest` (inflates the dialog through the
   handle `showTileActionsDialog` returns: row order, optional rows hidden, one callback per
   row, dismissal), `EscapeKeysTest` (short vs. held Escape, dispatched through a real
   `KeyEvent.DispatcherState` so the framework's tracking rules are exercised rather than

@@ -220,10 +220,6 @@ class AppListActivity : AppCompatActivity() {
 
         if (BuildConfig.SELF_UPDATE) tiles.add(updateTile())
 
-        // Deliberately after the update tile: UPDATE_TILE_INDEX hard-codes position 2 for
-        // in-place download progress, so nothing may be inserted before it. Everything
-        // below may come and go — only the first three positions are fixed.
-        //
         // The park lock is hidden outright where it is not worth reaching; see
         // shouldOfferParkLock. A secure lock screen can be set while this activity lives,
         // and the decision is then as stale as the rest of settingsTilesCache until the
@@ -322,8 +318,9 @@ class AppListActivity : AppCompatActivity() {
         // against a double-tap while the network call is in flight.
         val isChecking = viewModel.isCheckingUpdate
         val progressSub = viewModel.downloadProgressSubtitle
+        val label = getString(R.string.check_for_updates)
         return TileItem(
-            label = getString(R.string.check_for_updates),
+            label = label,
             subtitle = when {
                 progressSub != null -> progressSub
                 isChecking -> getString(R.string.checking_updates)
@@ -342,13 +339,15 @@ class AppListActivity : AppCompatActivity() {
                             renderCurrentMode()
                         }
                     },
+                    // The shown list may be search-filtered or the app grid: find the tile
+                    // by label, and patch the screen only in settings mode.
                     setSubtitle = { text ->
                         viewModel.downloadProgressSubtitle = text
-                        val cache = settingsTilesCache
-                        if (cache != null) {
-                            val updated = cache[UPDATE_TILE_INDEX].copy(subtitle = text)
-                            settingsTilesCache = cache.toMutableList().also { it[UPDATE_TILE_INDEX] = updated }
-                            adapter.updateItem(UPDATE_TILE_INDEX, updated)
+                        settingsTilesCache = settingsTilesCache?.map {
+                            if (it.label == label) it.copy(subtitle = text) else it
+                        }
+                        if (viewModel.isSettingsMode) {
+                            adapter.updateItem({ it.label == label }) { it.copy(subtitle = text) }
                         }
                     },
                 )
@@ -513,7 +512,6 @@ class AppListActivity : AppCompatActivity() {
         private const val EXTRA_PICK_SLOT = "pick_slot"
         private const val EXTRA_PICK_NAV_APP = "pick_nav_app"
         private const val NO_SLOT = -1
-        private const val UPDATE_TILE_INDEX = 2 // theme=0, nav_app=1, update=2
 
         // FULL_SENSOR rather than SENSOR or USER: it is the exact superset of the four
         // fixed options above, so "Sensor" can reach every orientation the list can name,
