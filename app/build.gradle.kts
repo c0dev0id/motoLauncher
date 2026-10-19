@@ -15,6 +15,19 @@ android {
         versionName = (project.findProperty("appVersionName") as String?).takeIf { !it.isNullOrEmpty() } ?: "dev-local"
     }
 
+    // github: the release-page APK, with the self-updater. play: the Google Play build, without it.
+    flavorDimensions += "distribution"
+    productFlavors {
+        create("github") {
+            dimension = "distribution"
+            buildConfigField("boolean", "SELF_UPDATE", "true")
+        }
+        create("play") {
+            dimension = "distribution"
+            buildConfigField("boolean", "SELF_UPDATE", "false")
+        }
+    }
+
     val keystorePath = System.getenv("SIGNING_KEYSTORE_PATH")
     val keystorePassword = System.getenv("SIGNING_KEYSTORE_PASSWORD")
     val signingKeyAlias = System.getenv("SIGNING_KEY_ALIAS")

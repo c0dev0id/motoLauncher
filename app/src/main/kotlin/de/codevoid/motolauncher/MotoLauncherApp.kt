@@ -48,7 +48,9 @@ class MotoLauncherApp : Application() {
         // comes back up. A plain thread rather than a coroutine: Home never loads
         // kotlinx.coroutines, and this keeps a possibly cold cache-dir read off the
         // first frame.
-        thread(name = "delete-installed-update") { UpdateChecker(this).deleteInstalledUpdate() }
+        if (BuildConfig.SELF_UPDATE) {
+            thread(name = "delete-installed-update") { UpdateChecker(this).deleteInstalledUpdate() }
+        }
         watchPackages()
     }
 

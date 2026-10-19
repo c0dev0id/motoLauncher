@@ -49,14 +49,14 @@ jobs:
           restore-keys: robolectric-
 
       - name: Run unit tests
-        run: ./gradlew testDebugUnitTest
+        run: ./gradlew testGithubDebugUnitTest testPlayDebugUnitTest
 
       - name: Upload test report
         if: failure()
         uses: actions/upload-artifact@v4
         with:
           name: test-report
-          path: app/build/reports/tests/testDebugUnitTest
+          path: app/build/reports/tests/
           if-no-files-found: ignore
 
   build:
@@ -78,7 +78,7 @@ jobs:
         run: |
           echo "${{ secrets.SIGNING_KEYSTORE_BASE64 }}" | base64 -d > "${{ runner.temp }}/release.keystore"
 
-      - name: Build signed release APK
+      - name: Build signed GitHub release APK
         env:
           SIGNING_KEYSTORE_PATH: ${{ runner.temp }}/release.keystore
           SIGNING_KEYSTORE_PASSWORD: ${{ secrets.SIGNING_KEYSTORE_PASSWORD }}
@@ -86,7 +86,7 @@ jobs:
           SIGNING_KEY_PASSWORD: ${{ secrets.SIGNING_KEY_PASSWORD }}
         run: |
           SHORT_SHA="${GITHUB_SHA:0:7}"
-          ./gradlew assembleRelease \
+          ./gradlew assembleGithubRelease \
             -PappVersionName="dev-${SHORT_SHA}" \
             -PappVersionCode="${GITHUB_RUN_NUMBER}"
 
@@ -94,7 +94,7 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: app-release
-          path: app/build/outputs/apk/release/app-release.apk
+          path: app/build/outputs/apk/github/release/app-github-release.apk
 
   draft-release:
     needs: build
@@ -113,7 +113,7 @@ jobs:
       - name: Rename APK
         run: |
           SHORT_SHA="${GITHUB_SHA:0:7}"
-          mv app-release.apk "motoLauncher-dev-${SHORT_SHA}.apk"
+          mv app-github-release.apk "motoLauncher-dev-${SHORT_SHA}.apk"
           echo "apk_name=motoLauncher-dev-${SHORT_SHA}.apk" >> "$GITHUB_ENV"
 
       - name: Delete existing dev release

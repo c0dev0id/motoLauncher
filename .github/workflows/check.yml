@@ -44,20 +44,23 @@ jobs:
           key: robolectric-${{ hashFiles('app/build.gradle.kts') }}
           restore-keys: robolectric-
 
-      # One Gradle invocation rather than three jobs: all three tasks share
-      # compileDebugKotlin and a single daemon start-up, and lintDebug covers one
-      # variant instead of lint's debug + release. --continue reports lint, test
-      # and compile failures from the same run instead of stopping at the first.
+      # One Gradle invocation: shared compilation and daemon start-up, and --continue
+      # reports lint, test and compile failures together. Both flavors, since their
+      # manifests and settings differ.
       - name: Lint, test and build debug
-        run: ./gradlew --continue lintDebug testDebugUnitTest assembleDebug
+        run: >-
+          ./gradlew --continue
+          lintGithubDebug lintPlayDebug
+          testGithubDebugUnitTest testPlayDebugUnitTest
+          assembleGithubDebug assemblePlayDebug
 
-      # The project cannot be built locally, so this is the only way to get a branch
-      # onto the device. It installs beside the release build (.debug applicationId).
-      - name: Upload debug APK
+      # The only way to get a branch onto the device. Both flavors install beside the
+      # release build (.debug applicationId) and replace each other.
+      - name: Upload debug APKs
         uses: actions/upload-artifact@v4
         with:
           name: app-debug
-          path: app/build/outputs/apk/debug/app-debug.apk
+          path: app/build/outputs/apk/*/debug/*.apk
           retention-days: 14
           if-no-files-found: error
 
@@ -67,6 +70,8 @@ jobs:
         with:
           name: check-reports
           path: |
-            app/build/reports/tests/testDebugUnitTest
-            app/build/reports/lint-results-debug.html
+            app/build/reports/tests/testGithubDebugUnitTest
+            app/build/reports/tests/testPlayDebugUnitTest
+            app/build/reports/lint-results-githubDebug.html
+            app/build/reports/lint-results-playDebug.html
           if-no-files-found: ignore
