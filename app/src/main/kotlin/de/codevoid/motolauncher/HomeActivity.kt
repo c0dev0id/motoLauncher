@@ -3,7 +3,6 @@ package de.codevoid.motolauncher
 import android.content.ComponentName
 import android.content.Intent
 import android.graphics.drawable.Drawable
-import android.net.Uri
 import android.os.Bundle
 import android.view.KeyEvent
 import android.view.LayoutInflater
@@ -12,6 +11,7 @@ import android.widget.LinearLayout
 import androidx.activity.addCallback
 import androidx.activity.viewModels
 import androidx.appcompat.app.AppCompatActivity
+import androidx.core.net.toUri
 import androidx.lifecycle.ViewModel
 import de.codevoid.motolauncher.data.AppEntry
 import de.codevoid.motolauncher.data.AppRepository
@@ -143,87 +143,72 @@ class HomeActivity : AppCompatActivity() {
     private fun buildGrid() {
         val slots = favorites.allSlots()
         val generation = (application as MotoLauncherApp).packageGeneration
-        if (generation != favoritesCache.generation || slots != favoritesCache.slots) {
-            val appComponents = slots.filterIsInstance<SlotEntry.App>().map { it.component }
-            favoritesCache.apps = repository.loadByComponents(appComponents)
-            favoritesCache.generation = generation
-            favoritesCache.slots = slots
-        }
-        val apps = favoritesCache.apps
-
-        slots.forEachIndexed { index, slotEntry ->
-            when (slotEntry) {
+        val apps = favoritesCache.resolve(slots, generation, repository::loadByComponents)
+        slots.forEachIndexed { index, slot ->
+            when (slot) {
                 is SlotEntry.App -> {
-                    val entry = apps[slotEntry.component]
-                    if (entry != null) {
-                        bindTile(
-                            tile = tiles[index],
-                            label = entry.label,
-                            icon = entry.icon,
-                            onClick = { repository.launch(entry.component) },
-                            onLongClick = {
-                                showTileActionsDialog(
-                                    context = this,
-                                    entry = entry,
-                                    onAppInfo = { repository.openInfo(entry.component) },
-                                    onUninstall = { repository.requestUninstall(entry.component) },
-                                    onRemove = { favorites.clearSlot(index); buildGrid() },
-                                )
-                                true
-                            },
-                        )
-                    } else {
-                        bindEmptySlot(index)
-                    }
+                    val entry = apps[slot.component]
+                    if (entry != null) bindAppSlot(index, entry) else bindEmptySlot(index)
                 }
-                is SlotEntry.Link -> {
-                    bindTile(
-                        tile = tiles[index],
-                        label = slotEntry.label,
-                        iconRes = R.drawable.ic_link,
-                        onClick = {
-                            runCatching {
-                                startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(slotEntry.url)))
-                            }
-                        },
-                        onLongClick = {
-                            showLinkActionsDialog(
-                                context = this,
-                                label = slotEntry.label,
-                                onEdit = {
-                                    showLinkDialog(slotEntry.label, slotEntry.url) { label, url ->
-                                        favorites.setLink(index, label, url)
-                                        buildGrid()
-                                    }
-                                },
-                                onRemove = {
-                                    favorites.clearSlot(index)
-                                    buildGrid()
-                                },
-                            )
-                            true
-                        },
-                    )
-                }
+                is SlotEntry.Link -> bindLinkSlot(index, slot)
                 null -> bindEmptySlot(index)
             }
         }
-
-        bindTile(
-            tile = tiles.last(),
-            label = getString(R.string.all_apps),
-            iconRes = R.drawable.ic_all_apps,
-            onClick = {
-                startActivity(Intent(this, AppListActivity::class.java))
-                noTransition()
-            },
-        )
+        bindAllAppsTile()
     }
+
+    private fun bindAppSlot(index: Int, entry: AppEntry) = bindTile(
+        tile = tiles[index],
+        label = entry.label,
+        icon = entry.icon,
+        onClick = { repository.launch(entry.component) },
+        onLongClick = {
+            showTileActionsDialog(
+                context = this,
+                entry = entry,
+                onAppInfo = { repository.openInfo(entry.component) },
+                onUninstall = { repository.requestUninstall(entry.component) },
+                onRemove = { favorites.clearSlot(index); buildGrid() },
+            )
+            true
+        },
+    )
+
+    private fun bindLinkSlot(index: Int, link: SlotEntry.Link) = bindTile(
+        tile = tiles[index],
+        label = link.label,
+        icon = getDrawable(R.drawable.ic_link),
+        onClick = { runCatching { startActivity(Intent(Intent.ACTION_VIEW, link.url.toUri())) } },
+        onLongClick = {
+            showLinkActionsDialog(
+                context = this,
+                label = link.label,
+                onEdit = {
+                    showLinkDialog(link.label, link.url) { label, url ->
+                        favorites.setLink(index, label, url)
+                        buildGrid()
+                    }
+                },
+                onRemove = { favorites.clearSlot(index); buildGrid() },
+            )
+            true
+        },
+    )
+
+    private fun bindAllAppsTile() = bindTile(
+        tile = tiles.last(),
+        label = getString(R.string.all_apps),
+        icon = getDrawable(R.drawable.ic_all_apps),
+        onClick = {
+            startActivity(Intent(this, AppListActivity::class.java))
+            noTransition()
+        },
+    )
 
     private fun bindEmptySlot(index: Int) = bindTile(
         tile = tiles[index],
         label = getString(R.string.empty_slot),
-        iconRes = R.drawable.ic_add,
+        icon = getDrawable(R.drawable.ic_add),
         onClick = { pickForSlot(index) },
         onLongClick = { pickForSlot(index); true },
     )
@@ -234,17 +219,12 @@ class HomeActivity : AppCompatActivity() {
     private fun bindTile(
         tile: ItemAppTileBinding,
         label: String,
-        icon: Drawable? = null,
-        iconRes: Int = 0,
+        icon: Drawable?,
         onClick: () -> Unit,
         onLongClick: (() -> Boolean)? = null,
     ) {
         tile.appLabel.text = label
-        when {
-            icon != null -> tile.appIcon.setImageDrawable(icon)
-            iconRes != 0 -> tile.appIcon.setImageResource(iconRes)
-            else -> tile.appIcon.setImageDrawable(null)
-        }
+        tile.appIcon.setImageDrawable(icon)
         tile.root.setOnClickListener { onClick() }
         if (onLongClick != null) {
             tile.root.setOnLongClickListener { onLongClick() }
@@ -262,12 +242,25 @@ class HomeActivity : AppCompatActivity() {
 
 }
 
-// Survives the activity, so a recreate — the theme toggle, or a rotation under the Sensor
-// orientation — reuses the resolved favourites instead of re-running loadByComponents and
-// re-decoding every icon on the main thread. Keyed by the same (packageGeneration, slots)
-// pair as before; nothing about when the cache is considered stale has changed.
+/**
+ * The favourites' resolved apps. Kept across activity recreation; reloaded only when the
+ * slots or the installed apps change.
+ */
 class FavoritesCache : ViewModel() {
-    var apps: Map<ComponentName, AppEntry> = emptyMap()
-    var generation: Int = -1
-    var slots: List<SlotEntry?> = emptyList()
+    private var apps: Map<ComponentName, AppEntry> = emptyMap()
+    private var generation = -1
+    private var slots: List<SlotEntry?> = emptyList()
+
+    fun resolve(
+        slots: List<SlotEntry?>,
+        generation: Int,
+        load: (List<ComponentName>) -> Map<ComponentName, AppEntry>,
+    ): Map<ComponentName, AppEntry> {
+        if (generation != this.generation || slots != this.slots) {
+            apps = load(slots.filterIsInstance<SlotEntry.App>().map { it.component })
+            this.generation = generation
+            this.slots = slots
+        }
+        return apps
+    }
 }
