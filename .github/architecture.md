@@ -57,38 +57,34 @@ flowchart LR
 
 ## Layers
 
+Each feature package holds its screens, views and stores. `MotoLauncherApp` and
+`HomeActivity` stay in the root package.
+
 ```mermaid
 flowchart TB
-    subgraph screens["Screens"]
+    subgraph features["Features"]
         direction LR
-        home["HomeActivity"] ~~~ list["AppListActivity"] ~~~ park["ParkActivity"]
+        home["home<br/>HomeActivity (root package), FavoritesStore,<br/>FavoritesCache, LinkDialog"] ~~~ applist["applist<br/>AppListActivity, AppTileAdapter,<br/>TileItem, HiddenAppsStore"] ~~~ settings["settings<br/>SettingsTiles, OptionsDialog,<br/>Theme, Orientation, NavBar stores"] ~~~ park["park<br/>ParkActivity, ParkStore"]
+        statusbar["statusbar<br/>StatusBarView,<br/>Speed, Cellular, Battery stores"] ~~~ update["update<br/>UpdateChecker, UpdateFlow,<br/>DownloadProgress"] ~~~ navapp["navapp<br/>NavAppStore, launchNavApp"]
     end
-    subgraph widgets["UI components"]
+    subgraph shared["Shared"]
         direction LR
-        statusbar["StatusBarView"] ~~~ adapter["AppTileAdapter<br/>TileItem"] ~~~ dialogs["TileActionsDialog<br/>OptionsDialog<br/>LinkDialog"] ~~~ updateflow["UpdateFlow"]
-    end
-    subgraph input["Input and window"]
-        direction LR
-        keys["KeyInput<br/>blockKeyLongPress<br/>EscapeKeys"] ~~~ touch["TouchOnlyRow"] ~~~ quick["QuickLaunch"] ~~~ immersive["Immersive<br/>LayoutUtils"]
-    end
-    subgraph data["Data"]
-        direction LR
-        appc["MotoLauncherApp<br/>app-list cache"] ~~~ repo["AppRepository"] ~~~ stores["Preference stores"] ~~~ updater["UpdateChecker"]
+        appc["MotoLauncherApp<br/>app-list cache, package watch"] ~~~ apps["apps<br/>AppRepository, AppEntry"] ~~~ ui["ui<br/>KeyInput, TouchOnlyRow, Immersive,<br/>TileActionsDialog, Portrait"]
     end
     subgraph platform["Android platform"]
         direction LR
         p1["LauncherApps<br/>UserManager"] ~~~ p2["SharedPreferences"] ~~~ p3["Connectivity, telephony,<br/>location, battery"] ~~~ p4["HttpURLConnection<br/>FileProvider<br/>github flavor"] ~~~ p5["Lock task mode"]
     end
 
-    screens --> widgets --> input --> data --> platform
-    screens --> data
+    features --> shared --> platform
+    features --> platform
 
     classDef primary fill:#2F6FED,stroke:#1E4FB0,color:#FFFFFF
-    class home,list,park,appc,repo,stores,updater primary
+    class home,applist,settings,park,statusbar,update,navapp primary
 ```
 
-Two components also reach the platform directly: `StatusBarView` reads the system
-services, and `ParkActivity` calls lock task mode.
+Features also use the platform directly: the status bar reads the system services, and
+the park lock calls lock task mode.
 
 ## Persistent state
 

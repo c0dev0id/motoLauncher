@@ -28,8 +28,8 @@ python3 -m unittest discover -s .github/scripts     # release notes script
 ./gradlew assembleGithubRelease bundlePlayRelease -PappVersionName=1.0.<n> -PappVersionCode=<commit count>
 
 # one test class, or one test
-./gradlew testGithubDebugUnitTest --tests "de.codevoid.motolauncher.AppRepositoryTest"
-./gradlew testGithubDebugUnitTest --tests "de.codevoid.motolauncher.AppRepositoryTest.sortsCaseInsensitively"
+./gradlew testGithubDebugUnitTest --tests "de.codevoid.motolauncher.apps.AppRepositoryTest"
+./gradlew testGithubDebugUnitTest --tests "de.codevoid.motolauncher.apps.AppRepositoryTest.sortsCaseInsensitively"
 ```
 
 Two product flavors: `github` (the release-page APK, with the self-updater) and `play`
@@ -72,7 +72,7 @@ These drive nearly every UI decision — violating them defeats the point of the
   `orientation` there would freeze the layout in whatever shape it started in. The device
   is a 7" landscape screen; portrait exists for phones. Every activity calls
   `setRequestedOrientation` in `onCreate` and `onResume`; grid shape
-  follows `Context.isPortrait` (`ui/LayoutUtils.kt`): Home is 4×3 landscape / 3×4
+  follows `Context.isPortrait` (`ui/Portrait.kt`): Home is 4×3 landscape / 3×4
   portrait, the app list 5 / 4 columns, and the status bar has a `layout-port` variant.
   The status bar is always hidden (immersive mode); the navigation bar follows
   `NavBarStore` (hidden by default).
@@ -110,227 +110,79 @@ These drive nearly every UI decision — violating them defeats the point of the
 ## Architecture
 
 Kotlin, Android classic Views (no Compose), AppCompat + Material3, view binding.
-Versions and SDK levels are in `.github/stackinfo.md`. Coroutines for the app
-enumeration and update I/O only. No networking library: `HttpURLConnection` +
-`org.json`.
+Coroutines for the app enumeration and update I/O only. No networking library:
+`HttpURLConnection` + `org.json`. Versions and SDK levels are in `.github/stackinfo.md`,
+the component and layer diagrams in `.github/architecture.md`, and the reasons behind
+everything below in `.github/decisions.md`.
 
-Package layout under `de.codevoid.motolauncher`:
+Sources are organised by feature under `de.codevoid.motolauncher`. New code goes into
+the package of the feature it serves; `apps/` and `ui/` hold only what several features
+share. Tests mirror the packages.
 
-- `MotoLauncherApp` (`Application`) — re-applies the saved theme before any activity is
-  created, deletes the just-installed update APK on a plain thread (github flavor), and
-  owns two pieces of process-wide state. (1) The single `LauncherApps.Callback`: a removed package clears any
-  favourite slot holding it (`clearSlotsForPackage`), and every package event bumps
-  `packageGeneration`. Only a real removal clears a slot — an app that merely fails to
-  resolve may be on unmounted storage. (2) `getApps()`, the process-level app-list cache: a
-  `Deferred<List<AppEntry>>` on an IO scope, reissued only when `packageGeneration` moved.
-  Callers detect a stale list by comparing the returned `Deferred` instance, not by a flag.
-  Home warms it in `onCreate` so "All Apps" opens with the list already decoded.
-- `HomeActivity` — the launcher entry (`category.HOME`, `singleTask`). Fixed grid of 12
-  tiles: 11 favourite slots + a pinned "All Apps" tile in the last cell. The grid is **not**
-  a RecyclerView: `populateGrid()` inflates `item_app_tile` 12 times into weighted
-  `LinearLayout` rows once in `onCreate`, and `buildGrid()` rebinds them in `onResume`.
-  Weighted layout divides space in the layout pass by construction, which is what fixed
-  the cold-start "third row cut off" first-frame race. `buildGrid` keeps the resolved
-  `AppEntry`s in `FavoritesCache`, a `ViewModel`, keyed on (`packageGeneration`, current
-  slot list), so returning from the navigation app costs no Binder calls or icon decoding.
-  It is a `ViewModel` rather than an activity field because a recreate — the theme toggle,
-  or a rotation under the Sensor orientation — would otherwise start it empty and redo the
-  whole resolve on the main thread in `onResume`. A slot is a
-  `SlotEntry.App` (launch / App info / Uninstall / Remove), a `SlotEntry.Link`
-  (`ACTION_VIEW` on the URL / Edit link / Remove) or empty ("+" opens the picker for that
-  slot). Back is swallowed; a short Escape does nothing and a held Escape runs
-  `launchNavApp()` (`EscapeKeys`). A `StatusBarView` sits above the grid. Two consequences
-  of reusing the same 12 views: remote focus is seeded on tile 0 *once* in `onCreate`
-  (re-seeding in `onResume` would drag the remote back to the first tile after every
-  launch), and `bindTile` must null the long-click listener and drop `isLongClickable` for
-  a tile that has no long-press, or the framework keeps arming the timer from the tile's
-  previous binding.
-- `AppListActivity` — `RecyclerView` + `GridLayoutManager`; focus is seeded on the first
-  cell once the first load resolves. Three modes, decided by intent extras: **browse**
-  (tap launches, long-press opens the tile menu), **slot pick**
-  (`pickIntent(context, slot)`: a leading "None" tile clears the slot, an "Add link" tile
-  opens `showLinkDialog` pre-filled from the slot's current link, any app tile is written
-  to that `FavoritesStore` slot), and **nav-app pick** (`navAppPickerIntent`: writes
-  `NavAppStore`). Pick modes finish on selection; callers rebuild in `onResume`, so there is
-  no result contract. `onResume` calls `AppListViewModel.reloadIfStale()`, which swaps in
-  the Application's fresh `Deferred` only when the instance changed. Filtering runs
-  `AppRepository.filterApps` on every keystroke, then drops packages in `HiddenAppsStore`
-  unless `showHidden` is on (hidden apps then render dimmed). `AppListViewModel` (same
-  file) carries `isSettingsMode`, `isCheckingUpdate` and `downloadProgressSubtitle` so the
-  theme toggle's `recreate()` restores them. The header `TouchOnlyRow` holds the back
-  button, the search box and a single `settingsButton` (hidden in pick mode) that toggles
-  settings mode; `renderCurrentMode()` then swaps the RecyclerView between the app grid
-  and text-only settings tiles (theme, nav app, update check with live download progress
-  in the github flavor, park lock when `ParkActivity.shouldOfferParkLock` allows it,
-  cellular toggle, GPS speed toggle + units when the device has `FEATURE_LOCATION_GPS`,
-  battery display, hidden apps, orientation, nav bar, privacy policy). The settings list
-  is cached in `settingsTilesCache`; every tile that changes state sets it to `null` before
-  re-rendering. Download progress patches the update tile in place, found by its label:
-  in `settingsTilesCache`, and on screen only while settings mode shows, because the
-  adapter may hold a search-filtered list or the app grid. Permission-gated toggles (cellular, GPS) go through
-  `registerForActivityResult(RequestPermission())`; the store flips to enabled only on
-  grant. A short Escape exits settings mode before finishing. Activity transitions are
-  disabled (`noTransition()`) in both directions.
-- `ParkActivity` — the park lock: a PIN keypad for short unattended stops, in **its own
-  task** (`singleInstance` + `taskAffinity`), which is load-bearing — `HomeActivity` is
-  `singleTask` and the root of the home task, so a Home press clears anything stacked above
-  it. `onResume` and `onWindowFocusChanged` call `startLockTask()` (screen pinning, no device
-  owner) to block Recents and the shade — an app pinning itself is not asked to confirm, so
-  parking is one tap. Both lock-task calls are best effort, since a device with screen
-  pinning switched off refuses them — which state is in force is deliberately not shown on
-  the screen. `settleCheck` runs after a delay because `lockTaskModeState` is updated
-  asynchronously and reads as `NONE` straight after a successful request; it is what
-  notices that a request never took. The system's unpin gesture (hold Back + Recents) cannot be
-  blocked, so it is undone: `lockTaskGuard` polls `lockTaskModeState` every 300 ms while
-  parked and re-pins, and `onWindowFocusChanged` re-asserts too. `shouldRequestLockTask` is
-  the pure, unit-tested rule behind both — parked, not in set mode, not finishing, not
-  already pinned, and past the settle window that covers the asynchronous state update.
-  Order on unlock is load-bearing: disarm the guard and clear `isParked` *before*
-  `stopLockTask()`, or an in-flight guard run re-pins the screen the correct PIN just
-  released. The guard is armed in `onResume` and disarmed in `onPause`, so a parked device
-  with the screen off polls nothing. **It also means the PIN is the only way out** short of
-  adb or reinstalling — a forgotten PIN strands the device. `setMode` is read from the
-  *current* intent, never cached, because a reused `singleInstance` gets later intents
-  through `onNewIntent`. The restore path is
-  `HomeActivity.onResume`: while `ParkStore.isParked` is set it re-launches this screen,
-  covering both a reboot (pinning does not survive one) and a Home press where pinning was
-  refused. `ParkActivity` sets `isParked` itself in `onResume`, so no entry point carries a
-  protocol, and the Park lock tile finishes the app list as it launches — the home task is
-  already back at `HomeActivity`, so unlocking returns to Home and nothing needs a
-  finish-if-parked guard. The keypad sits in a `TouchOnlyRow`, so the whole subtree is
-  invisible to dpad traversal — the remote must never drive it. Entry point is the Park
-  lock tile in the app list's settings mode (tap to lock or set a PIN, long-press to
-  change it). That tile
-  is the only way in, and it appears only when `shouldOfferParkLock` — the second pure,
-  unit-tested rule here — says the lock is worth reaching: Android 15+ (below it the
-  system confirms every `startLockTask()`, so the guard raises a dialog instead of
-  re-pinning) and no secure lock screen (`KeyguardManager.isDeviceSecure`, whose power
-  button is the better park lock). Hiding the tile is enough because nothing else starts
-  this activity: the restore path only fires on an `isParked` the tile set.
-- `data/AppRepository` — thin wrapper over `LauncherApps` (not `PackageManager`),
-  iterating all `UserManager` profiles. `launch` → `startMainActivity` (and
-  `launchIfInstalled` for a stored component, gated on `isActivityEnabled` because
-  `startMainActivity` throws on one that no longer exists), `openInfo` →
-  `startAppDetailsActivity`, `requestUninstall` → `ACTION_DELETE` hand-off (needs both
-  `REQUEST_DELETE_PACKAGES` and the `ACTION_DELETE` `<queries>` entry, or it silently does
-  nothing). `loadApps` walks every profile and skips the launcher's own package;
-  `loadByComponents` resolves only the requested components so Home never enumerates or
-  rasterizes every installed app. `sortApps` / `filterApps` are pure companion functions,
-  deliberately free of `Context`.
-- `data/*Store` — one small class per `SharedPreferences` concern, all synchronous
-  getters/setters. `FavoritesStore` (file `favorites`, `SLOT_COUNT` = 11): `slot_<i>` is a
-  flattened `ComponentName` or the literal `link:` marker, in which case
-  `slot_<i>_label` / `slot_<i>_url` hold the link; `getSlotEntry` returns the sealed
-  `SlotEntry`, `getSlot` only the app case, and `setSlot` / `setLink` / `clearSlot` each
-  clean up the other representation's keys. `HiddenAppsStore` (file `hidden_apps`) keeps
-  a package-name `Set` plus `showHidden`, and always returns a copy because
-  `getStringSet` hands out its live internal set. Everything else shares the `settings`
-  file: `ThemeStore` (default dark, drives `AppCompatDelegate.setDefaultNightMode`),
-  `NavAppStore`, `OrientationStore`, `NavBarStore`, `CellularStore`, `SpeedStore`
-  (enabled + metric), `BatteryStore` (`BatteryDisplay` enum), and `ParkStore` (parked
-  flag + salted-hash park PIN; the hash is hygiene, not security). `StatusBarView` listens to
-  that file by key, so a new status-bar setting is a new public `KEY_*` constant plus a
-  branch in its `prefsListener`, not new lifecycle wiring.
-- `update/UpdateChecker` — github flavor only. One-shot GET on
-  `releaseApiUrl(VERSION_NAME)`: the `dev` tag for a `dev-` build, `releases/latest`
-  otherwise. `parseRelease`
-  takes the first `.apk` asset and derives the version from its filename
-  (`motoLauncher-<versionName>.apk`); `isNewer` is a plain string inequality against
-  `BuildConfig.VERSION_NAME`, so any differing published build counts as an update.
-  Install is a hand-off: download to `cacheDir/updates/` (with a bytes-written progress
-  callback), then `FileProvider` + `ACTION_VIEW` to the system installer. `download()`
-  clears other files first; `deleteInstalledUpdate()` removes only the running build's APK.
-- `ui/AppTileAdapter` + `ui/TileItem` — the `RecyclerView` adapter used by the app list
-  (not by Home). Callers compose a `List<TileItem>` (label, optional subtitle, optional
-  icon, `dimmed`); the adapter stays dumb, calls `blockKeyLongPress()` once per view
-  holder, and resets icon/subtitle visibility and `isLongClickable` on every bind because
-  recycled holders carry the previous item's state. `updateItem` replaces the first item
-  matching a predicate, and does nothing when none matches, for the download-progress
-  subtitle.
-- `ui/UpdateFlow.kt` — `AppCompatActivity.runUpdateFlow(setClickable, setSubtitle)`: the
-  whole check / prompt / download / error flow; outcomes as `AlertDialog`s, progress
-  (`"45% · 2.2 MB/s"`, throttled to 500 ms) through `setSubtitle`. The percentage is
-  concatenated, never passed through `String.format` — a `%` in a format template crashed
-  once. `CancellationException` is rethrown, not swallowed. `AlertDialog.Builder(context)`
-  gets the launcher look from `alertDialogTheme` — never pass a theme id at a call site.
-- `ui/KeyInput.kt` — `View.blockKeyLongPress()` routes DPAD_CENTER/Enter through
-  `performClick()` on key-up without arming the framework's long-press timer (touch
-  long-press still works). `EscapeKeys` is the whole Escape contract — short press to
-  `onShortPress` (AppList: leave settings mode, else `finish()`, since Android doesn't
-  route Escape to the back dispatcher; Home: nothing), hold to `onLongPress` (both:
-  `launchNavApp()`). **Short vs. hold is decided on ACTION_UP from the event's own
-  timestamps** (`eventTime - downTime` against `ViewConfiguration.getLongPressTimeout()`),
-  never from the framework's `onKeyLongPress` — that callback is delivered off the first
-  key *repeat*, so it only ever arrives from a device that auto-repeats while held, and
-  the handlebar remote does not. Do not reintroduce it: the whole point is that the action
-  cannot depend on a capability of whatever is plugged in. Two methods are wired from the
-  activity, `onKeyDown` and `onKeyUp`; the DOWN is claimed and `startTracking()` called so
-  the UP arrives with `isTracking` set, which is how an UP whose DOWN went to another
-  window is told apart from a real press. A remote that emits an instantaneous down/up
-  pair on release still cannot produce a hold — there is no elapsed time to measure. The
-  file stays pure key plumbing — the action lives in `ui/QuickLaunch.kt`
-  (`Context.launchNavApp()`: `NavAppStore` → `AppRepository.launchIfInstalled`).
-- `ui/TouchOnlyRow` — a `LinearLayout` whose `addFocusables()` contributes nothing, so
-  its children are invisible to dpad traversal but still take touch focus (an `EditText`
-  inside it still opens the IME). `focusableInTouchMode` and
-  `descendantFocusability="blocksDescendants"` were both tried and rejected; see
-  `.github/decisions.md`.
-- `ui/TileActionsDialog.kt` — `showTileActionsDialog()` (Remove row only when `onRemove`
-  is passed, Hide/Unhide row only when `hideAction` is passed) and `showLinkActionsDialog()`
-  (Edit link / Remove). Both inflate the same `dialog_tile_actions` layout, which carries
-  all six rows, and `GONE` the ones they don't use. A plain `Dialog` on
-  `Theme.MotoLauncher.Dialog` (not `AlertDialog`, whose Material3 look would override the
-  palette) with `tile_background` buttons; dismisses itself before invoking the chosen
-  callback. Dialog chrome lives in that theme and in the
-  `ThemeOverlay.MotoLauncher.Dialog.Alert` sibling that `alertDialogTheme` points at.
-- `ui/OptionsDialog.kt` — `showOptionsDialog(context, title, options, selectedIndex,
-  onPick)`: pick one of a list, as tile-styled rows on `Theme.MotoLauncher.Dialog`. Rows are
-  *inflated* from `item_dialog_option` rather than constructed, so the style's `layout_*`
-  attributes are resolved by the parent as they are for the fixed rows; a style applied
-  through a `TextView` constructor would not carry them. The current value is drawn in
-  `tile_focused` — the tile that shows it is hidden behind the dialog. Reach for this over
-  a cycling tile whenever applying an intermediate value is itself disruptive.
-- `ui/LinkDialog.kt` — `Context.showLinkDialog(label, url, onConfirm)`: the one
-  `AlertDialog` with text input (`dialog_add_link`); confirms only when both fields are
-  non-blank. Any URL scheme is accepted — Android resolves the intent, and Home wraps the
-  launch in `runCatching`.
-- `ui/Immersive.kt` — `Window.enableImmersiveMode(showNavBar)`: status bar always
-  hidden, nav bar per the flag. Called in `onCreate` and again on
-  `onWindowFocusChanged(true)` because permission dialogs and the installer restore the
-  bars. `Window.fitContentToSystemBars()`, called once per activity in `onCreate`, lays the
-  window out edge to edge and pads `android.R.id.content` by the visible bars and the
-  display cutout — `setDecorFitsSystemWindows` is disabled from targetSdk 35 on Android 15+. `Dialog.showImmersive()` is mandatory for every dialog: it re-applies the bars for
-  the dialog's own window and drops the dialog silently when its host activity is
-  finishing or destroyed (an update result arriving after a recreate used to crash).
-  `Activity.noTransition()` also lives here.
-- `ui/StatusBarView` — self-contained Home top bar (time, optional GPS speed, Wi-Fi,
-  cellular, battery). Registers receivers/callbacks in `onAttachedToWindow`, releases
-  them in `onDetachedFromWindow`; `HomeActivity` does no lifecycle wiring. Icons are
-  `<level-list>` drawables updated by `setImageLevel()`; the battery level encodes
-  charging in the number (0–4 idle, 5–9 plugged), and `BatteryStore.display` chooses
-  icon / text / both. **Wi-Fi visibility keys off the radio** (`WIFI_STATE_CHANGED_ACTION`,
-  seeded from `isWifiEnabled`), bars off RSSI from `NetworkCapabilities.transportInfo`
-  (no location permission needed); losing the last network draws zero bars, it does not
-  hide the icon. `calculateSignalLevel`'s rating spans `[0, maxSignalLevel]` **inclusive**
-  and is mapped onto the five icon states by the pure `wifiIconLevel`. **Cellular** shows
-  only behind three gates — `CellularStore.enabled`, telephony on API 31+, and
-  `READ_PHONE_STATE` — and then takes `SignalStrength.level` (0..4) straight through.
-  **GPS speed** has the same shape (`SpeedStore.enabled`, `FEATURE_LOCATION_GPS`,
-  `ACCESS_FINE_LOCATION`), polls `GPS_PROVIDER` at 1 Hz, and is the one subscription that
-  is paused while the window is hidden or the screen is off, because it costs CPU the
-  navigation app needs. **`refreshOnResume` is the one resume refresh**, reached from both
-  edges — `ACTION_SCREEN_ON` on `screenReceiver`, and `onWindowVisibilityChanged(VISIBLE)`
-  — so the two cannot drift apart. It re-reads the clock, which needs it because
-  `ACTION_TIME_TICK` stops arriving while the screen is off and a device picked up in the
-  morning would otherwise show the minute it went dark until the next tick; and the
-  battery, which only goes stale when a change broadcast is missed while the device sleeps,
-  the visible case being plugged in or unplugged with the screen off. The battery read is
-  free: `ACTION_BATTERY_CHANGED` is sticky, so a null receiver returns the current state
-  synchronously without registering anything, and `applyBatteryIntent` already drops a
-  no-change refresh. The radios are deliberately left out — Wi-Fi and cellular re-deliver
-  through their own callbacks once the network settles after a wake. Setting changes arrive
-  through the `settings` `OnSharedPreferenceChangeListener`. Uses the bundled Michroma font
-  (`res/font/michroma.ttf`, OFL — see `MICHROMA-LICENSE.txt`).
+- **Root** — `MotoLauncherApp` re-applies the theme, deletes the installed update APK
+  (github flavor), and owns the single `LauncherApps.Callback`: a removal clears the
+  favourite slots holding the package (`clearSlotsForPackage`), every event bumps
+  `packageGeneration`. `getApps()` is the process-level app-list `Deferred`, reissued only
+  when `packageGeneration` moved; callers compare instances. `HomeActivity`
+  (`category.HOME`, `singleTask`) stays in the root package because Android holds it as the
+  default home app — do not move or rename it.
+- **`home/`** — Home's 12 tiles (11 slots + All Apps) are inflated once by `populateGrid()`
+  into weighted `LinearLayout` rows, not a RecyclerView, and rebound by `buildGrid()` in
+  `onResume`. Remote focus is seeded once, in `onCreate`. `bindTile` must clear the
+  long-click listener and `isLongClickable` on a tile without a long press. `FavoritesCache`
+  (a `ViewModel`) resolves only the app slots and reloads when the slots or
+  `packageGeneration` change. `FavoritesStore` (file `favorites`, `SLOT_COUNT` 11):
+  `slot_<i>` is a flattened `ComponentName` or the `link:` marker with `slot_<i>_label` /
+  `slot_<i>_url`; each setter removes the other representation's keys. While
+  `ParkStore.isParked` is set, `HomeActivity.onResume` re-launches the park screen.
+- **`applist/`** — `AppListActivity` browses, picks a slot (`pickIntent`: None and Add link
+  tiles first) or picks the navigation app (`navAppPickerIntent`: None first). Pickers
+  write the store and finish; callers rebuild in `onResume`. `AppListViewModel` holds
+  `isSettingsMode` and the app-list `Deferred` (`reloadIfStale`). `AppTileAdapter` resets
+  icon and subtitle visibility and `isLongClickable` on every bind; `updateItem` patches
+  the first matching tile. `HiddenAppsStore` (file `hidden_apps`) returns a copy of its set.
+- **`settings/`** — `SettingsTiles` builds settings mode as a list of named tiles, rebuilt
+  on every render. Construct it in `onCreate`: it registers the permission requests, and
+  a permission toggle turns on only on grant. `UpdateState` keeps the update check across
+  the theme toggle's recreate; download progress patches the update tile by its label, only
+  while settings mode shows. A multi-valued setting whose intermediate values are
+  disruptive opens `showOptionsDialog` instead of cycling. `ThemeStore`, `OrientationStore`
+  and `NavBarStore` live here.
+- **`park/`** — `ParkActivity` runs in its own task (`singleInstance` + `taskAffinity`),
+  sets `isParked` itself in `onResume`, pins with `startLockTask()` and re-pins every 300 ms
+  while parked. On a correct PIN, disarm the guard and clear `isParked` *before*
+  `stopLockTask()`. `isSettingPin` is read from the current intent, never cached. The pure
+  rules `shouldRequestLockTask` and `shouldOfferParkLock` (Android 15+, no secure lock
+  screen) are unit-tested. The keypad sits in a `TouchOnlyRow`. While parked, the PIN is
+  the only way out. `ParkStore` holds the flag and the salted PIN hash.
+- **`statusbar/`** — `StatusBarView` subscribes in `onAttachedToWindow` and releases in
+  `onDetachedFromWindow`; Home wires nothing. A new status-bar setting is a public `KEY_*`
+  constant plus a branch in `prefsListener`. Wi-Fi visibility follows the radio and the
+  bars follow RSSI through the pure `wifiIconLevel` (the rating range is inclusive).
+  Cellular needs the setting, API 31+ and `READ_PHONE_STATE`. GPS speed is the one
+  subscription paused while Home is hidden or the screen is off. `refreshOnResume`
+  re-reads the clock and the battery from both resume edges; do not add the time-change
+  broadcasts. `SpeedStore`, `CellularStore` and `BatteryStore` live here.
+- **`update/`** (github flavor, behind `BuildConfig.SELF_UPDATE`) — `UpdateChecker`:
+  `releaseApiUrl` picks the `dev` tag or `releases/latest` by the installed version name,
+  `parseRelease` takes the first APK and its version from the file name, `isNewer` is plain
+  inequality; the APK goes to `cacheDir/updates/` and to the installer through
+  `FileProvider`. `runUpdateFlow` shows each outcome as a dialog and rethrows
+  `CancellationException`. `DownloadProgress` builds "45% · 2.2 MB/s" by concatenation —
+  a `%` in a format template crashed once.
+- **`navapp/`** — `NavAppStore` and `launchNavApp()`, which goes through
+  `AppRepository.launchIfInstalled`.
+- **`apps/`** — `AppRepository` wraps `LauncherApps` across all profiles: `loadApps`,
+  `loadByComponents` (Home never enumerates every app), `launch`, `launchIfInstalled`,
+  `openInfo`, and `requestUninstall` (`ACTION_DELETE`, which needs both
+  `REQUEST_DELETE_PACKAGES` and its `<queries>` entry). `sortApps` / `filterApps` are pure.
+- **`ui/`** — `KeyInput.kt`: `blockKeyLongPress()` and `EscapeKeys`, which decides short
+  vs. held on ACTION_UP from the event's own timestamps — never reintroduce
+  `onKeyLongPress`; wire both `onKeyDown` and `onKeyUp`. `TouchOnlyRow` hides its children
+  from dpad traversal. `TileActionsDialog.kt`: the tile and link menus, plain `Dialog`s on
+  `Theme.MotoLauncher.Dialog`. `Immersive.kt`: `enableImmersiveMode` (re-applied on focus
+  gain), `fitContentToSystemBars` (once per activity), `Dialog.showImmersive()` (mandatory
+  for every dialog) and `noTransition()`. `Portrait.kt`: `isPortrait`.
 
 ## Resources & styling
 
@@ -390,8 +242,9 @@ republishes the `dev` pre-release. Three parallel jobs plus a follow-up release 
   unit tests in `app/src/test/kotlin` (`isIncludeAndroidResources = true`, so real resources and view
   inflation work; see *Commands* for running a single class or test).
   Robolectric runs them against SDK 36, which needs JDK 21 — hence JDK 21 in CI.
-  Thirteen classes, and the shape they set: `AppRepositoryTest` (the pure `sortApps` /
-  `filterApps`), `FavoritesStoreTest` (app and link slot round-trips against real
+  Fifteen classes, and the shape they set: `AppRepositoryTest` (the pure `sortApps` /
+  `filterApps`), `FavoritesCacheTest` (one load per slot list and package generation),
+  `FavoritesStoreTest` (app and link slot round-trips against real
   `SharedPreferences`, the two representations cleaning each other up, and
   `clearSlotsForPackage` matching whole package names and leaving link slots alone),
   `UpdateCheckerTest` (`parseRelease` / `isNewer` / `releaseApiUrl` /
@@ -411,9 +264,10 @@ republishes the `dev` pre-release. Three parallel jobs plus a follow-up release 
   clear), `ParkLockTaskGuardTest` (the pure `shouldRequestLockTask` rule, including the
   settle window that stops a redundant second pin request), `ParkLockAvailabilityTest`
   (the pure `shouldOfferParkLock` rule, with the API boundary written as numbers so it is
-  pinned independently of the constant) and `OptionsDialogTest` (rows
+  pinned independently of the constant), `OptionsDialogTest` (rows
   in caller order, one index reported per pick, dismissal, and that the selected row is
-  drawn differently).
+  drawn differently) and `DownloadProgressTest` (the throttle, the rate since the last
+  report, and the text without a known size, against a fake clock).
   Write new behaviour so it lands in that surface — a pure function, a store, or
   something a Robolectric activity can reach. No device is ever available to check it.
   The job caches `~/.m2/repository/org/robolectric` separately: Robolectric fetches its

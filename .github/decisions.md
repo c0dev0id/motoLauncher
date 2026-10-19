@@ -23,6 +23,13 @@ launcher only needs launchable apps, and the broad permission is discouraged.
 The update check is one GET and one download. `HttpURLConnection` and `org.json` cover
 both without a dependency.
 
+### Sources are organised by feature
+Each package holds one feature's screens, views and stores: `home`, `applist`,
+`settings`, `park`, `statusbar`, `update` and `navapp`, with `apps` and `ui` for what
+several features share. `HomeActivity` stays in the root package: Android holds it as the
+default home app, and whether renaming the class makes Android forget that choice on
+update has not been checked on a device. `MotoLauncherApp` stays beside it.
+
 ## Remote and glove input
 
 ### The remote may only launch
