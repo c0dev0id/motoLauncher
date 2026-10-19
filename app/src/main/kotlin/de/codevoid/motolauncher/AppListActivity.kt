@@ -17,6 +17,7 @@ import android.view.KeyEvent
 import android.view.View
 import androidx.activity.result.contract.ActivityResultContracts.RequestPermission
 import androidx.activity.viewModels
+import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.content.ContextCompat
 import androidx.lifecycle.AndroidViewModel
@@ -49,6 +50,7 @@ import de.codevoid.motolauncher.ui.isPortrait
 import de.codevoid.motolauncher.ui.launchNavApp
 import de.codevoid.motolauncher.ui.runUpdateFlow
 import de.codevoid.motolauncher.ui.showLinkDialog
+import de.codevoid.motolauncher.ui.showImmersive
 import de.codevoid.motolauncher.ui.showOptionsDialog
 import de.codevoid.motolauncher.ui.showTileActionsDialog
 import kotlinx.coroutines.Deferred
@@ -334,6 +336,18 @@ class AppListActivity : AppCompatActivity() {
                 window.enableImmersiveMode(show)
                 settingsTilesCache = null
                 renderCurrentMode()
+            },
+        ))
+
+        tiles.add(TileItem(
+            label = getString(R.string.privacy_policy),
+            onClick = {
+                AlertDialog.Builder(this@AppListActivity)
+                    .setTitle(R.string.privacy_policy)
+                    .setMessage(R.string.privacy_policy_text)
+                    .setPositiveButton(R.string.ok, null)
+                    .create()
+                    .showImmersive()
             },
         ))
 
