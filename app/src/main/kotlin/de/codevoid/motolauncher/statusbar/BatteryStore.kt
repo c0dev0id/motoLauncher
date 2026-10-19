@@ -1,6 +1,7 @@
 package de.codevoid.motolauncher.statusbar
 
 import android.content.Context
+import androidx.core.content.edit
 
 enum class BatteryDisplay { BOTH, ICON, TEXT }
 
@@ -11,7 +12,7 @@ class BatteryStore(context: Context) {
         get() = prefs.getString(KEY_BATTERY_DISPLAY, null)
             ?.let { runCatching { BatteryDisplay.valueOf(it) }.getOrNull() }
             ?: BatteryDisplay.BOTH
-        set(value) { prefs.edit().putString(KEY_BATTERY_DISPLAY, value.name).apply() }
+        set(value) { prefs.edit { putString(KEY_BATTERY_DISPLAY, value.name) } }
 
     companion object {
         private const val PREFS = "settings"

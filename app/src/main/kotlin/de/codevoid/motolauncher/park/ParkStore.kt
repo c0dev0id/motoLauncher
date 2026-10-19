@@ -2,6 +2,7 @@ package de.codevoid.motolauncher.park
 
 import android.content.Context
 import android.util.Base64
+import androidx.core.content.edit
 import java.security.MessageDigest
 import java.security.SecureRandom
 
@@ -21,16 +22,16 @@ class ParkStore(context: Context) {
      *  what restores the park screen after one — lock task mode itself does not. */
     var isParked: Boolean
         get() = prefs.getBoolean(KEY_PARKED, false)
-        set(value) = prefs.edit().putBoolean(KEY_PARKED, value).apply()
+        set(value) = prefs.edit { putBoolean(KEY_PARKED, value) }
 
     val hasPin: Boolean get() = prefs.getString(KEY_HASH, null) != null
 
     fun setPin(pin: String) {
         val salt = ByteArray(SALT_BYTES).also { SecureRandom().nextBytes(it) }.encode()
-        prefs.edit()
-            .putString(KEY_SALT, salt)
-            .putString(KEY_HASH, hash(pin, salt))
-            .apply()
+        prefs.edit {
+            putString(KEY_SALT, salt)
+            putString(KEY_HASH, hash(pin, salt))
+        }
     }
 
     fun verify(pin: String): Boolean {

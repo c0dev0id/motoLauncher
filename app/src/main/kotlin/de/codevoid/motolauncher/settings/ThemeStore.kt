@@ -2,6 +2,7 @@ package de.codevoid.motolauncher.settings
 
 import android.content.Context
 import androidx.appcompat.app.AppCompatDelegate
+import androidx.core.content.edit
 
 class ThemeStore(context: Context) {
 
@@ -10,7 +11,7 @@ class ThemeStore(context: Context) {
     var isDark: Boolean
         get() = prefs.getBoolean(KEY_DARK, true)
         set(value) {
-            prefs.edit().putBoolean(KEY_DARK, value).apply()
+            prefs.edit { putBoolean(KEY_DARK, value) }
             applyNightMode()
         }
 

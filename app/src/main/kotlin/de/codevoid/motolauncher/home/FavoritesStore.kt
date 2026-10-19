@@ -2,6 +2,7 @@ package de.codevoid.motolauncher.home
 
 import android.content.ComponentName
 import android.content.Context
+import androidx.core.content.edit
 
 sealed class SlotEntry {
     data class App(val component: ComponentName) : SlotEntry()
@@ -27,27 +28,27 @@ class FavoritesStore(context: Context) {
         (getSlotEntry(index) as? SlotEntry.App)?.component
 
     fun setSlot(index: Int, component: ComponentName) {
-        prefs.edit()
-            .putString(key(index), component.flattenToString())
-            .remove(labelKey(index))
-            .remove(urlKey(index))
-            .apply()
+        prefs.edit {
+            putString(key(index), component.flattenToString())
+            remove(labelKey(index))
+            remove(urlKey(index))
+        }
     }
 
     fun setLink(index: Int, label: String, url: String) {
-        prefs.edit()
-            .putString(key(index), LINK_MARKER)
-            .putString(labelKey(index), label)
-            .putString(urlKey(index), url)
-            .apply()
+        prefs.edit {
+            putString(key(index), LINK_MARKER)
+            putString(labelKey(index), label)
+            putString(urlKey(index), url)
+        }
     }
 
     fun clearSlot(index: Int) {
-        prefs.edit()
-            .remove(key(index))
-            .remove(labelKey(index))
-            .remove(urlKey(index))
-            .apply()
+        prefs.edit {
+            remove(key(index))
+            remove(labelKey(index))
+            remove(urlKey(index))
+        }
     }
 
     fun allSlots(): List<SlotEntry?> = (0 until SLOT_COUNT).map { getSlotEntry(it) }

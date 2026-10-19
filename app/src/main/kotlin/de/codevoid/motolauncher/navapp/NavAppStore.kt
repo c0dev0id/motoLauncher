@@ -2,6 +2,7 @@ package de.codevoid.motolauncher.navapp
 
 import android.content.ComponentName
 import android.content.Context
+import androidx.core.content.edit
 
 class NavAppStore(context: Context) {
 
@@ -10,8 +11,7 @@ class NavAppStore(context: Context) {
     var navApp: ComponentName?
         get() = prefs.getString(KEY, null)?.let { ComponentName.unflattenFromString(it) }
         set(value) {
-            if (value != null) prefs.edit().putString(KEY, value.flattenToString()).apply()
-            else prefs.edit().remove(KEY).apply()
+            prefs.edit { if (value != null) putString(KEY, value.flattenToString()) else remove(KEY) }
         }
 
     companion object {

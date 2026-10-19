@@ -11,6 +11,7 @@ import android.widget.LinearLayout
 import androidx.activity.addCallback
 import androidx.activity.viewModels
 import androidx.appcompat.app.AppCompatActivity
+import androidx.appcompat.content.res.AppCompatResources
 import androidx.core.net.toUri
 import androidx.lifecycle.ViewModel
 import de.codevoid.motolauncher.applist.AppListActivity
@@ -180,7 +181,7 @@ class HomeActivity : AppCompatActivity() {
     private fun bindLinkSlot(index: Int, link: SlotEntry.Link) = bindTile(
         tile = tiles[index],
         label = link.label,
-        icon = getDrawable(R.drawable.ic_link),
+        icon = AppCompatResources.getDrawable(this, R.drawable.ic_link),
         onClick = { runCatching { startActivity(Intent(Intent.ACTION_VIEW, link.url.toUri())) } },
         onLongClick = {
             showLinkActionsDialog(
@@ -201,7 +202,7 @@ class HomeActivity : AppCompatActivity() {
     private fun bindAllAppsTile() = bindTile(
         tile = tiles.last(),
         label = getString(R.string.all_apps),
-        icon = getDrawable(R.drawable.ic_all_apps),
+        icon = AppCompatResources.getDrawable(this, R.drawable.ic_all_apps),
         onClick = {
             startActivity(Intent(this, AppListActivity::class.java))
             noTransition()
@@ -211,7 +212,7 @@ class HomeActivity : AppCompatActivity() {
     private fun bindEmptySlot(index: Int) = bindTile(
         tile = tiles[index],
         label = getString(R.string.empty_slot),
-        icon = getDrawable(R.drawable.ic_add),
+        icon = AppCompatResources.getDrawable(this, R.drawable.ic_add),
         onClick = { pickForSlot(index) },
         onLongClick = { pickForSlot(index); true },
     )

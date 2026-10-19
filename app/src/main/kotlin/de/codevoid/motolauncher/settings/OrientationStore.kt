@@ -2,6 +2,7 @@ package de.codevoid.motolauncher.settings
 
 import android.content.Context
 import android.content.pm.ActivityInfo
+import androidx.core.content.edit
 
 class OrientationStore(context: Context) {
 
@@ -13,7 +14,7 @@ class OrientationStore(context: Context) {
     // is already stored and is unaffected.
     var orientation: Int
         get() = prefs.getInt(KEY, ActivityInfo.SCREEN_ORIENTATION_FULL_SENSOR)
-        set(value) { prefs.edit().putInt(KEY, value).apply() }
+        set(value) { prefs.edit { putInt(KEY, value) } }
 
     companion object {
         private const val PREFS = "settings"
