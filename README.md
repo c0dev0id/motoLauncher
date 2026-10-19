@@ -1,43 +1,65 @@
-# motoLauncher
+<p align="center">
+  <img src="docs/banner.svg" alt="motoLauncher" width="100%">
+</p>
 
-motoLauncher is a home screen for Android-based motorcycle navigation devices.
-It is designed for glove use and handlebar remote operation.
+motoLauncher is an Android home screen for motorcycle navigation devices.
+It is built for gloved hands and a handlebar remote.
+
+![Home screen](screenshots/main.png)
 
 ## Features
 
-- Fixed home grid of favourite apps, configured by tapping an empty "+" tile
-- Any slot can hold a **link** instead of an app — a name and a URL, opened with the
-  system handler
-- All Apps screen with a search filter, and a per-app Hide so the list stays short
-- Tap to launch from the home screen or the app list; long press a tile for App info,
-  Uninstall, or Remove
-- Settings live in the All Apps screen: theme, navigation app, update check, orientation,
-  navigation bar, and what the status bar shows
-- Orientation can be fixed to any of the four, or set to **Sensor** (the default) to
-  auto-rotate; the setting is a picker, so changing it never rotates you through the rest
-- **Park lock** for short unattended stops: a glove-sized PIN keypad that pins the screen
-  so Recents and the notification shade are blocked, with no system lock screen involved.
-  While parked, the PIN is the only way back in
-- Home status bar with time, Wi-Fi, cellular, battery, and an optional GPS speed readout
-  in km/h or mph
-- Manual update check with an install prompt — nothing is downloaded unless you ask
-- Operable with the remote keys dpad-left/right/up/down, Enter and Escape; holding
-  Escape launches the configured navigation app from anywhere in the app, on remotes
-  that do not auto-repeat a held key as well as on keyboards
+- **Big-tile home grid** — eleven slots for apps or links, plus All Apps.
+- **Remote control** — dpad, Enter and Escape. The remote can only launch, so it never gets stuck.
+- **Hold Escape for navigation** — starts your navigation app from anywhere in the launcher.
+- **All Apps** — search the list and hide the apps you never use.
+- **Status bar** — time, GPS speed, Wi-Fi, cellular and battery.
+- **Park lock** — a PIN keypad that pins the screen at short stops.
+- **Updates on request** — nothing is downloaded unless you ask.
+- **Themes and orientation** — dark or light; fixed orientation or auto-rotate.
 
 ## Screenshots
 
-![Home screen](screenshots/main.png)
-Main screen favorite apps grid
+| Tile menu | All Apps | Light theme |
+|---|---|---|
+| ![Tile menu](screenshots/main-popup.png) | ![All Apps](screenshots/all-apps.png) | ![Light theme](screenshots/main-light.png) |
 
+## Getting started
 
-![Home tile action menu](screenshots/main-popup.png)
-Main screen long press popup
+1. Download the APK from the [dev pre-release](https://github.com/c0dev0id/motoLauncher/releases/tag/dev) and install it.
+2. Press Home and choose motoLauncher as the default home app.
+3. Tap an empty **+** tile to put an app or a link there.
+4. Open **All Apps → Settings → Navigation app** and pick your navigation app.
 
+## Remote keys
 
-![All apps screen](screenshots/all-apps.png)
-All Apps
+| Key | Home | All Apps |
+|---|---|---|
+| Dpad | Move the highlight | Move the highlight |
+| Enter | Launch | Launch |
+| Escape | — | Leave settings, then close |
+| Hold Escape | Start the navigation app | Start the navigation app |
 
+## Settings
 
-![Home screen in light theme](screenshots/main-light.png)
-Light theme
+In **All Apps → Settings**, by touch.
+
+| Setting | Options |
+|---|---|
+| Theme | Dark (default), Light |
+| Navigation app | Any app, or None |
+| Check for updates | Checks for a newer build and offers to install it |
+| Park lock | Set a PIN, then lock; long press to change the PIN |
+| Cellular indicator | Off (default), On |
+| GPS Speed | Off (default), On |
+| Units | km/h (default), mph |
+| Battery | Icon + text (default), Icon only, Text only |
+| Hidden apps | Hidden (default), Showing (dimmed) |
+| Orientation | Sensor (default), Landscape, Portrait, Reverse landscape, Reverse portrait |
+| Navigation bar | Hidden (default), Visible |
+
+The [user guide](docs/user-guide.md) walks through each of these.
+
+## Credits
+
+Michroma font: SIL Open Font License 1.1, see `MICHROMA-LICENSE.txt`.
