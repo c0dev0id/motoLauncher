@@ -218,44 +218,7 @@ class AppListActivity : AppCompatActivity() {
             onClick = { settingsTilesCache = null; startActivity(navAppPickerIntent(this@AppListActivity)) },
         ))
 
-        if (BuildConfig.SELF_UPDATE) {
-            // While checking, the subtitle changes and the click is a no-op — guarding
-            // against a double-tap while the network call is in flight.
-            val isChecking = viewModel.isCheckingUpdate
-            val progressSub = viewModel.downloadProgressSubtitle
-            tiles.add(TileItem(
-                label = getString(R.string.check_for_updates),
-                subtitle = when {
-                    progressSub != null -> progressSub
-                    isChecking -> getString(R.string.checking_updates)
-                    else -> BuildConfig.VERSION_NAME
-                },
-                onClick = if (isChecking) ({}) else ({
-                    viewModel.isCheckingUpdate = true
-                    settingsTilesCache = null
-                    renderCurrentMode()
-                    runUpdateFlow(
-                        setClickable = { enabled ->
-                            if (enabled) {
-                                viewModel.isCheckingUpdate = false
-                                viewModel.downloadProgressSubtitle = null
-                                settingsTilesCache = null
-                                renderCurrentMode()
-                            }
-                        },
-                        setSubtitle = { text ->
-                            viewModel.downloadProgressSubtitle = text
-                            val cache = settingsTilesCache
-                            if (cache != null) {
-                                val updated = cache[UPDATE_TILE_INDEX].copy(subtitle = text)
-                                settingsTilesCache = cache.toMutableList().also { it[UPDATE_TILE_INDEX] = updated }
-                                adapter.updateItem(UPDATE_TILE_INDEX, updated)
-                            }
-                        },
-                    )
-                }),
-            ))
-        }
+        if (BuildConfig.SELF_UPDATE) tiles.add(updateTile())
 
         // Deliberately after the update tile: UPDATE_TILE_INDEX hard-codes position 2 for
         // in-place download progress, so nothing may be inserted before it. Everything
@@ -352,6 +315,45 @@ class AppListActivity : AppCompatActivity() {
         ))
 
         return tiles
+    }
+
+    private fun updateTile(): TileItem {
+        // While checking, the subtitle changes and the click is a no-op — guarding
+        // against a double-tap while the network call is in flight.
+        val isChecking = viewModel.isCheckingUpdate
+        val progressSub = viewModel.downloadProgressSubtitle
+        return TileItem(
+            label = getString(R.string.check_for_updates),
+            subtitle = when {
+                progressSub != null -> progressSub
+                isChecking -> getString(R.string.checking_updates)
+                else -> BuildConfig.VERSION_NAME
+            },
+            onClick = if (isChecking) ({}) else ({
+                viewModel.isCheckingUpdate = true
+                settingsTilesCache = null
+                renderCurrentMode()
+                runUpdateFlow(
+                    setClickable = { enabled ->
+                        if (enabled) {
+                            viewModel.isCheckingUpdate = false
+                            viewModel.downloadProgressSubtitle = null
+                            settingsTilesCache = null
+                            renderCurrentMode()
+                        }
+                    },
+                    setSubtitle = { text ->
+                        viewModel.downloadProgressSubtitle = text
+                        val cache = settingsTilesCache
+                        if (cache != null) {
+                            val updated = cache[UPDATE_TILE_INDEX].copy(subtitle = text)
+                            settingsTilesCache = cache.toMutableList().also { it[UPDATE_TILE_INDEX] = updated }
+                            adapter.updateItem(UPDATE_TILE_INDEX, updated)
+                        }
+                    },
+                )
+            }),
+        )
     }
 
     // Tapping "Off" launches the permission request; if granted the launcher callback sets
