@@ -16,13 +16,16 @@ import org.robolectric.RobolectricTestRunner
 @RunWith(RobolectricTestRunner::class)
 class ImmersiveTest {
 
-    @Test
-    fun contentIsPaddedByVisibleBarsAndCutout() {
+    private fun fittedContent(): View {
         val activity = Robolectric.buildActivity(Activity::class.java).setup().get()
         activity.setContentView(FrameLayout(activity))
         activity.window.fitContentToSystemBars()
-        val content = activity.findViewById<View>(android.R.id.content)
+        return activity.findViewById(android.R.id.content)
+    }
 
+    @Test
+    fun contentIsPaddedByVisibleBarsAndCutout() {
+        val content = fittedContent()
         val insets = WindowInsetsCompat.Builder()
             .setInsets(WindowInsetsCompat.Type.navigationBars(), Insets.of(0, 0, 0, 48))
             .setInsets(WindowInsetsCompat.Type.displayCutout(), Insets.of(32, 0, 0, 0))
@@ -36,11 +39,7 @@ class ImmersiveTest {
 
     @Test
     fun hidingTheNavBarDropsItsPadding() {
-        val activity = Robolectric.buildActivity(Activity::class.java).setup().get()
-        activity.setContentView(FrameLayout(activity))
-        activity.window.fitContentToSystemBars()
-        val content = activity.findViewById<View>(android.R.id.content)
-
+        val content = fittedContent()
         val navBarShown = WindowInsetsCompat.Builder()
             .setInsets(WindowInsetsCompat.Type.navigationBars(), Insets.of(0, 0, 0, 48))
             .build()
