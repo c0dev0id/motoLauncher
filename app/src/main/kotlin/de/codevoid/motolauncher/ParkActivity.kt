@@ -13,6 +13,7 @@ import de.codevoid.motolauncher.data.OrientationStore
 import de.codevoid.motolauncher.data.ParkStore
 import de.codevoid.motolauncher.databinding.ActivityParkBinding
 import de.codevoid.motolauncher.ui.enableImmersiveMode
+import de.codevoid.motolauncher.ui.fitContentToSystemBars
 import de.codevoid.motolauncher.ui.noTransition
 
 /**
@@ -104,6 +105,7 @@ class ParkActivity : AppCompatActivity() {
         // Both bars stay hidden here regardless of the NavBarStore setting: a visible
         // navigation bar next to a lock screen is an invitation.
         window.enableImmersiveMode(showNavBar = false)
+        window.fitContentToSystemBars()
 
         onBackPressedDispatcher.addCallback(this) { /* the whole point is not leaving */ }
 
