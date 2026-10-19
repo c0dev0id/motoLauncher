@@ -22,7 +22,7 @@ class UpdateChecker(private val context: Context) {
 
     private val downloadDir = File(context.cacheDir, "updates")
 
-    /** Returns release info if the release this build follows differs from the installed build, else null. */
+    /** The release this build follows, if it differs from the installed build. */
     suspend fun check(): ReleaseInfo? = withContext(Dispatchers.IO) {
         val release = parseRelease(httpGet(releaseApiUrl(BuildConfig.VERSION_NAME))) ?: return@withContext null
         if (isNewer(release, BuildConfig.VERSION_NAME)) release else null
@@ -34,17 +34,12 @@ class UpdateChecker(private val context: Context) {
     ): File = withContext(Dispatchers.IO) {
         val dir = downloadDir.apply { mkdirs() }
         val file = File(dir, release.apkName)
-        // The directory holds at most the download in progress.
         dir.listFiles()?.filter { it != file }?.forEach { it.delete() }
         httpDownload(release.apkUrl, file, onProgress)
         file
     }
 
-    /**
-     * Deletes the APK of the build that is now running, i.e. the update that was just
-     * installed. Only that file: a different version might still be open in the system
-     * installer if this process was restarted to serve it through the FileProvider.
-     */
+    /** Deletes the APK of the running build, which is the update that was just installed. */
     fun deleteInstalledUpdate() {
         File(downloadDir, "$APK_PREFIX${BuildConfig.VERSION_NAME}.apk").delete()
     }
@@ -118,11 +113,7 @@ class UpdateChecker(private val context: Context) {
         fun isNewer(remote: ReleaseInfo, installedVersionName: String): Boolean =
             remote.versionName.isNotEmpty() && remote.versionName != installedVersionName
 
-        /**
-         * Extracts the APK asset from a GitHub release JSON. The version name is derived
-         * from the asset filename (`motoLauncher-<versionName>.apk`), matching the build's
-         * `versionName` so [isNewer] can compare them directly.
-         */
+        /** The release's first APK asset, its version taken from `motoLauncher-<versionName>.apk`. */
         fun parseRelease(json: String): ReleaseInfo? {
             val assets = JSONObject(json).optJSONArray("assets") ?: return null
             for (i in 0 until assets.length()) {

@@ -51,11 +51,7 @@ android {
     }
 
     buildTypes {
-        // A distinct applicationId so a branch build installs alongside the release
-        // build instead of replacing it: the launcher in daily use is never disturbed by
-        // a test install, and both can be offered in the home-app chooser (the debug one
-        // renames itself through app/src/debug/res). The FileProvider authority is
-        // already ${applicationId}-scoped, so the two do not collide on install.
+        // Installs beside the release build.
         debug {
             applicationIdSuffix = ".debug"
             versionNameSuffix = "-debug"

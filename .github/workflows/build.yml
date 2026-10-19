@@ -20,7 +20,6 @@ jobs:
 
       - uses: gradle/actions/setup-gradle@v4
 
-      # Check already lints githubDebug; this covers the variants that ship.
       - name: Lint the release variants
         run: ./gradlew lintGithubRelease lintPlayRelease
 
@@ -39,9 +38,7 @@ jobs:
 
       - uses: gradle/actions/setup-gradle@v4
 
-      # Robolectric fetches its android-all jar at test runtime with its own resolver,
-      # into ~/.m2 — outside the Gradle cache setup-gradle restores. Without this the
-      # ~100 MB jar is re-downloaded on every run.
+      # Robolectric downloads its android-all jar into ~/.m2, outside the Gradle cache.
       - name: Cache Robolectric SDK jars
         uses: actions/cache@v4
         with:
@@ -66,7 +63,7 @@ jobs:
       contents: read
 
     steps:
-      # Full history: the versionCode is the commit count, shared with release.yml.
+      # Full history: the versionCode is the commit count.
       - uses: actions/checkout@v4
         with:
           fetch-depth: 0

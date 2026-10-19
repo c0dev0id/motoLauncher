@@ -6,20 +6,12 @@ import androidx.core.content.edit
 import java.security.MessageDigest
 import java.security.SecureRandom
 
-/**
- * Park lock state: whether the launcher is currently parked, and the PIN that ends it.
- *
- * The PIN is salted and hashed rather than stored plainly. That is hygiene, not security:
- * a four-digit PIN falls to a trivial search by anyone who can read this file, and anyone
- * who can read it already has adb, which defeats the park lock outright. It exists so the
- * PIN is not sitting in a prefs XML in plain sight.
- */
+/** Park lock state: whether the launcher is parked, and the salted hash of the PIN that ends it. */
 class ParkStore(context: Context) {
 
     private val prefs = context.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
 
-    /** Set when park mode starts, cleared by a correct PIN. Survives a reboot, which is
-     *  what restores the park screen after one — lock task mode itself does not. */
+    /** Set while parked; cleared by a correct PIN. */
     var isParked: Boolean
         get() = prefs.getBoolean(KEY_PARKED, false)
         set(value) = prefs.edit { putBoolean(KEY_PARKED, value) }

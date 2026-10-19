@@ -17,20 +17,15 @@ import kotlinx.coroutines.async
 
 class MotoLauncherApp : Application() {
 
-    // Bumped on the main thread by LauncherApps callbacks. Read on the main thread from
-    // onResume to detect whether the cached app list is stale.
+    /** Counts package changes; a screen holding app data from an older count reloads it. */
     var packageGeneration: Int = 0
         private set
 
-    // Process-scoped app list cache. Outlives individual Activity instances so the
-    // Home ↔ AppList bounce reuses the loaded list instead of re-decoding all icons.
-    // All access is on the main thread; the actual load runs on the IO dispatcher.
     private val appScope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
     private var appsCache: Deferred<List<AppEntry>>? = null
     private var appsGeneration: Int = -1
 
-    // Returns the cached Deferred if packageGeneration hasn't moved, otherwise starts
-    // a fresh load. Callers detect a cache miss by comparing the returned instance.
+    /** The installed apps, loaded once per package generation; a new instance means a new load. */
     fun getApps(): Deferred<List<AppEntry>> {
         val current = packageGeneration
         val cached = appsCache
@@ -42,27 +37,16 @@ class MotoLauncherApp : Application() {
 
     override fun onCreate() {
         super.onCreate()
-        // Re-apply the saved theme before any activity is created so the choice survives restarts.
         ThemeStore(this).applyNightMode()
-        // The update that was just installed has served its purpose once the launcher
-        // comes back up. A plain thread rather than a coroutine: Home never loads
-        // kotlinx.coroutines, and this keeps a possibly cold cache-dir read off the
-        // first frame.
         if (BuildConfig.SELF_UPDATE) {
             thread(name = "delete-installed-update") { UpdateChecker(this).deleteInstalledUpdate() }
         }
         watchPackages()
     }
 
-    // One registration for the life of the process, rather than one per activity: the
-    // favourites it repairs are process-wide state, and an activity that is paused during
-    // an uninstall would miss the event that concerns it most.
     private fun watchPackages() {
         AppRepository(this).registerPackageCallback(object : LauncherApps.Callback() {
             override fun onPackageRemoved(packageName: String, user: UserHandle) {
-                // Only an actual removal clears a favourite. "Failed to resolve" must not:
-                // an app on unmounted external storage is unavailable, not uninstalled,
-                // and dropping the slot then would lose the configuration for good.
                 FavoritesStore(this@MotoLauncherApp).clearSlotsForPackage(packageName)
                 packageGeneration++
             }

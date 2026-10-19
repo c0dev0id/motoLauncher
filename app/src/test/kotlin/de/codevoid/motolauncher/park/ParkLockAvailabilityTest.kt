@@ -6,15 +6,7 @@ import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
 
-/**
- * The rule that decides whether the park lock is offered at all. Both halves of it are
- * about a device the tests cannot have, so the rule is kept pure and pinned here: getting
- * it wrong either hides a working lock or offers one that asks the rider to confirm every
- * re-pin.
- *
- * API levels are written as numbers rather than `Build.VERSION_CODES` so the boundary is
- * stated independently of the constant the rule uses.
- */
+/** When the park lock is offered. API levels are numbers, independent of the rule's constant. */
 @RunWith(RobolectricTestRunner::class)
 class ParkLockAvailabilityTest {
 

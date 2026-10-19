@@ -10,20 +10,8 @@ import de.codevoid.motolauncher.databinding.DialogOptionsBinding
 import de.codevoid.motolauncher.ui.showImmersive
 
 /**
- * Pick one of a list of options, as tile-styled rows in the launcher's own dialog theme —
- * the same surface as the tile-action menus, not an `AlertDialog`.
- *
- * It exists because cycling a multi-valued setting by repeated tapping applies every value
- * on the way to the one you want. For Orientation that means the screen rotating through
- * up to four unwanted orientations to reach the fifth, which is unpleasant enough to be a
- * reason not to change the setting at all.
- *
- * Rows are inflated from `item_dialog_option` rather than constructed, so the style's
- * `layout_*` attributes are resolved by the parent the way the fixed rows' are. The
- * current value is drawn in the accent colour: with the tile hidden behind the dialog it
- * is otherwise not visible while choosing.
- *
- * Returns the shown dialog; tests use the handle.
+ * Shows [options] as tile-styled rows, [selectedIndex] highlighted, and reports the picked
+ * index to [onPick]. Returns the shown dialog.
  */
 fun showOptionsDialog(
     context: Context,

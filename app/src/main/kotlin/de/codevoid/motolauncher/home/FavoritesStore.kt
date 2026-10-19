@@ -53,9 +53,7 @@ class FavoritesStore(context: Context) {
 
     fun allSlots(): List<SlotEntry?> = (0 until SLOT_COUNT).map { getSlotEntry(it) }
 
-    // Called when a package is uninstalled: without this the slot keeps a component that
-    // can never resolve again, drawn as an empty "+" that is not actually empty.
-    // Link slots are unaffected — they have no package.
+    /** Empties every app slot holding [packageName]; link slots are left alone. */
     fun clearSlotsForPackage(packageName: String) {
         for (index in 0 until SLOT_COUNT) {
             if (getSlot(index)?.packageName == packageName) clearSlot(index)
@@ -70,8 +68,7 @@ class FavoritesStore(context: Context) {
         private const val PREFS = "favorites"
         private const val LINK_MARKER = "link:"
 
-        // Home grid is 4x3 = 12 cells; the last cell is the fixed "All Apps" tile,
-        // leaving 11 configurable favorite slots.
+        // The twelfth grid cell is the All Apps tile.
         const val SLOT_COUNT = 11
     }
 }

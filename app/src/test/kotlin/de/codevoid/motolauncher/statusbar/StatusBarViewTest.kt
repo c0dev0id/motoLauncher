@@ -13,15 +13,7 @@ import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
 
-/**
- * Two things about the status bar that a device would otherwise be the only way to check:
- * how a platform signal rating maps onto the five icon states, and that the resume refresh
- * re-reads the clock and the battery when the bar comes back into view.
- *
- * On the first: `WifiManager.calculateSignalLevel` rates a signal in `[0, maxSignalLevel]`
- * inclusive, so a device reporting a maximum of 4 has five ratings, not four. Treating the
- * top rating as out of range is what made a 3-of-4 signal draw full bars.
- */
+/** The Wi-Fi rating mapping, and the clock and battery refresh when the bar returns. */
 @RunWith(RobolectricTestRunner::class)
 class StatusBarViewTest {
 

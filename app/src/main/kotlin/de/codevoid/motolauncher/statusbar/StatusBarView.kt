@@ -33,8 +33,7 @@ import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
 
-// Self-contained: HomeActivity does not wire this view's lifecycle. Broadcast and
-// callback registrations live in onAttachedToWindow / onDetachedFromWindow.
+/** Home's top bar: time, GPS speed, Wi-Fi, cellular and battery, subscribed while attached. */
 class StatusBarView @JvmOverloads constructor(
     context: Context,
     attrs: AttributeSet? = null,
@@ -61,9 +60,6 @@ class StatusBarView @JvmOverloads constructor(
     private val settingsPrefs =
         context.getSharedPreferences(SpeedStore.PREFS, Context.MODE_PRIVATE)
 
-    // Cached once — maxSignalLevel is a fixed property that would otherwise cross the
-    // Binder on every capability callback (which fires many times per second on a
-    // fluctuating link).
     private val wifiMaxSignalLevel = wifiManager.maxSignalLevel
 
     // Written on the main thread, read on a Binder thread in onCapabilitiesChanged.
@@ -72,8 +68,6 @@ class StatusBarView @JvmOverloads constructor(
     private var lastBatteryIconLevel = -1
     private var lastCellularLevel = -1
 
-    // Carries the clock while the screen is on. The gap where it does not arrive is
-    // covered by refreshOnResume, not here.
     private val timeReceiver = object : BroadcastReceiver() {
         override fun onReceive(context: Context, intent: Intent) = updateTime()
     }
@@ -82,10 +76,8 @@ class StatusBarView @JvmOverloads constructor(
         override fun onReceive(context: Context, intent: Intent) = applyBatteryIntent(intent)
     }
 
-    // Tracks active Wi-Fi networks so onLost knows when the last one is gone and can
-    // reset the level to 0. Visibility is driven by the radio state (wifiStateReceiver),
-    // not by network availability — zero bars while on but not connected is correct.
-    // ConnectivityManager serialises one callback's methods onto a single thread.
+    // The meter drops to zero only when the last network is lost. ConnectivityManager runs
+    // one callback's methods on a single thread.
     private val wifiNetworks = HashSet<Network>()
 
     private val networkCallback = object : ConnectivityManager.NetworkCallback() {
@@ -94,8 +86,6 @@ class StatusBarView @JvmOverloads constructor(
         }
 
         override fun onCapabilitiesChanged(network: Network, caps: NetworkCapabilities) {
-            // Runs on a Binder thread. Classify cheaply here and only hop to the main
-            // thread when the icon level actually changes.
             val rssi = (caps.transportInfo as? WifiInfo)?.rssi ?: return
             val level = rssiToIconLevel(rssi)
             if (level == lastWifiLevel) return
@@ -104,7 +94,6 @@ class StatusBarView @JvmOverloads constructor(
 
         override fun onLost(network: Network) {
             if (!wifiNetworks.remove(network) || wifiNetworks.isNotEmpty()) return
-            // Reset to zero bars; icon stays visible (radio is still on).
             post { applyWifiLevel(0) }
         }
     }
@@ -114,21 +103,14 @@ class StatusBarView @JvmOverloads constructor(
             when (intent.action) {
                 Intent.ACTION_SCREEN_OFF -> unregisterGps()
                 Intent.ACTION_SCREEN_ON  -> {
-                    // Not behind isShown, unlike GPS below: the refresh is idempotent and
-                    // costs a format and two comparisons, which is less than working out
-                    // whether this wake also produced a visibility change.
                     refreshOnResume()
-                    // Guard against the nav app still being in the foreground when the
-                    // screen turns back on — window visibility hasn't changed in that case,
-                    // so onWindowVisibilityChanged won't fire and we must not restart GPS.
+                    // The navigation app may still be in front of Home.
                     if (isShown) registerGps()
                 }
             }
         }
     }
 
-    // WiFi radio on/off → show/hide the icon. Initial state is set from wifiManager.isWifiEnabled
-    // in onAttachedToWindow; this receiver handles subsequent changes.
     private val wifiStateReceiver = object : BroadcastReceiver() {
         override fun onReceive(context: Context, intent: Intent) {
             when (intent.getIntExtra(WifiManager.EXTRA_WIFI_STATE, WifiManager.WIFI_STATE_UNKNOWN)) {
@@ -157,7 +139,6 @@ class StatusBarView @JvmOverloads constructor(
                 if (cellularStore.enabled) registerCellular() else unregisterCellular()
             SpeedStore.KEY_SPEED_ENABLED -> if (speedStore.enabled) registerGps() else unregisterGps()
             SpeedStore.KEY_SPEED_METRIC -> {
-                // Next GPS fix (~1 s) will overwrite this; just update the unit in the placeholder.
                 if (binding.speedText.isVisible) {
                     binding.speedText.text = "-- ${speedUnitString(speedStore.isMetric)}"
                 }
@@ -179,16 +160,13 @@ class StatusBarView @JvmOverloads constructor(
         context.registerReceiver(screenReceiver,
             IntentFilter(Intent.ACTION_SCREEN_OFF).also { it.addAction(Intent.ACTION_SCREEN_ON) })
 
-        // Sticky broadcast: registerReceiver returns the current state synchronously so
-        // the initial percentage is available without waiting for a change event.
+        // The battery broadcast is sticky: registering returns the current state.
         val initialBattery = context.registerReceiver(
             batteryReceiver,
             IntentFilter(Intent.ACTION_BATTERY_CHANGED),
         )
         initialBattery?.let(::applyBatteryIntent)
 
-        // Set initial visibility from the current radio state; wifiStateReceiver handles
-        // subsequent on/off changes. Network callback handles RSSI updates.
         binding.wifiIcon.isVisible = wifiManager.isWifiEnabled
         context.registerReceiver(wifiStateReceiver, IntentFilter(WifiManager.WIFI_STATE_CHANGED_ACTION))
         val wifiRequest = NetworkRequest.Builder()
@@ -210,7 +188,6 @@ class StatusBarView @JvmOverloads constructor(
         context.unregisterReceiver(batteryReceiver)
         context.unregisterReceiver(wifiStateReceiver)
         connectivityManager.unregisterNetworkCallback(networkCallback)
-        // Clear so re-attaching gets a fresh onCapabilitiesChanged for networks already up.
         wifiNetworks.clear()
         unregisterCellular()
 
@@ -218,15 +195,6 @@ class StatusBarView @JvmOverloads constructor(
         locationManager.removeUpdates(locationListener)
     }
 
-    // Pause the GPS listener while the home window is hidden (navigation app in
-    // foreground) and resume it when the window comes back. Event-driven callbacks
-    // (battery, network) are cheap enough to leave running; 1 Hz GPS polling is not.
-    // Both registerGps/unregisterGps are idempotent, so no flag needed here.
-    //
-    // Coming back into view is also a resume edge, so it goes through refreshOnResume for
-    // the same reason screen-on does. This view stays attached while the launcher is
-    // merely stopped, so a plain app switch usually keeps its broadcasts; refreshing
-    // anyway is cheaper than reasoning about which return path kept which of them.
     override fun onWindowVisibilityChanged(visibility: Int) {
         super.onWindowVisibilityChanged(visibility)
         if (visibility == VISIBLE) {
@@ -237,25 +205,7 @@ class StatusBarView @JvmOverloads constructor(
         }
     }
 
-    /**
-     * The single place that re-reads what may have gone stale while nothing was being
-     * delivered to this view. Both resume edges come through here so they cannot drift
-     * apart, the way `requestLockTask` serves every caller in `ParkActivity`.
-     *
-     * The clock needs it unconditionally: `ACTION_TIME_TICK` stops arriving while the
-     * screen is off, so a device picked up after a night asleep shows the minute it went
-     * dark until the next tick lands.
-     *
-     * The battery is only wrong if a change broadcast went missing while the device slept
-     * — being plugged in or unplugged with the screen off is the case that shows. Reading
-     * it costs nothing to be sure: `ACTION_BATTERY_CHANGED` is sticky, so a null receiver
-     * returns the current state synchronously without registering anything, and
-     * `applyBatteryIntent` compares against the last percent and icon level, so a refresh
-     * that finds no change touches no views.
-     *
-     * The radios are left alone deliberately: Wi-Fi and cellular re-deliver through their
-     * own callbacks once the network settles after a wake.
-     */
+    /** Re-reads the clock and the battery, which can go stale while the screen is off. */
     private fun refreshOnResume() {
         updateTime()
         context.registerReceiver(null, IntentFilter(Intent.ACTION_BATTERY_CHANGED))
@@ -272,8 +222,7 @@ class StatusBarView @JvmOverloads constructor(
         if (level < 0 || scale <= 0) return
         val percent = level * 100 / scale
         val plugged = intent.getIntExtra(BatteryManager.EXTRA_PLUGGED, 0) != 0
-        // 5 fill buckets [0..4] plus a +5 offset for the charging variants, matching the
-        // 10-item level-list in ic_battery.xml.
+        // Five fill levels, plus five for charging: the level-list in ic_battery.xml.
         val bucket = (percent / 20).coerceIn(0, 4)
         val iconLevel = bucket + if (plugged) 5 else 0
 
@@ -302,8 +251,6 @@ class StatusBarView @JvmOverloads constructor(
         binding.cellularIcon.setImageLevel(level)
     }
 
-    // Three gates: cellularEnabled (user toggle), telephony available on API 31+, and
-    // READ_PHONE_STATE granted. All must hold or nothing is registered and the icon stays hidden.
     private fun registerCellular() {
         binding.cellularIcon.isVisible = false
         if (!cellularStore.enabled) return
@@ -362,18 +309,7 @@ class StatusBarView @JvmOverloads constructor(
         // Our meters have five states, 0 (empty) to 4 (full).
         private const val MAX_ICON_LEVEL = 4
 
-        /**
-         * Maps a platform Wi-Fi rating onto the icon's five states.
-         *
-         * `WifiManager.calculateSignalLevel` returns a rating in `[0, maxSignalLevel]`
-         * *inclusive* — maxSignalLevel + 1 distinct values, five on a typical device.
-         * Dividing by `maxSignalLevel` (not by one less, which treats the top rating as
-         * out of range) keeps the mapping honest at both ends: only the platform's own
-         * maximum draws full bars, and only a 0 rating draws none.
-         *
-         * A platform reporting fewer steps than the icon has simply skips icon states;
-         * that is lost resolution, not a misreading.
-         */
+        /** Maps a platform Wi-Fi rating, `0..maxSignalLevel` inclusive, onto the icon's five states. */
         fun wifiIconLevel(rawLevel: Int, maxSignalLevel: Int): Int {
             val max = maxSignalLevel.coerceAtLeast(1)
             return rawLevel.coerceIn(0, max) * MAX_ICON_LEVEL / max

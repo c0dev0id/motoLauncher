@@ -8,14 +8,10 @@ import de.codevoid.motolauncher.ui.showImmersive
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.launch
 
-// User-triggered update check: the caller is disabled while the flow is in flight
-// (setClickable false → true) and each outcome — latest build, update available with an
-// install prompt, failure — is a dialog. Off-bike, touch-only flow, so stock alert
-// buttons are acceptable.
-//
-// CancellationException is an Exception, so the catches rethrow it: a job cancelled
-// at ON_DESTROY must complete as cancelled, not as "handled". Dialogs reached after
-// the activity is gone are dropped by showImmersive().
+/**
+ * Checks for an update and offers to download and install it, each outcome in a dialog.
+ * [setClickable] is false while a step runs; [setSubtitle] receives download progress.
+ */
 fun AppCompatActivity.runUpdateFlow(
     setClickable: (Boolean) -> Unit = {},
     setSubtitle: (String) -> Unit = {},

@@ -9,17 +9,7 @@ import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
 
-/**
- * Events go through `KeyEvent.dispatch` with a real `KeyEvent.DispatcherState` — the same
- * path an activity's key handling takes — rather than through the two methods directly
- * with hand-set flags, so the framework's tracking machinery is exercised rather than
- * assumed.
- *
- * The case that matters most is [holdIsRecognisedWithoutAnyKeyRepeat]: the handlebar
- * remote reports a plain down and up with no repeats, which is why the framework's
- * `onKeyLongPress` never fired for it and holding ESC did nothing on the bike while
- * working from a USB keyboard.
- */
+/** Escape presses dispatched through a real `KeyEvent.DispatcherState`, as an activity gets them. */
 @RunWith(RobolectricTestRunner::class)
 class EscapeKeysTest {
 
@@ -33,8 +23,7 @@ class EscapeKeysTest {
 
     private val state = KeyEvent.DispatcherState()
 
-    // Wired exactly as HomeActivity and AppListActivity wire it: onKeyLongPress is left at
-    // the framework default, since EscapeKeys no longer uses it.
+    // Wired as the activities wire it.
     private val callback = object : KeyEvent.Callback {
         override fun onKeyDown(keyCode: Int, event: KeyEvent) = keys.onKeyDown(keyCode, event)
         override fun onKeyLongPress(keyCode: Int, event: KeyEvent) = false

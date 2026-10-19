@@ -95,7 +95,8 @@ framework keeps arming the timer from the tile's previous binding.
 `FavoritesCache` holds the resolved `AppEntry`s keyed on (`packageGeneration`, slot
 list), so returning from the navigation app costs no Binder calls or icon decoding. It
 was an activity field until the Sensor orientation made rotation common: every recreate
-then redid the whole resolve on the main thread in `onResume`.
+then redid the whole resolve on the main thread in `onResume`. Home resolves only its
+favourites (`loadByComponents`), never the whole app list.
 
 ### Favourites are slots in `SharedPreferences`
 Eleven slots plus the fixed All Apps tile fill the 4×3 grid. A slot holds a flattened
@@ -188,7 +189,9 @@ picking Sensor in the launcher is meant to be the whole decision. Rotation resha
 UI only because no activity lists `orientation` in `configChanges`: the system
 recreates them, so the grid, the column count and the status bar's `layout-port`
 variant are chosen afresh. Adding `orientation` there would freeze the layout in its
-starting shape. Sensor is the default for installs that never set the option.
+starting shape. Sensor is the default for installs that never set the option: the
+device is landscape-mounted, but a launcher that cannot follow the screen it is on is
+worse out of the box than one that can.
 
 ### The large-screen orientation rule is opted out of, for now
 With targetSdk 36, Android 16 ignores requested orientations on displays of 600dp
@@ -266,7 +269,8 @@ need location permission.
 Visibility keys off `WIFI_STATE_CHANGED_ACTION`, seeded from `isWifiEnabled`. Losing the
 last network draws zero bars instead of hiding the icon. An earlier version hid the icon
 whenever no network was connected, which made "radio off" and "radio on, nothing in
-range" look the same.
+range" look the same. The set of live networks is cleared on detach, because
+re-registering the callback replays the networks that are still up.
 
 ### The Wi-Fi rating range is inclusive
 `WifiManager.calculateSignalLevel` returns `[0, maxSignalLevel]` inclusive, five values
@@ -322,7 +326,15 @@ The separate task is restored explicitly: while `ParkStore.isParked` is set,
 `HomeActivity.onResume` re-launches the park screen. That one path covers a reboot,
 which pinning does not survive, and a Home press on a device that refused pinning. The
 park screen sets `isParked` itself, so no entry point carries a protocol, and the Park
-lock tile finishes the app list as it launches so unlocking returns to Home.
+lock tile finishes the app list as it launches so unlocking returns to Home. The screen
+is excluded from Recents, so it is never offered as a thumbnail where pinning is
+refused.
+
+Being `singleInstance`, the screen receives later intents through `onNewIntent`, so
+whether it is setting a PIN is read from the current intent every time; a cached value
+would bring back an abandoned PIN setup when the rider parks. PIN setup never pins the
+screen. Both system bars stay hidden whatever the navigation-bar setting says. Pinning is
+requested in `onResume`, since `startLockTask()` needs a resumed activity.
 
 ### Measured on the device
 On the 7" device with gesture navigation, an app pinning itself is not asked to
@@ -345,7 +357,11 @@ short of adb or reinstalling. A forgotten PIN strands the device.
 A status line under the keypad reported whether pinning took while the mechanism was
 being proven. It was removed once pinning was confirmed: the screen is the same lock to
 its user either way, and the line offered no action. The state is still read to stop
-retrying on a device with screen pinning switched off.
+retrying on a device with screen pinning switched off: once a request has failed and
+pinning has never worked on that screen, the guard stops polling, since each retry costs
+a failed Binder call and a caught exception. The never-worked condition keeps a re-pin
+that is merely slow from disarming the guard. Regaining focus re-arms it, which is how
+switching screen pinning on and returning is picked up.
 
 ### The keypad is touch-only
 The keypad sits in a `TouchOnlyRow`, so the remote can never drive it.
@@ -380,7 +396,8 @@ offline.
 The APK is downloaded to `cacheDir/updates/` and handed to the system installer through
 `FileProvider`. `download()` removes every other file first. On process start only the
 APK of the running version is deleted: a different version might still be open in the
-installer if the process was restarted to serve it.
+installer if the process was restarted to serve it. That deletion runs on a plain thread
+at process start, off the first frame; Home never loads kotlinx.coroutines.
 
 ### Progress on the tile, outcomes in dialogs
 There is no room for a status line, and a transient one is easy to miss on a

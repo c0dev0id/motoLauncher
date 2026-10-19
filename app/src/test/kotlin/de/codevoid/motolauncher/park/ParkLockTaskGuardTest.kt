@@ -6,11 +6,7 @@ import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
 
-/**
- * The guard's decision to re-pin. Lock task mode itself needs a device, but the rule that
- * drives it does not — and getting it wrong is how the park screen would either stop
- * re-pinning or re-pin the screen a correct PIN just released.
- */
+/** The rule behind the park lock's re-pinning guard. */
 @RunWith(RobolectricTestRunner::class)
 class ParkLockTaskGuardTest {
 

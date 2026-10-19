@@ -28,8 +28,7 @@ class AppRepository(private val context: Context) {
         sortApps(infos.map { async { toEntry(it) } }.awaitAll())
     }
 
-    // Resolves only the requested components (and decodes only their icons), so the home
-    // grid doesn't enumerate and rasterize every installed app just to show its favorites.
+    /** Resolves only [components], without enumerating every installed app. */
     fun loadByComponents(components: Collection<ComponentName>): Map<ComponentName, AppEntry> {
         if (components.isEmpty()) return emptyMap()
         val wanted = components.toHashSet()
@@ -45,9 +44,6 @@ class AppRepository(private val context: Context) {
         return result
     }
 
-    // LauncherApps reports adds, removals and profile availability for exactly the apps
-    // this class enumerates, so the change feed comes from the same place as the data.
-    // Registered for the life of the process; nothing here unregisters.
     fun registerPackageCallback(callback: LauncherApps.Callback) {
         launcherApps.registerCallback(callback)
     }
@@ -56,10 +52,7 @@ class AppRepository(private val context: Context) {
         launcherApps.startMainActivity(component, Process.myUserHandle(), null, null)
     }
 
-    // A favourite outlives its app: the component stored in SharedPreferences may point
-    // at something since uninstalled, and startMainActivity throws on a component that no
-    // longer resolves. Callers launching a stored component rather than a resolved
-    // AppEntry go through here.
+    /** Launches a stored [component], or does nothing if it is no longer installed. */
     fun launchIfInstalled(component: ComponentName) {
         if (launcherApps.isActivityEnabled(component, Process.myUserHandle())) launch(component)
     }
@@ -68,12 +61,7 @@ class AppRepository(private val context: Context) {
         launcherApps.startAppDetailsActivity(component, Process.myUserHandle(), null, null)
     }
 
-    // Hands off to the system uninstaller, which asks for confirmation itself. Two
-    // manifest entries make that hand-off work, and it fails silently without either:
-    // REQUEST_DELETE_PACKAGES (mandatory since targetSdk 28 for requesting a package
-    // delete) and a <queries> entry for ACTION_DELETE, because the uninstaller has no
-    // launcher entry and package visibility filters intent resolution. The favourite tile
-    // self-heals to "+" on the next resume because loadByComponents no longer resolves it.
+    /** Hands [component]'s package to the system uninstaller, which asks for confirmation. */
     fun requestUninstall(component: ComponentName) {
         context.startActivity(
             Intent(Intent.ACTION_DELETE, Uri.fromParts("package", component.packageName, null))

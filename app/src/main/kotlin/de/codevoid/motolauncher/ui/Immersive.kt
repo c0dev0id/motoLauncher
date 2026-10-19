@@ -15,9 +15,7 @@ import de.codevoid.motolauncher.settings.NavBarStore
 @Suppress("DEPRECATION")
 fun Activity.noTransition() = overridePendingTransition(0, 0)
 
-// Status bar always hidden; nav bar follows the NavBarStore setting.
-// Activities re-apply on onWindowFocusChanged(true) because permission dialogs and
-// the system installer can transiently restore bars.
+/** Hides the status bar, and the navigation bar unless [showNavBar]. */
 fun Window.enableImmersiveMode(showNavBar: Boolean = false) {
     WindowInsetsControllerCompat(this, decorView).apply {
         systemBarsBehavior = WindowInsetsControllerCompat.BEHAVIOR_SHOW_TRANSIENT_BARS_BY_SWIPE
@@ -27,8 +25,7 @@ fun Window.enableImmersiveMode(showNavBar: Boolean = false) {
     }
 }
 
-// Lays out an activity window edge to edge and pads its content by the visible system
-// bars and display cutout.
+/** Lays the window out edge to edge and pads its content by the visible bars and cutout. */
 fun Window.fitContentToSystemBars() {
     WindowCompat.setDecorFitsSystemWindows(this, false)
     val content = decorView.findViewById<View>(android.R.id.content)
@@ -41,11 +38,7 @@ fun Window.fitContentToSystemBars() {
     }
 }
 
-// A dialog is its own window; shown plainly over an immersive activity it brings the
-// system bars back for as long as it is up. Every dialog the app shows goes through
-// here, which is also where "never show on a finishing or destroyed activity" lives:
-// a dialog produced after an await (the update flow) can otherwise outlive its host
-// and crash on show() with a dead window token.
+/** Shows the dialog with the system bars hidden, unless its activity is finishing or gone. */
 fun Dialog.showImmersive() {
     val host = hostActivity()
     if (host != null && (host.isFinishing || host.isDestroyed)) return

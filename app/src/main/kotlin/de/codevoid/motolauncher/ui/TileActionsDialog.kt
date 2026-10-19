@@ -8,11 +8,7 @@ import de.codevoid.motolauncher.R
 import de.codevoid.motolauncher.apps.AppEntry
 import de.codevoid.motolauncher.databinding.DialogTileActionsBinding
 
-// Touch long-press menu for an app tile, on Home and in the app list. A plain Dialog on
-// the app's own dialog theme rather than an AlertDialog, so the surface keeps the
-// launcher palette and tile-style buttons instead of the Material3 dialog look. Back /
-// Escape dismiss it without choosing. Returns the shown dialog (tests use the handle).
-//
+/** The touch long-press menu of an app tile. Returns the shown dialog. */
 fun showTileActionsDialog(
     context: Context,
     entry: AppEntry,

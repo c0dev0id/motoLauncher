@@ -61,7 +61,6 @@ class AppTileAdapter(private var items: List<TileItem>) :
     }
 }
 
-// Recycled view holders carry stale visibility from the previous binding — must reset explicitly.
 private fun ImageView.bindOptional(value: Drawable?) {
     setImageDrawable(value)
     isVisible = value != null

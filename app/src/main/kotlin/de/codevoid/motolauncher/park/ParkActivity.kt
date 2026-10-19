@@ -16,74 +16,32 @@ import de.codevoid.motolauncher.ui.enableImmersiveMode
 import de.codevoid.motolauncher.ui.fitContentToSystemBars
 import de.codevoid.motolauncher.ui.noTransition
 
-/**
- * The park lock: a manual, PIN-guarded screen for short unattended stops.
- *
- * It lives in its own task (singleInstance + taskAffinity) rather than being a mode of
- * HomeActivity, because HomeActivity is singleTask and the root of the home task — a Home
- * press routes through onNewIntent and clears everything above the root, which would take
- * a park screen stacked there with it. Its own task is also what makes lock task mode
- * applicable at all.
- *
- * Lock task mode (screen pinning, without device owner) is what blocks Recents and the
- * notification shade. An app pinning *itself* is not asked to confirm — the confirmation
- * dialog belongs to pinning started from Recents — so parking is a single tap. It is
- * still best effort: a device with screen pinning switched off refuses it and the park
- * screen degrades to a deterrent against a stray tap. That difference is deliberately not
- * shown — it is a technical detail, and the screen is the same lock either way.
- *
- * The system's own unpin gesture (hold Back + Recents) cannot be blocked, so it is
- * *undone* instead: while parked, a guard polls `lockTaskModeState` and re-pins within a
- * few hundred milliseconds. Only the correct PIN disarms it. The consequence is worth
- * being clear about — with the guard, the PIN is the only way out short of adb or
- * reinstalling, so a forgotten PIN strands the device.
- *
- * Even unpinned, the Home gesture is covered: it starts the home app, and HomeActivity
- * re-launches this screen while ParkStore.isParked is set.
- */
+/** The park lock: a PIN keypad that pins the screen for short unattended stops. */
 class ParkActivity : AppCompatActivity() {
 
     private lateinit var binding: ActivityParkBinding
     private val store by lazy { ParkStore(this) }
     private val orientationStore by lazy { OrientationStore(this) }
 
-    // Read from the current intent, not cached: this activity is singleInstance, so a
-    // later lockIntent arrives at the same instance through onNewIntent. An abandoned
-    // set-PIN screen would otherwise come back as set-PIN when the user parks.
     private val isSettingPin get() = intent.getBooleanExtra(EXTRA_SET_PIN, false)
 
-    // Cached: looked up several times a second by the guard, and fixed for the life of
-    // the activity.
     private val activityManager by lazy { getSystemService(ActivityManager::class.java) }
 
     private var lastLockTaskRequestAt = 0L
-    // Set when a request demonstrably did not take *and* pinning has never worked on this
-    // screen. Screen pinning being switched off is a device setting, so retrying it
-    // several times a second buys nothing and costs a failed Binder call plus a caught
-    // exception each time. Gated on everPinned so that a re-pin which merely takes longer
-    // than the settle window cannot disarm the guard on a device where pinning does work —
-    // that would reopen the unpin hatch silently. Cleared on focus gain, which is how
-    // switching the setting on and coming back is picked up.
+    // Set when a request failed and pinning has never worked here; cleared on focus gain.
     private var lockTaskUnavailable = false
     private var everPinned = false
 
-    // Polling is the only way to notice an unpin: there is no callback for it outside a
-    // device-owner DeviceAdminReceiver. Armed only while this screen is resumed and
-    // parked, so a parked device with the screen off polls nothing.
+    // Re-pins the screen after the system's unpin gesture.
     private val lockTaskGuard = object : Runnable {
         override fun run() {
-            // Disarmed: stop rearming rather than keep polling a screen on its way out.
             if (isSettingPin || isFinishing || !store.isParked || lockTaskUnavailable) return
-            // One lockTaskModeState read per pass: it is a Binder round trip.
             requestLockTask(readLockTaskState())
             binding.root.postDelayed(this, GUARD_INTERVAL_MS)
         }
     }
 
-    // Runs once the system server has settled after a request, so it sees the real state
-    // rather than the stale NONE a read straight after the request returns. A field rather
-    // than a fresh lambda per request: this way disarming cancels it too, instead of
-    // leaving callbacks that outlive the screen they were posted from.
+    // Checks, once lockTaskModeState has caught up with a request, whether it took.
     private val settleCheck = Runnable {
         if (isFinishing || isSettingPin) return@Runnable
         if (!readLockTaskState() && !everPinned) {
@@ -93,7 +51,7 @@ class ParkActivity : AppCompatActivity() {
     }
 
     private val entered = StringBuilder()
-    // Set mode only: the first of the two entries, held until the repeat confirms it.
+    // While setting a PIN: the first entry, until the repeat confirms it.
     private var firstEntry: String? = null
     private var message: String? = null
 
@@ -102,8 +60,6 @@ class ParkActivity : AppCompatActivity() {
         setRequestedOrientation(orientationStore.orientation)
         binding = ActivityParkBinding.inflate(layoutInflater)
         setContentView(binding.root)
-        // Both bars stay hidden here regardless of the NavBarStore setting: a visible
-        // navigation bar next to a lock screen is an invitation.
         window.enableImmersiveMode(showNavBar = false)
         window.fitContentToSystemBars()
 
@@ -132,12 +88,7 @@ class ParkActivity : AppCompatActivity() {
     override fun onResume() {
         super.onResume()
         setRequestedOrientation(orientationStore.orientation)
-        // The parked flag is this screen's own invariant — "only this may be in front" —
-        // so it is set here rather than by whoever launched us. No entry point has to
-        // remember a protocol, and HomeActivity's restore path is simply re-entering here.
         if (!isSettingPin) store.isParked = true
-        // Pinning is requested here, not in onCreate: startLockTask needs a resumed
-        // activity, which also covers the restore-after-reboot path.
         requestLockTask(readLockTaskState())
         render()
         armLockTaskGuard()
@@ -148,9 +99,6 @@ class ParkActivity : AppCompatActivity() {
         super.onPause()
     }
 
-    // A second re-assert point alongside the guard, for the case where focus returns
-    // before the next poll is due — and the one event-driven retry after polling gave up,
-    // which is what picks up screen pinning being switched on and the user coming back.
     override fun onWindowFocusChanged(hasFocus: Boolean) {
         super.onWindowFocusChanged(hasFocus)
         if (!hasFocus) return
@@ -199,8 +147,6 @@ class ParkActivity : AppCompatActivity() {
 
     private fun submitUnlock(pin: String) {
         if (store.verify(pin)) {
-            // Order matters: the guard stops and the parked flag clears before the pin is
-            // released, so no in-flight guard run can re-pin what the PIN just opened.
             disarmLockTaskGuard()
             store.isParked = false
             exitLockTask()
@@ -233,11 +179,7 @@ class ParkActivity : AppCompatActivity() {
     private fun readLockTaskState(): Boolean =
         isLockTaskActive().also { if (it) everPinned = true }
 
-    /**
-     * The single place that asks for lock task mode — onResume, focus gain and the guard
-     * all come through here, so they cannot drift apart. Takes the current state rather
-     * than reading it, so one Binder round trip serves the whole pass.
-     */
+    /** The one place that asks for lock task mode, given the state just read. */
     private fun requestLockTask(lockTaskActive: Boolean) {
         if (!shouldRequestLockTask(
                 parked = store.isParked,
@@ -251,10 +193,6 @@ class ParkActivity : AppCompatActivity() {
         }
         lastLockTaskRequestAt = SystemClock.elapsedRealtime()
         runCatching { startLockTask() }
-        // The system server updates lockTaskModeState asynchronously, so reading it
-        // straight after a request still reports NONE, so the guard would fire a second
-        // request, and a second system toast, into the same window. Hence both the settle
-        // check and the sinceLastRequestMs term in shouldRequestLockTask.
         binding.root.removeCallbacks(settleCheck)
         binding.root.postDelayed(settleCheck, LOCK_TASK_SETTLE_MS)
     }
@@ -270,8 +208,6 @@ class ParkActivity : AppCompatActivity() {
         binding.root.removeCallbacks(settleCheck)
     }
 
-    // Best effort like the request: stopLockTask throws if it was never entered, which is
-    // the normal case on a device with screen pinning switched off.
     private fun exitLockTask() {
         if (!isLockTaskActive()) return
         runCatching { stopLockTask() }
@@ -282,14 +218,7 @@ class ParkActivity : AppCompatActivity() {
         private const val LOCK_TASK_SETTLE_MS = 400L
         private const val GUARD_INTERVAL_MS = 300L
 
-        /**
-         * Whether the guard should ask for lock task mode again. Pure, so the single place
-         * that decides to re-pin is unit-testable without a device.
-         *
-         * `sinceLastRequestMs` keeps the guard off its own toes: lockTaskModeState lags a
-         * successful request, so without it the first poll after parking would fire a
-         * redundant second request.
-         */
+        /** Whether to ask for lock task mode now, outside the settle window of the last request. */
         fun shouldRequestLockTask(
             parked: Boolean,
             isSettingPin: Boolean,
@@ -299,27 +228,14 @@ class ParkActivity : AppCompatActivity() {
         ): Boolean = parked && !isSettingPin && !finishing && !lockTaskActive &&
             sinceLastRequestMs >= LOCK_TASK_SETTLE_MS
 
-        /**
-         * Whether the park lock is worth offering at all — the pure rule behind showing
-         * or hiding its settings tile. Both cases below leave a screen that still works
-         * but is not worth reaching.
-         *
-         * Below Android 15 the system asks the rider to confirm every `startLockTask()`.
-         * That turns [shouldRequestLockTask] into a dialog generator: the guard answers an
-         * unpin with a confirmation prompt instead of a silent re-pin, so the one hatch the
-         * guard exists to close stays open and parking costs a tap on every request.
-         *
-         * A device with a secure lock screen already has a better park lock, one button
-         * away — the power key. Offering this one beside it only asks for a second PIN at
-         * every stop and locks nothing the first PIN did not.
-         */
+        /** Whether to offer the park lock: Android 15 or newer, and no secure lock screen. */
         fun shouldOfferParkLock(sdkInt: Int, deviceSecure: Boolean): Boolean =
             sdkInt >= Build.VERSION_CODES.VANILLA_ICE_CREAM && !deviceSecure
 
         /** Shows the keypad, marks the launcher parked and asks for pinning. */
         fun lockIntent(context: Context) = Intent(context, ParkActivity::class.java)
 
-        /** Enter-twice PIN setup. Never pins: setup happens at a desk, not at a kerb. */
+        /** Enter-twice PIN setup; never pins the screen. */
         fun setPinIntent(context: Context) =
             Intent(context, ParkActivity::class.java).putExtra(EXTRA_SET_PIN, true)
     }
