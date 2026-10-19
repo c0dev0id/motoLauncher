@@ -3,10 +3,10 @@ package de.codevoid.motolauncher
 import android.app.Application
 import android.content.pm.LauncherApps
 import android.os.UserHandle
-import de.codevoid.motolauncher.data.AppEntry
-import de.codevoid.motolauncher.data.AppRepository
-import de.codevoid.motolauncher.data.FavoritesStore
-import de.codevoid.motolauncher.data.ThemeStore
+import de.codevoid.motolauncher.apps.AppEntry
+import de.codevoid.motolauncher.apps.AppRepository
+import de.codevoid.motolauncher.home.FavoritesStore
+import de.codevoid.motolauncher.settings.ThemeStore
 import de.codevoid.motolauncher.update.UpdateChecker
 import kotlin.concurrent.thread
 import kotlinx.coroutines.CoroutineScope

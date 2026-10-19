@@ -10,27 +10,23 @@ import androidx.activity.viewModels
 import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
 import androidx.lifecycle.ViewModel
-import de.codevoid.motolauncher.AppListActivity
 import de.codevoid.motolauncher.BuildConfig
-import de.codevoid.motolauncher.ParkActivity
 import de.codevoid.motolauncher.R
-import de.codevoid.motolauncher.data.AppRepository
-import de.codevoid.motolauncher.data.BatteryDisplay
-import de.codevoid.motolauncher.data.BatteryStore
-import de.codevoid.motolauncher.data.CellularStore
-import de.codevoid.motolauncher.data.HiddenAppsStore
-import de.codevoid.motolauncher.data.NavAppStore
-import de.codevoid.motolauncher.data.NavBarStore
-import de.codevoid.motolauncher.data.OrientationStore
-import de.codevoid.motolauncher.data.ParkStore
-import de.codevoid.motolauncher.data.SpeedStore
-import de.codevoid.motolauncher.data.ThemeStore
-import de.codevoid.motolauncher.ui.TileItem
+import de.codevoid.motolauncher.applist.AppListActivity
+import de.codevoid.motolauncher.applist.HiddenAppsStore
+import de.codevoid.motolauncher.applist.TileItem
+import de.codevoid.motolauncher.apps.AppRepository
+import de.codevoid.motolauncher.navapp.NavAppStore
+import de.codevoid.motolauncher.park.ParkActivity
+import de.codevoid.motolauncher.park.ParkStore
+import de.codevoid.motolauncher.statusbar.BatteryDisplay
+import de.codevoid.motolauncher.statusbar.BatteryStore
+import de.codevoid.motolauncher.statusbar.CellularStore
+import de.codevoid.motolauncher.statusbar.SpeedStore
 import de.codevoid.motolauncher.ui.enableImmersiveMode
 import de.codevoid.motolauncher.ui.noTransition
-import de.codevoid.motolauncher.ui.runUpdateFlow
 import de.codevoid.motolauncher.ui.showImmersive
-import de.codevoid.motolauncher.ui.showOptionsDialog
+import de.codevoid.motolauncher.update.runUpdateFlow
 
 /**
  * The tiles of the app list's settings mode. Each tile applies its own change and calls

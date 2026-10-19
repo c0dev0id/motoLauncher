@@ -1,0 +1,73 @@
+package de.codevoid.motolauncher.update
+
+import androidx.test.core.app.ApplicationProvider
+import de.codevoid.motolauncher.BuildConfig
+import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
+import org.junit.Assert.assertNull
+import org.junit.Assert.assertTrue
+import org.junit.Test
+import org.junit.runner.RunWith
+import org.robolectric.RobolectricTestRunner
+import java.io.File
+
+@RunWith(RobolectricTestRunner::class)
+class UpdateCheckerTest {
+
+    @Test
+    fun parseReleasePicksApkAssetAndDerivesVersion() {
+        val json = """
+            {"assets":[
+              {"name":"notes.txt","browser_download_url":"https://x/notes.txt"},
+              {"name":"motoLauncher-dev-abc1234.apk","browser_download_url":"https://x/app.apk"}
+            ]}
+        """.trimIndent()
+        val info = UpdateChecker.parseRelease(json)!!
+        assertEquals("dev-abc1234", info.versionName)
+        assertEquals("https://x/app.apk", info.apkUrl)
+        assertEquals("motoLauncher-dev-abc1234.apk", info.apkName)
+    }
+
+    @Test
+    fun devBuildsFollowTheDevPreReleaseAndReleasesTheLatestRelease() {
+        val releases = "https://api.github.com/repos/c0dev0id/motoLauncher/releases"
+        assertEquals("$releases/tags/dev", UpdateChecker.releaseApiUrl("dev-abc1234"))
+        assertEquals("$releases/tags/dev", UpdateChecker.releaseApiUrl("dev-local-debug"))
+        assertEquals("$releases/latest", UpdateChecker.releaseApiUrl("1.0.3"))
+    }
+
+    @Test
+    fun parseReleaseReturnsNullWithoutApkAsset() {
+        assertNull(UpdateChecker.parseRelease("""{"assets":[{"name":"readme.txt"}]}"""))
+    }
+
+    @Test
+    fun parseReleaseReturnsNullWithoutAssetsArray() {
+        assertNull(UpdateChecker.parseRelease("""{"tag_name":"dev"}"""))
+    }
+
+    @Test
+    fun deleteInstalledUpdateRemovesOnlyTheRunningBuildsApk() {
+        val context = ApplicationProvider.getApplicationContext<android.content.Context>()
+        val dir = File(context.cacheDir, "updates")
+        dir.deleteRecursively()
+        UpdateChecker(context).deleteInstalledUpdate() // missing dir is fine
+
+        dir.mkdirs()
+        val installed = File(dir, "motoLauncher-${BuildConfig.VERSION_NAME}.apk").apply { writeText("x") }
+        val pending = File(dir, "motoLauncher-dev-other.apk").apply { writeText("y") }
+
+        UpdateChecker(context).deleteInstalledUpdate()
+
+        assertFalse(installed.exists())
+        assertTrue(pending.exists())
+    }
+
+    @Test
+    fun isNewerOnlyWhenVersionDiffers() {
+        val remote = ReleaseInfo("dev-new", "url", "motoLauncher-dev-new.apk")
+        assertTrue(UpdateChecker.isNewer(remote, "dev-old"))
+        assertFalse(UpdateChecker.isNewer(remote, "dev-new"))
+        assertFalse(UpdateChecker.isNewer(ReleaseInfo("", "u", "n"), "dev-old"))
+    }
+}

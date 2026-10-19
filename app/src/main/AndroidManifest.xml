@@ -56,7 +56,7 @@
         </activity>
 
         <activity
-            android:name=".AppListActivity"
+            android:name=".applist.AppListActivity"
             android:exported="false" />
 
         <!-- Own task, deliberately: HomeActivity is singleTask and the root of the home
@@ -64,7 +64,7 @@
              keeps the park screen out of the home task for lock task mode. Excluded from
              recents so it is not offered as a thumbnail when pinning is unavailable. -->
         <activity
-            android:name=".ParkActivity"
+            android:name=".park.ParkActivity"
             android:exported="false"
             android:launchMode="singleInstance"
             android:taskAffinity=".park"

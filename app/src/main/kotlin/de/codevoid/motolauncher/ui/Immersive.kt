@@ -10,7 +10,7 @@ import androidx.core.view.ViewCompat
 import androidx.core.view.WindowCompat
 import androidx.core.view.WindowInsetsCompat
 import androidx.core.view.WindowInsetsControllerCompat
-import de.codevoid.motolauncher.data.NavBarStore
+import de.codevoid.motolauncher.settings.NavBarStore
 
 @Suppress("DEPRECATION")
 fun Activity.noTransition() = overridePendingTransition(0, 0)

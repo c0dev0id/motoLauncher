@@ -5,7 +5,7 @@ import android.content.Context
 import android.view.LayoutInflater
 import android.view.View
 import de.codevoid.motolauncher.R
-import de.codevoid.motolauncher.data.AppEntry
+import de.codevoid.motolauncher.apps.AppEntry
 import de.codevoid.motolauncher.databinding.DialogTileActionsBinding
 
 // Touch long-press menu for an app tile, on Home and in the app list. A plain Dialog on

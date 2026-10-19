@@ -13,24 +13,27 @@ import androidx.activity.viewModels
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.net.toUri
 import androidx.lifecycle.ViewModel
-import de.codevoid.motolauncher.data.AppEntry
-import de.codevoid.motolauncher.data.AppRepository
-import de.codevoid.motolauncher.data.FavoritesStore
-import de.codevoid.motolauncher.data.NavBarStore
-import de.codevoid.motolauncher.data.OrientationStore
-import de.codevoid.motolauncher.data.ParkStore
-import de.codevoid.motolauncher.data.SlotEntry
+import de.codevoid.motolauncher.applist.AppListActivity
+import de.codevoid.motolauncher.apps.AppEntry
+import de.codevoid.motolauncher.apps.AppRepository
 import de.codevoid.motolauncher.databinding.ActivityHomeBinding
 import de.codevoid.motolauncher.databinding.ItemAppTileBinding
+import de.codevoid.motolauncher.home.FavoritesCache
+import de.codevoid.motolauncher.home.FavoritesStore
+import de.codevoid.motolauncher.home.SlotEntry
+import de.codevoid.motolauncher.home.showLinkDialog
+import de.codevoid.motolauncher.navapp.launchNavApp
+import de.codevoid.motolauncher.park.ParkActivity
+import de.codevoid.motolauncher.park.ParkStore
+import de.codevoid.motolauncher.settings.NavBarStore
+import de.codevoid.motolauncher.settings.OrientationStore
 import de.codevoid.motolauncher.ui.EscapeKeys
 import de.codevoid.motolauncher.ui.blockKeyLongPress
 import de.codevoid.motolauncher.ui.enableImmersiveMode
 import de.codevoid.motolauncher.ui.fitContentToSystemBars
-import de.codevoid.motolauncher.ui.noTransition
 import de.codevoid.motolauncher.ui.isPortrait
-import de.codevoid.motolauncher.ui.launchNavApp
+import de.codevoid.motolauncher.ui.noTransition
 import de.codevoid.motolauncher.ui.showLinkActionsDialog
-import de.codevoid.motolauncher.ui.showLinkDialog
 import de.codevoid.motolauncher.ui.showTileActionsDialog
 
 class HomeActivity : AppCompatActivity() {
@@ -240,27 +243,4 @@ class HomeActivity : AppCompatActivity() {
         noTransition()
     }
 
-}
-
-/**
- * The favourites' resolved apps. Kept across activity recreation; reloaded only when the
- * slots or the installed apps change.
- */
-class FavoritesCache : ViewModel() {
-    private var apps: Map<ComponentName, AppEntry> = emptyMap()
-    private var generation = -1
-    private var slots: List<SlotEntry?> = emptyList()
-
-    fun resolve(
-        slots: List<SlotEntry?>,
-        generation: Int,
-        load: (List<ComponentName>) -> Map<ComponentName, AppEntry>,
-    ): Map<ComponentName, AppEntry> {
-        if (generation != this.generation || slots != this.slots) {
-            apps = load(slots.filterIsInstance<SlotEntry.App>().map { it.component })
-            this.generation = generation
-            this.slots = slots
-        }
-        return apps
-    }
 }
