@@ -44,6 +44,9 @@ jobs:
           key: robolectric-${{ hashFiles('app/build.gradle.kts') }}
           restore-keys: robolectric-
 
+      - name: Test the release scripts
+        run: python3 -m unittest discover -s .github/scripts
+
       # One Gradle invocation: shared compilation and daemon start-up, and --continue
       # reports lint, test and compile failures together. Both flavors, since their
       # manifests and settings differ.

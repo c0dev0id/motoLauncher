@@ -11,3 +11,4 @@ app/build/
 *.apk
 *.keystore
 .claude/scheduled_tasks.lock
+__pycache__/
