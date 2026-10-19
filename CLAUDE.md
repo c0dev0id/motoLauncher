@@ -56,19 +56,19 @@ the same task:
 | `decisions.md` | Key decisions with context and rationale; every "why" that is not a code comment |
 | `features.md` | Core features, developer-facing |
 
-The changelog
-is written for the rider, not the developer, and a version's entries must not contradict
-each other: `[Unreleased]` reads as the net description of the coming release, so when a
-change supersedes something an earlier unreleased entry says, fold it into that entry
-rather than adding a "now X instead of Y" beside it. Until the first release that makes
-`[Unreleased]` a plain feature list under `### Added`: a fix or change to behaviour no user
-ever had is folded into its feature's entry or dropped, never listed under Fixed or
-Changed, and no entry describes a change from a prior state ("now", "no longer"). Entries
-say what the user sees and does, not how the code does it — no class names, permission
-constants, resource qualifiers or CI; that material belongs in `.github/`. Read
-`decisions.md` before proposing structural changes — most of them were reached after a
-failed simpler attempt, and it records why. Where `.github/` and this file disagree, the
-code wins and the stale one gets fixed in the same task.
+User documentation is `README.md` (orientation, under ~100 lines) and
+`docs/user-guide.md` (one section per user flow). The changelog is written for the rider, not the developer, and a version's entries must
+not contradict each other: `[Unreleased]` reads as the net description of the coming
+release, so when a change supersedes something an earlier unreleased entry says, fold it
+into that entry rather than adding a "now X instead of Y" beside it. Until the first
+release that makes `[Unreleased]` a plain feature list under `### Added`: a fix or change
+to behaviour no user ever had is folded into its feature's entry or dropped, never
+listed under Fixed or Changed, and no entry describes a change from a prior state
+("now", "no longer"). Entries say what the user sees and does, not how the code does it
+— no class names, permission constants, resource qualifiers or CI; that material belongs
+in `.github/`. Read `decisions.md` before proposing structural changes — most of them
+were reached after a failed simpler attempt, and it records why. Where `.github/` and
+this file disagree, the code wins and the stale one gets fixed in the same task.
 
 ## Hard UX constraints (glove + remote usage)
 
