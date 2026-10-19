@@ -19,7 +19,6 @@ on:
 
 concurrency:
   group: release
-  cancel-in-progress: false
 
 jobs:
   release:
@@ -53,16 +52,18 @@ jobs:
             version="$major.$minor.$((patch + 1))"
           fi
           echo "VERSION=$version" >> "$GITHUB_ENV"
-          echo "RELEASE_URL=https://github.com/${GITHUB_REPOSITORY}/releases/tag/v$version" >> "$GITHUB_ENV"
 
-      - name: Commit the changelog for the version
+      - name: Write the release notes and commit the changelog
         run: |
           python3 .github/scripts/changelog.py release "$VERSION" "$(date -u +%F)" > "$RUNNER_TEMP/notes.md"
+          mkdir "$RUNNER_TEMP/whatsnew"
+          python3 .github/scripts/changelog.py play-notes \
+            "https://github.com/${GITHUB_REPOSITORY}/releases/tag/v$VERSION" \
+            < "$RUNNER_TEMP/notes.md" > "$RUNNER_TEMP/whatsnew/whatsnew-en-US"
           git config user.name c0dev0id
           git config user.email sh+git@codevoid.de
           git commit -qam "Release $VERSION"
           git tag "v$VERSION"
-          echo "VERSION_CODE=$(git rev-list --count HEAD)" >> "$GITHUB_ENV"
 
       - name: Decode signing keystore
         run: |
@@ -77,7 +78,7 @@ jobs:
         run: |
           ./gradlew assembleGithubRelease bundlePlayRelease \
             -PappVersionName="$VERSION" \
-            -PappVersionCode="$VERSION_CODE"
+            -PappVersionCode="$(git rev-list --count HEAD)"
           mv app/build/outputs/apk/github/release/app-github-release.apk "motoLauncher-$VERSION.apk"
 
       # Nothing is pushed until both builds exist, and the push fails as a whole if main
@@ -91,8 +92,6 @@ jobs:
           tag_name: v${{ env.VERSION }}
           name: ${{ env.VERSION }}
           body_path: ${{ runner.temp }}/notes.md
-          prerelease: false
-          make_latest: true
           files: motoLauncher-${{ env.VERSION }}.apk
 
       - name: Upload the Play bundle
@@ -103,13 +102,6 @@ jobs:
             app/build/outputs/bundle/playRelease/app-play-release.aab
             app/build/outputs/mapping/playRelease/mapping.txt
           if-no-files-found: error
-
-      - name: Write the Play release notes
-        if: env.PLAY_SERVICE_ACCOUNT_JSON != ''
-        run: |
-          mkdir -p "$RUNNER_TEMP/whatsnew"
-          python3 .github/scripts/changelog.py play-notes "$RELEASE_URL" \
-            < "$RUNNER_TEMP/notes.md" > "$RUNNER_TEMP/whatsnew/whatsnew-en-US"
 
       - name: Upload to Google Play
         if: env.PLAY_SERVICE_ACCOUNT_JSON != ''
