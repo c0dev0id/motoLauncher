@@ -5,12 +5,12 @@ plugins {
 
 android {
     namespace = "de.codevoid.motolauncher"
-    compileSdk = 35
+    compileSdk = 36
 
     defaultConfig {
         applicationId = "de.codevoid.motolauncher"
         minSdk = 30
-        targetSdk = 34
+        targetSdk = 36
         versionCode = (project.findProperty("appVersionCode") as String?)?.toIntOrNull() ?: 1
         versionName = (project.findProperty("appVersionName") as String?).takeIf { !it.isNullOrEmpty() } ?: "dev-local"
     }

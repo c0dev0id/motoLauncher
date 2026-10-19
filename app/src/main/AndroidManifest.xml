@@ -38,6 +38,11 @@
         android:supportsRtl="true"
         android:theme="@style/Theme.MotoLauncher">
 
+        <!-- Keeps requested orientations in force on large screens under targetSdk 36. -->
+        <property
+            android:name="android.window.PROPERTY_COMPAT_ALLOW_RESTRICTED_RESIZABILITY"
+            android:value="true" />
+
         <activity
             android:name=".HomeActivity"
             android:exported="true"
