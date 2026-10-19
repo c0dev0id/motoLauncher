@@ -4,6 +4,7 @@ import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
 import androidx.lifecycle.lifecycleScope
 import de.codevoid.motolauncher.R
+import de.codevoid.motolauncher.update.DownloadProgress
 import de.codevoid.motolauncher.update.ReleaseInfo
 import de.codevoid.motolauncher.update.UpdateChecker
 import kotlinx.coroutines.CancellationException
@@ -36,23 +37,13 @@ fun AppCompatActivity.runUpdateFlow(
 
     fun downloadAndInstall(release: ReleaseInfo) {
         setClickable(false)
+        val progress = DownloadProgress()
         lifecycleScope.launch {
-            var lastBytes = 0L
-            var lastTime = System.currentTimeMillis()
-            var lastUpdate = 0L
             try {
-                startActivity(checker.installIntent(checker.download(release) { written, total ->
-                    val now = System.currentTimeMillis()
-                    if (now - lastUpdate >= 500) {
-                        val elapsed = (now - lastTime).coerceAtLeast(1)
-                        val speedMBs = (written - lastBytes) * 1000.0 / elapsed / (1024.0 * 1024)
-                        lastBytes = written
-                        lastTime = now
-                        lastUpdate = now
-                        val pct = if (total > 0) "${written * 100 / total}% \u00b7 " else ""
-                        runOnUiThread { setSubtitle(pct + "%.1f MB/s".format(speedMBs)) }
-                    }
-                }))
+                val apk = checker.download(release) { written, total ->
+                    progress.report(written, total)?.let { runOnUiThread { setSubtitle(it) } }
+                }
+                startActivity(checker.installIntent(apk))
             } catch (e: CancellationException) {
                 throw e
             } catch (e: Exception) {
