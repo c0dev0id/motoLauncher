@@ -30,6 +30,20 @@ class UpdateCheckerTest {
     }
 
     @Test
+    fun parseReleaseDerivesAReleaseVersion() {
+        val json = """{"assets":[{"name":"motoLauncher-1.0.3.apk","browser_download_url":"https://x/a.apk"}]}"""
+        assertEquals("1.0.3", UpdateChecker.parseRelease(json)!!.versionName)
+    }
+
+    @Test
+    fun devBuildsFollowTheDevPreReleaseAndReleasesTheLatestRelease() {
+        val releases = "https://api.github.com/repos/c0dev0id/motoLauncher/releases"
+        assertEquals("$releases/tags/dev", UpdateChecker.releaseApiUrl("dev-abc1234"))
+        assertEquals("$releases/tags/dev", UpdateChecker.releaseApiUrl("dev-local-debug"))
+        assertEquals("$releases/latest", UpdateChecker.releaseApiUrl("1.0.3"))
+    }
+
+    @Test
     fun parseReleaseReturnsNullWithoutApkAsset() {
         assertNull(UpdateChecker.parseRelease("""{"assets":[{"name":"readme.txt"}]}"""))
     }

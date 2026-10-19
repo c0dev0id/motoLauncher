@@ -22,9 +22,9 @@ class UpdateChecker(private val context: Context) {
 
     private val downloadDir = File(context.cacheDir, "updates")
 
-    /** Returns release info if the published nightly differs from the installed build, else null. */
+    /** Returns release info if the release this build follows differs from the installed build, else null. */
     suspend fun check(): ReleaseInfo? = withContext(Dispatchers.IO) {
-        val release = parseRelease(httpGet(RELEASE_API)) ?: return@withContext null
+        val release = parseRelease(httpGet(releaseApiUrl(BuildConfig.VERSION_NAME))) ?: return@withContext null
         if (isNewer(release, BuildConfig.VERSION_NAME)) release else null
     }
 
@@ -104,11 +104,16 @@ class UpdateChecker(private val context: Context) {
     }
 
     companion object {
-        private const val RELEASE_API =
-            "https://api.github.com/repos/c0dev0id/motoLauncher/releases/tags/dev"
+        private const val RELEASES_API = "https://api.github.com/repos/c0dev0id/motoLauncher/releases"
+        private const val DEV_VERSION_PREFIX = "dev-"
         private const val USER_AGENT = "motoLauncher"
         private const val TIMEOUT_MS = 15_000
         private const val APK_PREFIX = "motoLauncher-"
+
+        /** Dev builds follow the `dev` pre-release, release builds the latest release. */
+        fun releaseApiUrl(installedVersionName: String): String =
+            if (installedVersionName.startsWith(DEV_VERSION_PREFIX)) "$RELEASES_API/tags/dev"
+            else "$RELEASES_API/latest"
 
         fun isNewer(remote: ReleaseInfo, installedVersionName: String): Boolean =
             remote.versionName.isNotEmpty() && remote.versionName != installedVersionName
