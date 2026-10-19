@@ -413,6 +413,9 @@ Dependencies track the latest stable release that compiles against API 36 on AGP
 AndroidX libraries pull in `kotlin-stdlib` 2.2, which a Kotlin 2.0 compiler cannot
 read, so Kotlin moves with them; Kotlin 2.2 also turned `kotlinOptions` into an error,
 hence `compilerOptions`.
+Robolectric 4.17 sets up its sandbox through `jdk.internal.access`, which JDK 17 and
+later keep closed; the unit tests open that one package, as Robolectric's setup guide
+prescribes. The guide's other flags are not needed by these tests.
 
 ### One version counter for both channels
 `versionCode` is the number of commits reachable from `main`, for dev builds and
