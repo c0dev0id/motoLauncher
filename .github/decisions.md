@@ -399,6 +399,13 @@ is the newest 8.x and compiles against API 36; AGP 9 would also force the built-
 Kotlin migration. CI runs JDK 21 because Robolectric needs it to run tests against SDK
 36. The bytecode target stays 17.
 
+### Libraries stop where AGP 8.13 stops
+Dependencies track the latest stable release that compiles against API 36 on AGP 8.13.
+`core-ktx` is held at 1.18.0: 1.19 requires compileSdk 37 and AGP 9.1. The current
+AndroidX libraries pull in `kotlin-stdlib` 2.2, which a Kotlin 2.0 compiler cannot
+read, so Kotlin moves with them; Kotlin 2.2 also turned `kotlinOptions` into an error,
+hence `compilerOptions`.
+
 ### One version counter for both channels
 `versionCode` is the number of commits reachable from `main`, for dev builds and
 releases alike, so the newer build installs over the older whichever channel it came

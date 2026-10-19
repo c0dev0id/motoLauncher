@@ -25,7 +25,7 @@ offered from API 35.
 
 | Component | Version |
 |---|---|
-| Kotlin | 2.0.21 (JVM target 17) |
+| Kotlin | 2.4.21 (JVM target 17) |
 | Android Gradle Plugin | 8.13.2 |
 | Gradle | 8.13 (Kotlin DSL) |
 | JDK | 21 (Temurin in CI) |
@@ -42,15 +42,14 @@ offered from API 35.
 
 | Library | Version | Use |
 |---|---|---|
-| `androidx.appcompat:appcompat` | 1.7.0 | Activities, night mode, `AlertDialog` |
-| `com.google.android.material:material` | 1.12.0 | Material3 base theme |
-| `androidx.constraintlayout:constraintlayout` | 2.2.0 | Declared; no layout uses it |
-| `androidx.recyclerview:recyclerview` | 1.3.2 | App list grid |
-| `androidx.activity:activity-ktx` | 1.9.3 | `viewModels`, result APIs, back dispatcher |
-| `androidx.core:core-ktx` | 1.13.1 | `FileProvider` (github), window insets, compat helpers |
-| `androidx.lifecycle:lifecycle-runtime-ktx` | 2.8.6 | `lifecycleScope` |
-| `androidx.lifecycle:lifecycle-viewmodel-ktx` | 2.8.6 | `ViewModel`, `viewModelScope` |
-| `org.jetbrains.kotlinx:kotlinx-coroutines-android` | 1.8.1 | App enumeration and update I/O |
+| `androidx.appcompat:appcompat` | 1.8.0 | Activities, night mode, `AlertDialog` |
+| `com.google.android.material:material` | 1.14.0 | Material3 base theme |
+| `androidx.recyclerview:recyclerview` | 1.4.0 | App list grid |
+| `androidx.activity:activity-ktx` | 1.13.0 | `viewModels`, result APIs, back dispatcher |
+| `androidx.core:core-ktx` | 1.18.0 | `FileProvider` (github), window insets, compat helpers |
+| `androidx.lifecycle:lifecycle-runtime-ktx` | 2.11.0 | `lifecycleScope` |
+| `androidx.lifecycle:lifecycle-viewmodel-ktx` | 2.11.0 | `ViewModel`, `viewModelScope` |
+| `org.jetbrains.kotlinx:kotlinx-coroutines-android` | 1.11.0 | App enumeration and update I/O |
 
 UI is classic Views with view binding; no Compose. Networking is `HttpURLConnection`
 with `org.json`, both from the platform.
@@ -60,10 +59,10 @@ with `org.json`, both from the platform.
 | Library | Version |
 |---|---|
 | JUnit | 4.13.2 |
-| Robolectric | 4.16.1 |
+| Robolectric | 4.17 |
 | `androidx.test.ext:junit` | 1.3.0 |
 | `androidx.test:core` | 1.7.0 |
-| `kotlinx-coroutines-test` | 1.8.1 |
+| `kotlinx-coroutines-test` | 1.11.0 |
 
 JVM unit tests in `app/src/test/kotlin`, with Android resources included.
 
