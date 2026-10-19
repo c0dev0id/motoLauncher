@@ -98,11 +98,17 @@ presses and reboots. The remote cannot operate the keypad.
 
 ## Update the launcher
 
-The launcher never checks for updates on its own. With a network connection:
+The Google Play version is updated by Google Play. The version from the GitHub release
+page never checks for updates on its own. With a network connection:
 
 1. In Settings, tap **Check for updates**. The tile shows the installed version.
 2. If a newer build exists, choose **Download & install**. The tile shows progress, for
-   example `45% · 2.2 MB/s`.
+   example `45% · 2.2 MB/s`. A release offers the next release; a development build
+   offers the newest development build.
 3. Android's installer opens. Confirm the update there.
 
 The downloaded file is removed once the new version is running.
+
+## Read the privacy policy
+
+In **All Apps → Settings**, tap **Privacy policy**. It needs no connection.

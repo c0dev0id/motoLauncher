@@ -15,7 +15,7 @@ It is built for gloved hands and a handlebar remote.
 - **All Apps** — search the list and hide the apps you never use.
 - **Status bar** — time, GPS speed, Wi-Fi, cellular and battery.
 - **Park lock** — a PIN keypad that pins the screen at short stops.
-- **Updates on request** — nothing is downloaded unless you ask.
+- **Updates on request** — the GitHub version checks only when you ask; the Play version updates through Google Play.
 - **Themes and orientation** — dark or light; fixed orientation or auto-rotate.
 
 ## Screenshots
@@ -26,7 +26,7 @@ It is built for gloved hands and a handlebar remote.
 
 ## Getting started
 
-1. Download the APK from the [dev pre-release](https://github.com/c0dev0id/motoLauncher/releases/tag/dev) and install it.
+1. Download the APK from the [latest release](https://github.com/c0dev0id/motoLauncher/releases/latest) and install it. Development builds are in the [dev pre-release](https://github.com/c0dev0id/motoLauncher/releases/tag/dev).
 2. Press Home and choose motoLauncher as the default home app.
 3. Tap an empty **+** tile to put an app or a link there.
 4. Open **All Apps → Settings → Navigation app** and pick your navigation app.
@@ -48,7 +48,7 @@ In **All Apps → Settings**, by touch.
 |---|---|
 | Theme | Dark (default), Light |
 | Navigation app | Any app, or None |
-| Check for updates | Checks for a newer build and offers to install it |
+| Check for updates | GitHub version: checks for a newer build and offers to install it |
 | Park lock | Set a PIN, then lock; long press to change the PIN |
 | Cellular indicator | Off (default), On |
 | GPS Speed | Off (default), On |
@@ -57,6 +57,7 @@ In **All Apps → Settings**, by touch.
 | Hidden apps | Hidden (default), Showing (dimmed) |
 | Orientation | Sensor (default), Landscape, Portrait, Reverse landscape, Reverse portrait |
 | Navigation bar | Hidden (default), Visible |
+| Privacy policy | Shows the privacy policy |
 
 The [user guide](docs/user-guide.md) walks through each of these.
 

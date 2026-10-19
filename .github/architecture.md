@@ -19,7 +19,7 @@ flowchart LR
             app["MotoLauncherApp<br/>app-list cache, package watch"]
             repo["AppRepository"]
             stores[("Preference stores")]
-            update["UpdateChecker"]
+            update["UpdateChecker<br/>github flavor"]
         end
         screens --> core
     end
@@ -32,7 +32,8 @@ flowchart LR
     end
 
     nav["Navigation app"]
-    gh["GitHub dev pre-release"]
+    gh["GitHub releases<br/>and dev pre-release"]
+    play["Google Play"]
     ci["GitHub Actions"]
 
     rider --> screens
@@ -44,12 +45,14 @@ flowchart LR
     repo -- uninstall --> installer
     update -- install --> installer
     update -- download --> gh
-    ci -- publishes --> gh
+    ci -- publishes APK --> gh
+    ci -- uploads bundle --> play
+    play -- installs and updates --> launcher
 
     classDef primary fill:#2F6FED,stroke:#1E4FB0,color:#FFFFFF
     classDef external fill:#EEF1F5,stroke:#9AA5B4,color:#14181D
     class home,list,park,app primary
-    class nav,gh,ci,rider external
+    class nav,gh,play,ci,rider external
 ```
 
 ## Layers
@@ -74,7 +77,7 @@ flowchart TB
     end
     subgraph platform["Android platform"]
         direction LR
-        p1["LauncherApps<br/>UserManager"] ~~~ p2["SharedPreferences"] ~~~ p3["Connectivity, telephony,<br/>location, battery"] ~~~ p4["HttpURLConnection<br/>FileProvider"] ~~~ p5["Lock task mode"]
+        p1["LauncherApps<br/>UserManager"] ~~~ p2["SharedPreferences"] ~~~ p3["Connectivity, telephony,<br/>location, battery"] ~~~ p4["HttpURLConnection<br/>FileProvider<br/>github flavor"] ~~~ p5["Lock task mode"]
     end
 
     screens --> widgets --> input --> data --> platform

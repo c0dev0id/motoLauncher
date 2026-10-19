@@ -15,8 +15,8 @@ The navigation app the launcher starts is a separate app
 | Setting | Value |
 |---|---|
 | `minSdk` | 30 (Android 11) |
-| `targetSdk` | 34 (Android 14) |
-| `compileSdk` | 35 |
+| `targetSdk` | 36 (Android 16) |
+| `compileSdk` | 36 |
 
 Feature floors above `minSdk`: the cellular indicator needs API 31; the park lock is
 offered from API 35.
@@ -26,9 +26,17 @@ offered from API 35.
 | Component | Version |
 |---|---|
 | Kotlin | 2.0.21 (JVM target 17) |
-| Android Gradle Plugin | 8.7.3 |
-| Gradle | 8.9 (Kotlin DSL) |
-| JDK | 17 (Temurin in CI) |
+| Android Gradle Plugin | 8.13.2 |
+| Gradle | 8.13 (Kotlin DSL) |
+| JDK | 21 (Temurin in CI) |
+| Python | 3, as on `ubuntu-latest` (release notes script) |
+
+## Flavors
+
+| Flavor | Distribution | Self-update | Network access |
+|---|---|---|---|
+| `github` | GitHub release page and `dev` pre-release | Yes | `INTERNET` |
+| `play` | Google Play | No | None |
 
 ## Libraries
 
@@ -39,7 +47,7 @@ offered from API 35.
 | `androidx.constraintlayout:constraintlayout` | 2.2.0 | Declared; no layout uses it |
 | `androidx.recyclerview:recyclerview` | 1.3.2 | App list grid |
 | `androidx.activity:activity-ktx` | 1.9.3 | `viewModels`, result APIs, back dispatcher |
-| `androidx.core:core-ktx` | 1.13.1 | `FileProvider`, window insets, compat helpers |
+| `androidx.core:core-ktx` | 1.13.1 | `FileProvider` (github), window insets, compat helpers |
 | `androidx.lifecycle:lifecycle-runtime-ktx` | 2.8.6 | `lifecycleScope` |
 | `androidx.lifecycle:lifecycle-viewmodel-ktx` | 2.8.6 | `ViewModel`, `viewModelScope` |
 | `org.jetbrains.kotlinx:kotlinx-coroutines-android` | 1.8.1 | App enumeration and update I/O |
@@ -70,7 +78,8 @@ GitHub Actions on `ubuntu-latest` with `gradle/actions/setup-gradle@v4`.
 
 | Workflow | Trigger | Runs | Produces |
 |---|---|---|---|
-| `Check` | push to any branch except `main`, manual | `lintDebug`, `testDebugUnitTest`, `assembleDebug` | `app-debug` artifact |
-| `Build` | push to `main` | `lint`, `testDebugUnitTest`, signed `assembleRelease` | `dev` pre-release |
+| `Check` | push to any branch except `main`, manual | release script tests; lint, unit tests and `assemble` for `githubDebug` and `playDebug` | `app-debug` artifact |
+| `Build` | push to `main` | `lint`, unit tests for both flavors, signed `assembleGithubRelease` | `dev` pre-release |
+| `Release` | manual, from `main` | signed `assembleGithubRelease` and `bundlePlayRelease` | `v1.0.x` tag and GitHub release; Play upload (`r0adkll/upload-google-play`) |
 
 The project is not built locally.

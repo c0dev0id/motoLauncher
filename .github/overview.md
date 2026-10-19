@@ -24,8 +24,9 @@ motoLauncher is a home app built around those two inputs.
   battery state, refreshed the moment the device wakes.
 - **Short stops.** A park lock pins the screen behind a PIN without involving the
   system lock screen, which the device deliberately runs without.
-- **Offline by default.** The device is mostly offline, so updates are checked only on
-  request, against a single pre-release published by CI.
+- **Offline by default.** The device is mostly offline. The GitHub build checks for
+  updates only on request; the Google Play build has no network access at all and is
+  updated by Play.
 
 The navigation app itself is a separate app. The launcher starts it; it does not
 replace it.

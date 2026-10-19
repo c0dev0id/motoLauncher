@@ -16,21 +16,27 @@ it, so none of them can be executed locally (see *Build & CI*). They are listed 
 they are what a change is judged by:
 
 ```sh
-# what Check runs on a branch push, in one invocation
-./gradlew --continue lintDebug testDebugUnitTest assembleDebug
-
-./gradlew lintDebug            # Android lint + AAPT resource linking, debug variant
-./gradlew testDebugUnitTest    # JUnit4 + Robolectric, app/src/test/kotlin
-./gradlew assembleDebug        # unminified, debug-signed
+# what Check runs on a branch push (both flavors, one invocation)
+python3 -m unittest discover -s .github/scripts     # release notes script
+./gradlew --continue lintGithubDebug lintPlayDebug \
+  testGithubDebugUnitTest testPlayDebugUnitTest assembleGithubDebug assemblePlayDebug
 
 # what Build adds on main
-./gradlew lint                 # debug + release variants
-./gradlew assembleRelease -PappVersionName=dev-<sha> -PappVersionCode=<run>
+./gradlew lint                 # every variant
+./gradlew assembleGithubRelease -PappVersionName=dev-<sha> -PappVersionCode=<commit count>
+
+# what Release builds
+./gradlew assembleGithubRelease bundlePlayRelease -PappVersionName=1.0.<n> -PappVersionCode=<commit count>
 
 # one test class, or one test
-./gradlew testDebugUnitTest --tests "de.codevoid.motolauncher.AppRepositoryTest"
-./gradlew testDebugUnitTest --tests "de.codevoid.motolauncher.AppRepositoryTest.sortsCaseInsensitively"
+./gradlew testGithubDebugUnitTest --tests "de.codevoid.motolauncher.AppRepositoryTest"
+./gradlew testGithubDebugUnitTest --tests "de.codevoid.motolauncher.AppRepositoryTest.sortsCaseInsensitively"
 ```
+
+Two product flavors: `github` (the release-page APK, with the self-updater) and `play`
+(Google Play, no updater, no `INTERNET`). Code that only the updater needs is gated on
+`BuildConfig.SELF_UPDATE`; the github-only manifest entries live in
+`app/src/github/AndroidManifest.xml`.
 
 ## Conventions
 
@@ -95,9 +101,12 @@ These drive nearly every UI decision — violating them defeats the point of the
   tile, App info / Uninstall / Hide-or-Unhide in the app list, nothing in pick mode.
 - **Hold Escape → launch the navigation app** chosen in settings (`NavAppStore`), from
   Home and from the app list alike. No nav app configured, or uninstalled: nothing happens.
-- **In-app update check** against the GitHub `dev` pre-release: compare installed build
-  to latest pre-release, offer install if newer. Must be **user-triggered** (the device is
-  mostly offline — never auto-poll the network).
+- **In-app update check** (github flavor only — Google Play forbids self-updating): a
+  release build compares itself to the latest GitHub release, a `dev-` build to the `dev`
+  pre-release, and offers the install if they differ. Must be **user-triggered** (the
+  device is mostly offline — never auto-poll the network).
+- **Privacy policy** shown as text from the settings mode (Play requires it in-app);
+  keep `privacy_policy_text` identical to `PRIVACY.md`.
 
 ## Architecture
 
@@ -109,8 +118,8 @@ enumeration and update I/O only. No networking library: `HttpURLConnection` +
 Package layout under `de.codevoid.motolauncher`:
 
 - `MotoLauncherApp` (`Application`) — re-applies the saved theme before any activity is
-  created, deletes the just-installed update APK on a plain thread, and owns two pieces of
-  process-wide state. (1) The single `LauncherApps.Callback`: a removed package clears any
+  created, deletes the just-installed update APK on a plain thread (github flavor), and
+  owns two pieces of process-wide state. (1) The single `LauncherApps.Callback`: a removed package clears any
   favourite slot holding it (`clearSlotsForPackage`), and every package event bumps
   `packageGeneration`. Only a real removal clears a slot — an app that merely fails to
   resolve may be on unmounted storage. (2) `getApps()`, the process-level app-list cache: a
@@ -152,11 +161,11 @@ Package layout under `de.codevoid.motolauncher`:
   theme toggle's `recreate()` restores them. The header `TouchOnlyRow` holds the back
   button, the search box and a single `settingsButton` (hidden in pick mode) that toggles
   settings mode; `renderCurrentMode()` then swaps the RecyclerView between the app grid
-  and text-only settings tiles (theme, nav app, update check with live download progress,
-  park lock when `ParkActivity.shouldOfferParkLock` allows it, cellular toggle, GPS speed
-  toggle + units when the device has `FEATURE_LOCATION_GPS`,
-  battery display, hidden apps, orientation, nav bar). The settings list is cached in
-  `settingsTilesCache`; every tile that changes state sets it to `null` before
+  and text-only settings tiles (theme, nav app, update check with live download progress
+  in the github flavor, park lock when `ParkActivity.shouldOfferParkLock` allows it,
+  cellular toggle, GPS speed toggle + units when the device has `FEATURE_LOCATION_GPS`,
+  battery display, hidden apps, orientation, nav bar, privacy policy). The settings list
+  is cached in `settingsTilesCache`; every tile that changes state sets it to `null` before
   re-rendering. `UPDATE_TILE_INDEX` hard-codes the update tile's position (theme 0, nav
   app 1, update 2) for in-place progress updates — reorder the first three tiles and the
   progress lands on the wrong tile. Permission-gated toggles (cellular, GPS) go through
@@ -223,7 +232,9 @@ Package layout under `de.codevoid.motolauncher`:
   flag + salted-hash park PIN; the hash is hygiene, not security). `StatusBarView` listens to
   that file by key, so a new status-bar setting is a new public `KEY_*` constant plus a
   branch in its `prefsListener`, not new lifecycle wiring.
-- `update/UpdateChecker` — one-shot GET on the fixed `dev` release tag. `parseRelease`
+- `update/UpdateChecker` — github flavor only. One-shot GET on
+  `releaseApiUrl(VERSION_NAME)`: the `dev` tag for a `dev-` build, `releases/latest`
+  otherwise. `parseRelease`
   takes the first `.apk` asset and derives the version from its filename
   (`motoLauncher-<versionName>.apk`); `isNewer` is a plain string inequality against
   `BuildConfig.VERSION_NAME`, so any differing published build counts as an update.
@@ -284,10 +295,11 @@ Package layout under `de.codevoid.motolauncher`:
   non-blank. Any URL scheme is accepted — Android resolves the intent, and Home wraps the
   launch in `runCatching`.
 - `ui/Immersive.kt` — `Window.enableImmersiveMode(showNavBar)`: status bar always
-  hidden, nav bar per the flag, and `setDecorFitsSystemWindows` mirrors the flag so a
-  visible nav bar gets its space without manual insets. Called in `onCreate` and again on
+  hidden, nav bar per the flag. Called in `onCreate` and again on
   `onWindowFocusChanged(true)` because permission dialogs and the installer restore the
-  bars. `Dialog.showImmersive()` is mandatory for every dialog: it re-applies the bars for
+  bars. `Window.fitContentToSystemBars()`, called once per activity in `onCreate`, lays the
+  window out edge to edge and pads `android.R.id.content` by the visible bars and the
+  display cutout — `setDecorFitsSystemWindows` is disabled from targetSdk 35 on Android 15+. `Dialog.showImmersive()` is mandatory for every dialog: it re-applies the bars for
   the dialog's own window and drops the dialog silently when its host activity is
   finishing or destroyed (an update result arriving after a recreate used to crash).
   `Activity.noTransition()` also lives here.
@@ -341,8 +353,9 @@ Package layout under `de.codevoid.motolauncher`:
 
 The manifest scopes package visibility to `MAIN`/`LAUNCHER` `<queries>` (plus the
 `ACTION_DELETE` entry) rather than requesting `QUERY_ALL_PACKAGES` — the
-launcher-appropriate approach. Keep it that way. Permissions in use: `INTERNET`,
-`REQUEST_INSTALL_PACKAGES`, `REQUEST_DELETE_PACKAGES`, `ACCESS_WIFI_STATE`,
+launcher-appropriate approach. Keep it that way. Permissions in use: `INTERNET` and
+`REQUEST_INSTALL_PACKAGES` (github flavor only), `REQUEST_DELETE_PACKAGES`,
+`ACCESS_WIFI_STATE`,
 `ACCESS_NETWORK_STATE`, and the runtime `READ_PHONE_STATE` (cellular bars) and
 `ACCESS_FINE_LOCATION` / `ACCESS_COARSE_LOCATION` (GPS speed), both optional and asked
 for from their settings tile.
@@ -353,15 +366,14 @@ for from their settings tile.
 platform and the firewall blocks AGP — do not work around this. All builds run in CI.
 Correctness depends on careful API use and reading before writing.
 
-Two workflows. **`Check`** (`.github/workflows/check.yml`) is the pre-merge gate: every
+Three workflows. **`Check`** (`.github/workflows/check.yml`) is the pre-merge gate: every
 push to a branch other than `main`, plus `workflow_dispatch`. It is a
-single job running one Gradle invocation — `./gradlew --continue lintDebug
-testDebugUnitTest assembleDebug` — because the three tasks share `compileDebugKotlin` and
-one daemon start-up, and `lintDebug` analyses one variant where `lint` does debug and
-release. The debug build is unminified, unshrunk and debug-signed, and is uploaded as
-the `app-debug` artifact — with a `.debug` `applicationIdSuffix`, so it installs alongside
-the release build and a branch can be tested on the device without disturbing the launcher
-in daily use. `--continue` means one run reports lint, test and compile failures together.
+single job: the release script's unit tests, then one Gradle invocation that lints, tests
+and assembles the debug variant of both flavors (see *Commands*), sharing compilation and
+one daemon start-up. The debug builds are unminified, unshrunk and debug-signed, and are
+uploaded as the `app-debug` artifact — with a `.debug` `applicationIdSuffix`, so they
+install alongside the release build and a branch can be tested on the device without
+disturbing the launcher in daily use. `--continue` means one run reports lint, test and compile failures together.
 There is deliberately **no `pull_request` trigger**: a check run attaches to the head
 commit, so the push run's result already shows on a PR, and the event only added a second
 run when a PR was opened onto an already-built branch. The consequence is that opening a
@@ -369,20 +381,21 @@ PR triggers nothing — the newest result is whatever the last push produced —
 requests from forks would go unchecked. The concurrency group (`check-<ref_name>`,
 `cancel-in-progress`) now only supersedes an older run when you push twice quickly.
 
-**`Build`** (`.github/workflows/build.yml`) runs **only on push to `main`** and is the
-only thing that produces a release artifact. Three parallel jobs plus a follow-up release
-step:
+**`Build`** (`.github/workflows/build.yml`) runs **only on push to `main`** and
+republishes the `dev` pre-release. Three parallel jobs plus a follow-up release step:
 
 - `./gradlew lint`
-- `./gradlew testDebugUnitTest` — JUnit4 + Robolectric JVM unit tests in
-  `app/src/test/kotlin` (`isIncludeAndroidResources = true`, so real resources and view
+- `./gradlew testGithubDebugUnitTest testPlayDebugUnitTest` — JUnit4 + Robolectric JVM
+  unit tests in `app/src/test/kotlin` (`isIncludeAndroidResources = true`, so real resources and view
   inflation work; see *Commands* for running a single class or test).
-  Ten classes, and the shape they set: `AppRepositoryTest` (the pure `sortApps` /
+  Robolectric runs them against SDK 36, which needs JDK 21 — hence JDK 21 in CI.
+  Eleven classes, and the shape they set: `AppRepositoryTest` (the pure `sortApps` /
   `filterApps`), `FavoritesStoreTest` (app and link slot round-trips against real
   `SharedPreferences`, the two representations cleaning each other up, and
   `clearSlotsForPackage` matching whole package names and leaving link slots alone),
-  `UpdateCheckerTest` (`parseRelease` / `isNewer` / `deleteInstalledUpdate` over JSON
-  fixtures and temp files), `TileActionsDialogTest` (inflates the dialog through the
+  `UpdateCheckerTest` (`parseRelease` / `isNewer` / `releaseApiUrl` /
+  `deleteInstalledUpdate` over JSON fixtures and temp files), `ImmersiveTest` (content
+  padding follows dispatched bar and cutout insets), `TileActionsDialogTest` (inflates the dialog through the
   handle `showTileActionsDialog` returns: row order, optional rows hidden, one callback per
   row, dismissal), `EscapeKeysTest` (short vs. held Escape, dispatched through a real
   `KeyEvent.DispatcherState` so the framework's tracking rules are exercised rather than
@@ -403,17 +416,28 @@ step:
   ~100 MB `android-all` jar at test runtime with its own resolver, outside the Gradle
   cache `setup-gradle` restores. The cache key hashes `app/build.gradle.kts`, so any
   edit to that file costs one re-download.
-- `./gradlew assembleRelease -PappVersionName=dev-<sha> -PappVersionCode=<run>` —
-  minified + shrunk, signed via the `SIGNING_KEYSTORE_*` / `SIGNING_KEY_*` env vars
+- `./gradlew assembleGithubRelease -PappVersionName=dev-<sha>
+  -PappVersionCode=<commit count>` — minified + shrunk, signed via the `SIGNING_KEYSTORE_*` / `SIGNING_KEY_*` env vars
   (already configured on the repo; do not add or commit signing material). Without
-  those properties the version is `dev-local` / `1`.
+  those properties the version is `dev-local` / `1`. The checkout is full-depth because
+  the versionCode is `git rev-list --count HEAD`, shared with `Release`.
 - `draft-release` deletes and recreates the `dev` pre-release with the fresh APK, so
   the update endpoint stays a single stable URL and "keep only the latest" needs no
   cleanup.
 
-Neither workflow can be run locally, and a green `Check` is the first real signal a
-branch gets — it does not cover the release build, so a minification or shrinking failure
-still surfaces only after a merge.
+**`Release`** (`.github/workflows/release.yml`) is manual, from `main` only. It picks the
+next `1.0.x` after the newest `v*` tag (1.0.0 first), runs `.github/scripts/changelog.py
+release` to move `[Unreleased]` under that version, commits, builds the github APK and
+the play bundle, and only then pushes commit and tag atomically. It publishes the APK as
+the GitHub release `v1.0.x` with the changelog section as text, keeps the bundle and
+mapping as an artifact, and — when the `PLAY_SERVICE_ACCOUNT_JSON` secret exists —
+uploads the bundle to the chosen Play track with `changelog.py play-notes` as "What's
+new" (plain text, whole entries within 500 characters, plus the release link). So
+`[Unreleased]` must hold the release's entries before it runs, or it refuses.
+
+No workflow can be run locally, and a green `Check` is the first real signal a branch
+gets — it does not cover the release builds, so a minification or shrinking failure
+surfaces only in `Build` (github) or `Release` (play).
 
 Read CI results through the GitHub MCP tools (`actions_list`, `actions_get`,
 `get_job_logs`), fetching only the failed steps' logs — the full logs are large. There

@@ -17,9 +17,9 @@
   Showing. The same screen serves as the slot picker (with None and Add link tiles) and
   the navigation-app picker (with None).
 - **Settings mode.** A toggle in the app list header swaps the grid for settings tiles:
-  theme, navigation app, update check, park lock, cellular indicator, GPS speed and
-  units, battery display, hidden apps, orientation, navigation bar. The search field
-  filters them.
+  theme, navigation app, update check (github flavor), park lock, cellular indicator,
+  GPS speed and units, battery display, hidden apps, orientation, navigation bar,
+  privacy policy. The search field filters them.
 - **Orientation.** Landscape, portrait, their reverses, or Sensor (default), chosen
   from a picker. The grid and status bar reshape on rotation.
 - **Status bar.** Time, optional GPS speed in km/h or mph, Wi-Fi, optional cellular,
@@ -28,7 +28,11 @@
 - **Park lock.** A four-digit PIN keypad in its own task that pins the screen, re-pins
   itself if unpinned, and survives a reboot. Offered on Android 15+ without a secure
   lock screen.
-- **Self-update.** A user-triggered check against the GitHub `dev` pre-release, with
-  download progress on the tile and a hand-off to the system installer.
+- **Self-update (github flavor).** A user-triggered check against the latest release
+  for a release build, or the `dev` pre-release for a dev build, with download progress
+  on the tile and a hand-off to the system installer.
+- **Google Play build.** The play flavor has no updater and no network access; Play
+  updates it.
+- **Privacy policy.** Shown as text from the settings mode, readable offline.
 - **Themes and sizing.** Dark (default) and light themes; glove sizing for the 7"
   device with a scaled-down phone variant.

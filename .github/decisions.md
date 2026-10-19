@@ -148,7 +148,8 @@ screen.
 ### The first three settings tiles are fixed
 `UPDATE_TILE_INDEX` is 2 (theme, navigation app, update) so download progress can patch
 one tile in place instead of re-rendering the list on every progress callback.
-Conditional tiles go after it.
+Conditional tiles go after it. The play flavor has no update tile and nothing reads the
+index there.
 
 ### Hidden apps are stored per package
 `HiddenAppsStore` keeps a `Set<String>` of package names, read once per render.
@@ -179,6 +180,15 @@ recreates them, so the grid, the column count and the status bar's `layout-port`
 variant are chosen afresh. Adding `orientation` there would freeze the layout in its
 starting shape. Sensor is the default for installs that never set the option.
 
+### The large-screen orientation rule is opted out of, for now
+With targetSdk 36, Android 16 ignores requested orientations on displays of 600dp
+smallest width and up, which includes the 7" device. The manifest's
+`PROPERTY_COMPAT_ALLOW_RESTRICTED_RESIZABILITY` keeps the setting working. Google ends
+the opt-out at targetSdk 37, which Play is likely to require about a year after API 36.
+From then on the setting has no effect on large screens running Android 16 or newer,
+unless the rider sets the launcher to its app default in Android's aspect ratio
+settings.
+
 ## Dialogs, theme and layout
 
 ### Tile menus are plain `Dialog`s on the launcher theme
@@ -197,9 +207,17 @@ recreate used to crash on a dead window token.
 ### Immersive mode everywhere
 The status bar is always hidden; the navigation bar follows a setting, hidden by
 default. Nothing on the system bars is useful on a single-purpose, glove-operated
-screen. `setDecorFitsSystemWindows` mirrors the navigation-bar setting so a visible bar
-gets its space without manual insets. Activities re-apply on window focus because
-permission dialogs and the installer restore the bars.
+screen. Activities re-apply on window focus because permission dialogs and the installer
+restore the bars.
+
+### Content is padded by insets, not fitted by the decor
+From targetSdk 35, Android 15 draws every activity edge to edge and disables
+`setDecorFitsSystemWindows`, which used to give a visible navigation bar its space.
+`fitContentToSystemBars()` lays each activity out edge to edge on every API level and
+pads `android.R.id.content` by the visible system bars and the display cutout, so one
+mechanism covers Android 11 to 16. Hidden bars report no insets, so the padding follows
+the navigation-bar setting by itself. Dialog windows are floating and keep the platform
+default.
 
 ### Theme by resource qualifier only
 Layouts reference colour tokens; `values-night/colors.xml` overrides them. The theme
@@ -338,12 +356,15 @@ assumed to behave like 16.
 
 ## Updates
 
-### A fixed `dev` pre-release tag
-CI deletes and recreates the `dev` pre-release on every push to `main`, so the app
-queries one stable URL and "keep only the latest" needs no cleanup. The version comes
-from the APK filename (`motoLauncher-<versionName>.apk`). Any published build that
-differs from the installed one counts as an update. The check is user-triggered only:
-the device is mostly offline.
+### Releases and the `dev` pre-release are two channels
+A release build (`1.0.x`) queries the latest release; a dev build (`dev-<sha>`) queries
+the `dev` pre-release. The installed version name picks the channel, so there is no
+setting. GitHub's latest release never resolves to a pre-release. CI deletes and
+recreates `dev` on every push to `main`, so that channel is one stable URL and "keep only
+the latest" needs no cleanup. The version comes from the APK filename
+(`motoLauncher-<versionName>.apk`). Any published build that differs from the installed
+one counts as an update. The check is user-triggered only: the device is mostly
+offline.
 
 ### Install is a hand-off; the cache holds at most one APK
 The APK is downloaded to `cacheDir/updates/` and handed to the system installer through
@@ -357,21 +378,73 @@ handlebar-mounted screen, so progress rides on the update tile's subtitle, throt
 500 ms. The percentage is concatenated, never passed through `String.format`: a `%` in
 a format template once crashed the main thread.
 
+## Distribution
+
+### Two flavors: github and play
+Google Play forbids an app updating itself outside Play, and `REQUEST_INSTALL_PACKAGES`
+is a restricted permission there. The play flavor leaves out the update tile and the
+cleanup of installed update APKs (`BuildConfig.SELF_UPDATE`). The github flavor's own
+manifest adds `INTERNET`, `REQUEST_INSTALL_PACKAGES` and the `FileProvider`. Without
+the updater the play build has no network access, so nothing can leave the device. The
+update code stays in `main` behind the flag rather than in a github source set: it has
+two call sites, and R8 drops the unreachable code from the play release. Both flavors
+share the application ID. Whether a Play install and a GitHub install can update each
+other depends on Play App Signing using the existing release key.
+
+### Target API 36 on AGP 8.13
+Play has required targetSdk 36 for new apps and updates since 31 August 2026. AGP 8.13
+is the newest 8.x and compiles against API 36; AGP 9 would also force the built-in
+Kotlin migration. CI runs JDK 21 because Robolectric needs it to run tests against SDK
+36. The bytecode target stays 17.
+
+### One version counter for both channels
+`versionCode` is the number of commits reachable from `main`, for dev builds and
+releases alike, so the newer build installs over the older whichever channel it came
+from. This assumes `main`'s history is never rewritten. The Build run number it
+replaced counted one workflow only; at the switch it was 125 against 185 commits, so
+installed dev builds stayed upgradable.
+
+### Releases are cut by hand
+`Release` runs from `main` on demand and takes the next patch after the newest `v*` tag,
+starting at 1.0.0. It builds both artifacts before pushing anything, then pushes the
+release commit and tag in one atomic push, so a failed build or a `main` that moved
+meanwhile leaves no tag behind. Re-running after a later step failed stops at the empty
+`[Unreleased]` section instead of publishing an empty release; the Play bundle is kept
+as an artifact for a manual upload. The release commit is pushed with `GITHUB_TOKEN`,
+which triggers no workflow, so `Build` does not republish `dev` for it.
+
+### Release notes come from the changelog
+The `[Unreleased]` section becomes the version's section, the GitHub release text and
+Play's "What's new". Play allows 500 characters of plain text, so the notes lose their
+markdown and keep the leading whole entries that fit, followed by a link to the GitHub
+release. The first entry that does not fit ends the list, so the notes never skip ahead.
+
+### The Play upload needs a published app and a secret
+The Play Developer API cannot create an app, so the first bundle is uploaded by hand from
+the workflow artifact. The upload step runs only when `PLAY_SERVICE_ACCOUNT_JSON` is set.
+Until the app has had a release published from the Console, the API accepts only `draft`
+releases, hence the status input.
+
+### The privacy policy is shown, not linked
+Play requires a privacy policy linked in the Console and shown or linked inside the app.
+The device is mostly offline, so the settings tile shows the text itself. `PRIVACY.md`
+is the copy the Console links to; the two are kept identical by hand.
+
 ## Build and CI
 
-### Two workflows
-`Check` runs on every push to a branch other than `main`. `Build` runs on push to
-`main` and is the only producer of a release. For a long time `Build` was the whole
-pipeline, so a branch got no signal before merge on a project that cannot be built
-locally.
+### Three workflows
+`Check` runs on every push to a branch other than `main`. `Build` runs on push to `main`
+and republishes the `dev` pre-release. `Release` runs on demand and is the only producer
+of a versioned release. For a long time `Build` was the whole pipeline, so a branch got
+no signal before merge on a project that cannot be built locally.
 
 ### `Check` is one job with one Gradle invocation
-`./gradlew --continue lintDebug testDebugUnitTest assembleDebug` shares
-`compileDebugKotlin` and one daemon start-up; parallel jobs would each pay checkout, JDK
-setup and compilation. `lintDebug` analyses one variant where `lint` does two.
-`--continue` reports lint, test and compile failures from the same run. The release
-variant is left to `Build` because it needs the signing secrets and roughly doubles the
-build, so a green `Check` does not prove `assembleRelease`.
+Lint, unit tests and the debug build of both flavors run in one `./gradlew --continue`,
+sharing compilation and one daemon start-up; parallel jobs would each pay checkout, JDK
+setup and compilation. The debug lint tasks skip `lint`'s release variants. `--continue`
+reports lint, test and compile failures from the same run. Release variants are left to
+`Build` (github) and `Release` (both) because they need the signing secrets and roughly
+double the build, so a green `Check` does not prove a minified build.
 
 ### No `pull_request` trigger
 A check run attaches to the head commit, so the push run already shows on a PR. The
