@@ -45,7 +45,18 @@ now that the live README no longer carries it.
 Two conventions the repo does follow, whatever the global preferences say: commits are
 authored as `c0dev0id <sh+git@codevoid.de>` with no trailers, and each change that
 affects behaviour or a load-bearing decision updates `CHANGELOG.md` (Keep a Changelog,
-under `[Unreleased]`) and `.github/development-journal.md` in the same task. The changelog
+under `[Unreleased]`) and whichever development documents in `.github/` it touches, in
+the same task:
+
+| File | Holds |
+|---|---|
+| `overview.md` | The problem and how the app solves it |
+| `architecture.md` | Component, layer and persistent-state diagrams (Mermaid) |
+| `stackinfo.md` | Stack, versions, target devices, CI |
+| `decisions.md` | Key decisions with context and rationale; every "why" that is not a code comment |
+| `features.md` | Core features, developer-facing |
+
+The changelog
 is written for the rider, not the developer, and a version's entries must not contradict
 each other: `[Unreleased]` reads as the net description of the coming release, so when a
 change supersedes something an earlier unreleased entry says, fold it into that entry
@@ -54,10 +65,10 @@ rather than adding a "now X instead of Y" beside it. Until the first release tha
 ever had is folded into its feature's entry or dropped, never listed under Fixed or
 Changed, and no entry describes a change from a prior state ("now", "no longer"). Entries
 say what the user sees and does, not how the code does it — no class names, permission
-constants, resource qualifiers or CI; that material belongs in the journal. Read the
-journal's *Key Decisions* before proposing structural changes — most of them were
-reached after a failed simpler attempt, and the journal records why. Where the journal
-and this file disagree, the code wins and the stale one gets fixed in the same task.
+constants, resource qualifiers or CI; that material belongs in `.github/`. Read
+`decisions.md` before proposing structural changes — most of them were reached after a
+failed simpler attempt, and it records why. Where `.github/` and this file disagree, the
+code wins and the stale one gets fixed in the same task.
 
 ## Hard UX constraints (glove + remote usage)
 
@@ -112,9 +123,9 @@ These drive nearly every UI decision — violating them defeats the point of the
 ## Architecture
 
 Kotlin, Android classic Views (no Compose), AppCompat + Material3, view binding.
-AGP 8.7.3, Kotlin 2.0.21, Gradle 8.9, JVM 17. `minSdk` 30 / `targetSdk` 34 /
-`compileSdk` 35. Coroutines for the app enumeration and update I/O only. No networking
-library: `HttpURLConnection` + `org.json`.
+Versions and SDK levels are in `.github/stackinfo.md`. Coroutines for the app
+enumeration and update I/O only. No networking library: `HttpURLConnection` +
+`org.json`.
 
 Package layout under `de.codevoid.motolauncher`:
 
@@ -272,7 +283,8 @@ Package layout under `de.codevoid.motolauncher`:
 - `ui/TouchOnlyRow` — a `LinearLayout` whose `addFocusables()` contributes nothing, so
   its children are invisible to dpad traversal but still take touch focus (an `EditText`
   inside it still opens the IME). `focusableInTouchMode` and
-  `descendantFocusability="blocksDescendants"` were both tried and rejected; see the journal.
+  `descendantFocusability="blocksDescendants"` were both tried and rejected; see
+  `.github/decisions.md`.
 - `ui/TileActionsDialog.kt` — `showTileActionsDialog()` (Remove row only when `onRemove`
   is passed, Hide/Unhide row only when `hideAction` is passed) and `showLinkActionsDialog()`
   (Edit link / Remove). Both inflate the same `dialog_tile_actions` layout, which carries

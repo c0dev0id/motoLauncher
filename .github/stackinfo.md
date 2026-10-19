@@ -1,0 +1,76 @@
+# Stack
+
+## Target devices
+
+| Device | Screen | Android |
+|---|---|---|
+| Motorcycle navigation device (primary) | 7", 1920×1080, landscape-mounted | 16 (earlier 14) |
+| Phones (secondary) | smallest width < 600dp | 11 or newer |
+
+The navigation app the launcher starts is a separate app
+(`com.thorkracing.dmd2launcher` on the primary device). It is configured, not bundled.
+
+## Android targets
+
+| Setting | Value |
+|---|---|
+| `minSdk` | 30 (Android 11) |
+| `targetSdk` | 34 (Android 14) |
+| `compileSdk` | 35 |
+
+Feature floors above `minSdk`: the cellular indicator needs API 31; the park lock is
+offered from API 35.
+
+## Language and build
+
+| Component | Version |
+|---|---|
+| Kotlin | 2.0.21 (JVM target 17) |
+| Android Gradle Plugin | 8.7.3 |
+| Gradle | 8.9 (Kotlin DSL) |
+| JDK | 17 (Temurin in CI) |
+
+## Libraries
+
+| Library | Version | Use |
+|---|---|---|
+| `androidx.appcompat:appcompat` | 1.7.0 | Activities, night mode, `AlertDialog` |
+| `com.google.android.material:material` | 1.12.0 | Material3 base theme |
+| `androidx.constraintlayout:constraintlayout` | 2.2.0 | Declared; no layout uses it |
+| `androidx.recyclerview:recyclerview` | 1.3.2 | App list grid |
+| `androidx.activity:activity-ktx` | 1.9.3 | `viewModels`, result APIs, back dispatcher |
+| `androidx.core:core-ktx` | 1.13.1 | `FileProvider`, window insets, compat helpers |
+| `androidx.lifecycle:lifecycle-runtime-ktx` | 2.8.6 | `lifecycleScope` |
+| `androidx.lifecycle:lifecycle-viewmodel-ktx` | 2.8.6 | `ViewModel`, `viewModelScope` |
+| `org.jetbrains.kotlinx:kotlinx-coroutines-android` | 1.8.1 | App enumeration and update I/O |
+
+UI is classic Views with view binding; no Compose. Networking is `HttpURLConnection`
+with `org.json`, both from the platform.
+
+## Tests
+
+| Library | Version |
+|---|---|
+| JUnit | 4.13.2 |
+| Robolectric | 4.16.1 |
+| `androidx.test.ext:junit` | 1.3.0 |
+| `androidx.test:core` | 1.7.0 |
+| `kotlinx-coroutines-test` | 1.8.1 |
+
+JVM unit tests in `app/src/test/kotlin`, with Android resources included.
+
+## Assets
+
+- Michroma font (`res/font/michroma.ttf`), SIL Open Font License 1.1, see
+  `MICHROMA-LICENSE.txt`.
+
+## CI/CD
+
+GitHub Actions on `ubuntu-latest` with `gradle/actions/setup-gradle@v4`.
+
+| Workflow | Trigger | Runs | Produces |
+|---|---|---|---|
+| `Check` | push to any branch except `main`, manual | `lintDebug`, `testDebugUnitTest`, `assembleDebug` | `app-debug` artifact |
+| `Build` | push to `main` | `lint`, `testDebugUnitTest`, signed `assembleRelease` | `dev` pre-release |
+
+The project is not built locally.
