@@ -20,8 +20,9 @@ jobs:
 
       - uses: gradle/actions/setup-gradle@v4
 
-      - name: Run lint
-        run: ./gradlew lint
+      # Check already lints githubDebug; this covers the variants that ship.
+      - name: Lint the release variants
+        run: ./gradlew lintGithubRelease lintPlayRelease
 
   test:
     runs-on: ubuntu-latest
@@ -49,7 +50,7 @@ jobs:
           restore-keys: robolectric-
 
       - name: Run unit tests
-        run: ./gradlew testGithubDebugUnitTest testPlayDebugUnitTest
+        run: ./gradlew testGithubDebugUnitTest
 
       - name: Upload test report
         if: failure()

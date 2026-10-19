@@ -78,8 +78,8 @@ GitHub Actions on `ubuntu-latest` with `gradle/actions/setup-gradle@v4`.
 
 | Workflow | Trigger | Runs | Produces |
 |---|---|---|---|
-| `Check` | push to any branch except `main`, manual | release script tests; lint, unit tests and `assemble` for `githubDebug` and `playDebug` | `app-debug` artifact |
-| `Build` | push to `main` | `lint`, unit tests for both flavors, signed `assembleGithubRelease` | `dev` pre-release |
+| `Check` | push to any branch except `main`, manual | release script tests; lint and unit tests for `githubDebug`; `assemble` for `githubDebug` and `playDebug` | `app-debug` artifact |
+| `Build` | push to `main` | `lintGithubRelease`, `lintPlayRelease`, unit tests, signed `assembleGithubRelease` | `dev` pre-release |
 | `Release` | manual, from `main` | signed `assembleGithubRelease` and `bundlePlayRelease` | `v1.0.x` tag and GitHub release; Play upload (`r0adkll/upload-google-play`) |
 
 The project is not built locally.

@@ -48,13 +48,12 @@ jobs:
         run: python3 -m unittest discover -s .github/scripts
 
       # One Gradle invocation: shared compilation and daemon start-up, and --continue
-      # reports lint, test and compile failures together. Both flavors, since their
-      # manifests and settings differ.
+      # reports lint, test and compile failures together. Lint and tests see the same
+      # sources in both flavors, so they run once; assembling play links its manifest.
       - name: Lint, test and build debug
         run: >-
           ./gradlew --continue
-          lintGithubDebug lintPlayDebug
-          testGithubDebugUnitTest testPlayDebugUnitTest
+          lintGithubDebug testGithubDebugUnitTest
           assembleGithubDebug assemblePlayDebug
 
       # The only way to get a branch onto the device. Both flavors install beside the
@@ -73,8 +72,6 @@ jobs:
         with:
           name: check-reports
           path: |
-            app/build/reports/tests/testGithubDebugUnitTest
-            app/build/reports/tests/testPlayDebugUnitTest
-            app/build/reports/lint-results-githubDebug.html
-            app/build/reports/lint-results-playDebug.html
+            app/build/reports/tests/
+            app/build/reports/lint-results-*.html
           if-no-files-found: ignore

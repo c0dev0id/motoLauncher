@@ -16,13 +16,12 @@ it, so none of them can be executed locally (see *Build & CI*). They are listed 
 they are what a change is judged by:
 
 ```sh
-# what Check runs on a branch push (both flavors, one invocation)
+# what Check runs on a branch push (one Gradle invocation)
 python3 -m unittest discover -s .github/scripts     # release notes script
-./gradlew --continue lintGithubDebug lintPlayDebug \
-  testGithubDebugUnitTest testPlayDebugUnitTest assembleGithubDebug assemblePlayDebug
+./gradlew --continue lintGithubDebug testGithubDebugUnitTest assembleGithubDebug assemblePlayDebug
 
 # what Build adds on main
-./gradlew lint                 # every variant
+./gradlew lintGithubRelease lintPlayRelease
 ./gradlew assembleGithubRelease -PappVersionName=dev-<sha> -PappVersionCode=<commit count>
 
 # what Release builds
@@ -368,9 +367,9 @@ Correctness depends on careful API use and reading before writing.
 
 Three workflows. **`Check`** (`.github/workflows/check.yml`) is the pre-merge gate: every
 push to a branch other than `main`, plus `workflow_dispatch`. It is a
-single job: the release script's unit tests, then one Gradle invocation that lints, tests
-and assembles the debug variant of both flavors (see *Commands*), sharing compilation and
-one daemon start-up. The debug builds are unminified, unshrunk and debug-signed, and are
+single job: the release script's unit tests, then one Gradle invocation (see *Commands*)
+that lints and tests `githubDebug` — both flavors share every source and test — and
+assembles the debug variant of both flavors, sharing compilation and one daemon start-up. The debug builds are unminified, unshrunk and debug-signed, and are
 uploaded as the `app-debug` artifact — with a `.debug` `applicationIdSuffix`, so they
 install alongside the release build and a branch can be tested on the device without
 disturbing the launcher in daily use. `--continue` means one run reports lint, test and compile failures together.
@@ -384,8 +383,9 @@ requests from forks would go unchecked. The concurrency group (`check-<ref_name>
 **`Build`** (`.github/workflows/build.yml`) runs **only on push to `main`** and
 republishes the `dev` pre-release. Three parallel jobs plus a follow-up release step:
 
-- `./gradlew lint`
-- `./gradlew testGithubDebugUnitTest testPlayDebugUnitTest` — JUnit4 + Robolectric JVM
+- `./gradlew lintGithubRelease lintPlayRelease` — the variants that ship; plain `lint`
+  covers only the default debug variant, which `Check` already lints.
+- `./gradlew testGithubDebugUnitTest` — JUnit4 + Robolectric JVM
   unit tests in `app/src/test/kotlin` (`isIncludeAndroidResources = true`, so real resources and view
   inflation work; see *Commands* for running a single class or test).
   Robolectric runs them against SDK 36, which needs JDK 21 — hence JDK 21 in CI.

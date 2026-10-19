@@ -440,12 +440,19 @@ of a versioned release. For a long time `Build` was the whole pipeline, so a bra
 no signal before merge on a project that cannot be built locally.
 
 ### `Check` is one job with one Gradle invocation
-Lint, unit tests and the debug build of both flavors run in one `./gradlew --continue`,
-sharing compilation and one daemon start-up; parallel jobs would each pay checkout, JDK
-setup and compilation. The debug lint tasks skip `lint`'s release variants. `--continue`
-reports lint, test and compile failures from the same run. Release variants are left to
-`Build` (github) and `Release` (both) because they need the signing secrets and roughly
-double the build, so a green `Check` does not prove a minified build.
+Lint, unit tests and the debug build run in one `./gradlew --continue`, sharing
+compilation and one daemon start-up; parallel jobs would each pay checkout, JDK setup and
+compilation. Lint and tests run for `githubDebug` only: both flavors share every source
+and test, so the play runs repeated them for about 45 seconds. `assemblePlayDebug` still
+compiles `main` against play's `BuildConfig` and links its manifest. `--continue` reports
+lint, test and compile failures from the same run. Release variants are left to `Build`
+(github) and `Release` (both) because they need the signing secrets and roughly double
+the build, so a green `Check` does not prove a minified build.
+
+### `Build` lints the release variants
+Plain `./gradlew lint` analyses only the default variant, which is the debug variant
+`Check` has already linted on the same commit. `Build` runs `lintGithubRelease` and
+`lintPlayRelease` instead, the variants that ship.
 
 ### No `pull_request` trigger
 A check run attaches to the head commit, so the push run already shows on a PR. The
