@@ -140,18 +140,26 @@ Neither is reachable from a unit test.
 Settings were once header buttons beside the search field; more settings would have
 crowded the field and shrunk the buttons below glove size. A Settings toggle now swaps
 the grid's contents for text-only settings tiles in the same `RecyclerView`. The search
-field stays and filters the settings tiles. `AppListViewModel` carries the mode, the
-update-check state and the download subtitle, so the theme toggle's `recreate()`
-returns to settings mode. A short Escape leaves settings mode before it leaves the
-screen.
+field stays and filters the settings tiles. `AppListViewModel` carries the mode and
+`UpdateState` the update check's progress, so the theme toggle's `recreate()` returns to
+settings mode with the check intact. A short Escape leaves settings mode before it leaves
+the screen. The tiles are built by `SettingsTiles` in their own package: they change
+with every new setting, the app list does not.
+
+### Settings tiles are rebuilt on every render
+The tiles used to be cached between renders. Every tile that changed state had to clear
+the cache before re-rendering, the download progress had to patch the cached copy as
+well as the screen, and a cached park lock tile went stale when a lock screen was set
+while the app list was open. Rebuilding costs one app lookup for the navigation app's
+label and is only done in settings mode, so the cache went.
 
 ### Download progress finds the update tile by its label
 Progress patches one tile in place instead of re-rendering the list on every callback.
 The tile used to be addressed as position 2 of the settings list, but the adapter does
 not always show that list: a search filter shortens it, which crashed on the first
 progress tick or overwrote another tile, and leaving settings mode during a download put
-the update tile over an app. The tile is now matched by its label in the settings cache
-and, only while settings mode shows, in the adapter. Tile order carries no meaning.
+the update tile over an app. The tile is now matched by its label, and patched only
+while settings mode shows. Tile order carries no meaning.
 
 ### Hidden apps are stored per package
 `HiddenAppsStore` keeps a `Set<String>` of package names, read once per render.

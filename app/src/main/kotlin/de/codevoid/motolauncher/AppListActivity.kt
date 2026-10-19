@@ -1,57 +1,39 @@
 package de.codevoid.motolauncher
 
-import android.Manifest
 import android.app.Application
-import android.app.KeyguardManager
 import android.content.ComponentName
 import android.content.Context
 import android.content.Intent
-import android.content.pm.ActivityInfo
-import android.content.pm.PackageManager
 import android.content.res.ColorStateList
-import android.os.Build
 import android.os.Bundle
-import android.text.Editable
-import android.text.TextWatcher
 import android.view.KeyEvent
-import android.view.View
-import androidx.activity.result.contract.ActivityResultContracts.RequestPermission
 import androidx.activity.viewModels
-import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.content.ContextCompat
+import androidx.core.view.isVisible
+import androidx.core.widget.doAfterTextChanged
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.lifecycleScope
-import androidx.lifecycle.viewModelScope
 import androidx.recyclerview.widget.GridLayoutManager
-import de.codevoid.motolauncher.BuildConfig
 import de.codevoid.motolauncher.data.AppEntry
 import de.codevoid.motolauncher.data.AppRepository
-import de.codevoid.motolauncher.data.BatteryDisplay
-import de.codevoid.motolauncher.data.BatteryStore
-import de.codevoid.motolauncher.data.CellularStore
 import de.codevoid.motolauncher.data.FavoritesStore
 import de.codevoid.motolauncher.data.HiddenAppsStore
 import de.codevoid.motolauncher.data.NavAppStore
 import de.codevoid.motolauncher.data.NavBarStore
-import de.codevoid.motolauncher.data.ParkStore
-import de.codevoid.motolauncher.data.SlotEntry
 import de.codevoid.motolauncher.data.OrientationStore
-import de.codevoid.motolauncher.data.SpeedStore
-import de.codevoid.motolauncher.data.ThemeStore
+import de.codevoid.motolauncher.data.SlotEntry
 import de.codevoid.motolauncher.databinding.ActivityAppListBinding
+import de.codevoid.motolauncher.settings.SettingsTiles
 import de.codevoid.motolauncher.ui.AppTileAdapter
 import de.codevoid.motolauncher.ui.EscapeKeys
 import de.codevoid.motolauncher.ui.TileItem
 import de.codevoid.motolauncher.ui.enableImmersiveMode
 import de.codevoid.motolauncher.ui.fitContentToSystemBars
-import de.codevoid.motolauncher.ui.noTransition
 import de.codevoid.motolauncher.ui.isPortrait
 import de.codevoid.motolauncher.ui.launchNavApp
-import de.codevoid.motolauncher.ui.runUpdateFlow
+import de.codevoid.motolauncher.ui.noTransition
 import de.codevoid.motolauncher.ui.showLinkDialog
-import de.codevoid.motolauncher.ui.showImmersive
-import de.codevoid.motolauncher.ui.showOptionsDialog
 import de.codevoid.motolauncher.ui.showTileActionsDialog
 import kotlinx.coroutines.Deferred
 import kotlinx.coroutines.launch
@@ -60,61 +42,29 @@ class AppListActivity : AppCompatActivity() {
 
     private lateinit var binding: ActivityAppListBinding
     private lateinit var repository: AppRepository
+    private lateinit var settings: SettingsTiles
     private val viewModel: AppListViewModel by viewModels()
     private val adapter = AppTileAdapter(emptyList())
     private val favoritesStore by lazy { FavoritesStore(this) }
     private val navAppStore by lazy { NavAppStore(this) }
-    private val themeStore by lazy { ThemeStore(this) }
-    private val speedStore by lazy { SpeedStore(this) }
-    private val cellularStore by lazy { CellularStore(this) }
-    private val batteryStore by lazy { BatteryStore(this) }
     private val hiddenAppsStore by lazy { HiddenAppsStore(this) }
     private val navBarStore by lazy { NavBarStore(this) }
     private val orientationStore by lazy { OrientationStore(this) }
-    private val parkStore by lazy { ParkStore(this) }
     private val columns get() = if (isPortrait) 4 else 5
     private val defaultSettingsTint by lazy { ColorStateList.valueOf(ContextCompat.getColor(this, R.color.tile_default)) }
     private val activeSettingsTint by lazy { ColorStateList.valueOf(ContextCompat.getColor(this, R.color.tile_focused)) }
-    // Invalidated when isCheckingUpdate, cellular permission, or GPS permission state changes.
-    private var settingsTilesCache: List<TileItem>? = null
     private var allApps: List<AppEntry> = emptyList()
 
-    // >= 0: slot pick mode — the chosen app is written to that favourite slot and the
-    // activity finishes. navAppPickMode: the chosen app is stored as the nav app.
-    // NO_SLOT + no nav flag: browse mode — tap launches, long-press opens tile-actions.
+    // A slot pick writes the chosen app to that favourite slot, a nav-app pick stores it as
+    // the navigation app; both finish on selection. Neither means browse mode.
     private val pickSlot by lazy { intent.getIntExtra(EXTRA_PICK_SLOT, NO_SLOT) }
     private val navAppPickMode by lazy { intent.getBooleanExtra(EXTRA_PICK_NAV_APP, false) }
     private val pickMode get() = pickSlot != NO_SLOT || navAppPickMode
 
-    // In browse mode a short ESC exits settings mode (if active) before exiting the
-    // screen, so Escape acts as a mode-level back. In pick mode there is no settings
-    // mode, so a short ESC always finishes. Holding ESC quick-launches the nav app,
-    // same as Home, so the gesture means one thing wherever the remote is.
     private val escapeKeys = EscapeKeys(
         onLongPress = { launchNavApp() },
-        onShortPress = {
-            if (viewModel.isSettingsMode) {
-                viewModel.isSettingsMode = false
-                renderCurrentMode()
-            } else {
-                finish()
-            }
-        },
+        onShortPress = { if (viewModel.isSettingsMode) toggleSettingsMode() else finish() },
     )
-
-    private val cellularPermissionLauncher =
-        registerForActivityResult(RequestPermission()) { granted ->
-            if (granted) cellularStore.enabled = true
-            settingsTilesCache = null
-            renderCurrentMode()
-        }
-
-    private val gpsPermissionLauncher =
-        registerForActivityResult(RequestPermission()) { granted ->
-            if (granted) speedStore.enabled = true
-            settingsTilesCache = null
-            renderCurrentMode()
-        }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -125,27 +75,17 @@ class AppListActivity : AppCompatActivity() {
         window.fitContentToSystemBars()
 
         repository = AppRepository(this)
+        settings = SettingsTiles(this, onChanged = ::render, patchTile = ::patchSettingsTile)
 
         binding.backButton.setOnClickListener { finish() }
-
         binding.appGrid.layoutManager = GridLayoutManager(this, columns)
         binding.appGrid.adapter = adapter
+        binding.searchBox.doAfterTextChanged { render() }
 
-        binding.searchBox.addTextChangedListener(object : TextWatcher {
-            override fun afterTextChanged(s: Editable?) { renderCurrentMode() }
-            override fun beforeTextChanged(s: CharSequence?, a: Int, b: Int, c: Int) {}
-            override fun onTextChanged(s: CharSequence?, a: Int, b: Int, c: Int) {}
-        })
-
-        // The picker is a single-purpose screen: hide the settings toggle so the user
-        // can only pick an app or cancel.
         if (pickMode) {
-            binding.settingsButton.visibility = View.GONE
+            binding.settingsButton.isVisible = false
         } else {
-            binding.settingsButton.setOnClickListener {
-                viewModel.isSettingsMode = !viewModel.isSettingsMode
-                renderCurrentMode()
-            }
+            binding.settingsButton.setOnClickListener { toggleSettingsMode() }
         }
 
         loadAndRender(seedFocus = true)
@@ -154,19 +94,13 @@ class AppListActivity : AppCompatActivity() {
     override fun onResume() {
         super.onResume()
         setRequestedOrientation(orientationStore.orientation)
-        // Enumerating apps is the most expensive thing this app does; reload only when the
-        // installed-app set actually changed (uninstall, install) since the last load.
-        if (viewModel.reloadIfStale()) loadAndRender(seedFocus = false)
-        else renderCurrentMode()
+        if (viewModel.reloadIfStale()) loadAndRender(seedFocus = false) else render()
     }
 
     private fun loadAndRender(seedFocus: Boolean) {
         lifecycleScope.launch {
             allApps = viewModel.apps.await()
-            // After a recreate the restored search text is already in the box; honour it.
-            renderCurrentMode()
-            // Only on first load: re-seeding would drag the remote's focus back to tile 0
-            // every time an app is installed or removed.
+            render()
             if (seedFocus) {
                 binding.appGrid.post {
                     binding.appGrid.layoutManager?.findViewByPosition(0)?.requestFocus()
@@ -175,289 +109,70 @@ class AppListActivity : AppCompatActivity() {
         }
     }
 
-    // Single dispatch point for both modes: tints the toggle to reflect the active state,
-    // swaps the search hint, and updates the grid with the current search text applied.
-    private fun renderCurrentMode() {
+    private fun toggleSettingsMode() {
+        viewModel.isSettingsMode = !viewModel.isSettingsMode
+        render()
+    }
+
+    private fun render() {
+        val settingsMode = viewModel.isSettingsMode
         if (!pickMode) {
             binding.settingsButton.backgroundTintList =
-                if (viewModel.isSettingsMode) activeSettingsTint else defaultSettingsTint
+                if (settingsMode) activeSettingsTint else defaultSettingsTint
         }
-        binding.searchBox.setHint(
-            if (viewModel.isSettingsMode) R.string.search_settings_hint else R.string.search_hint
-        )
+        binding.searchBox.setHint(if (settingsMode) R.string.search_settings_hint else R.string.search_hint)
         val query = binding.searchBox.text.toString().trim()
+        adapter.submit(
+            if (settingsMode) settings.build().filter { it.label.contains(query, ignoreCase = true) }
+            else appTiles(AppRepository.filterApps(allApps, query))
+        )
+    }
+
+    // The adapter may hold a search-filtered list or the app grid, so the tile is found by
+    // its label, and only while settings mode shows.
+    private fun patchSettingsTile(label: String, subtitle: String) {
         if (viewModel.isSettingsMode) {
-            val all = settingsTilesCache ?: buildSettingsTiles().also { settingsTilesCache = it }
-            adapter.submit(if (query.isEmpty()) all else all.filter { it.label.contains(query, ignoreCase = true) })
-        } else {
-            render(AppRepository.filterApps(allApps, query))
+            adapter.updateItem({ it.label == label }) { it.copy(subtitle = subtitle) }
         }
     }
 
-    // Settings tiles replace the app grid in settings mode. Each tile is text-only (no
-    // icon): the label is the action, and these tiles have enough vertical room to read.
-    private fun buildSettingsTiles(): List<TileItem> {
-        val tiles = mutableListOf<TileItem>()
-
-        tiles.add(TileItem(
-            label = getString(R.string.theme_label),
-            subtitle = getString(if (themeStore.isDark) R.string.theme_dark else R.string.theme_light),
-            onClick = { settingsTilesCache = null; themeStore.isDark = !themeStore.isDark },
-        ))
-
-        val currentNavApp = navAppStore.navApp
-        val navAppSubtitle = if (currentNavApp == null) {
-            getString(R.string.pick_none)
-        } else {
-            repository.loadByComponents(listOf(currentNavApp))[currentNavApp]?.label
-                ?: currentNavApp.packageName
-        }
-        tiles.add(TileItem(
-            label = getString(R.string.nav_app),
-            subtitle = navAppSubtitle,
-            onClick = { settingsTilesCache = null; startActivity(navAppPickerIntent(this@AppListActivity)) },
-        ))
-
-        if (BuildConfig.SELF_UPDATE) tiles.add(updateTile())
-
-        // The park lock is hidden outright where it is not worth reaching; see
-        // shouldOfferParkLock. A secure lock screen can be set while this activity lives,
-        // and the decision is then as stale as the rest of settingsTilesCache until the
-        // next rebuild — a redundant tile that still works, which is not worth a resume
-        // hook to catch.
-        if (ParkActivity.shouldOfferParkLock(
-                sdkInt = Build.VERSION.SDK_INT,
-                deviceSecure = getSystemService(KeyguardManager::class.java)?.isDeviceSecure == true,
-            )
-        ) {
-            val hasPin = parkStore.hasPin
-            val openSetPin = {
-                startActivity(ParkActivity.setPinIntent(this@AppListActivity))
-                noTransition()
-            }
-            tiles.add(TileItem(
-                label = getString(R.string.park_lock),
-                subtitle = getString(if (hasPin) R.string.park_lock_now else R.string.park_set_pin),
-                onClick = {
-                    settingsTilesCache = null
-                    if (hasPin) {
-                        startActivity(ParkActivity.lockIntent(this@AppListActivity))
-                        noTransition()
-                        // Leave the home task at HomeActivity rather than parked behind the
-                        // lock screen: unlocking then returns to Home, and nothing has to
-                        // finish this screen after the fact.
-                        finish()
-                    } else {
-                        openSetPin()
-                    }
-                },
-                onLongClick = if (hasPin) ({ openSetPin(); true }) else null,
-            ))
-        }
-
-        tiles.add(permissionToggleTile(
-            label = getString(R.string.cellular_indicator),
-            enabled = cellularStore.enabled,
-            onDisable = { cellularStore.enabled = false },
-            onEnable = { cellularPermissionLauncher.launch(Manifest.permission.READ_PHONE_STATE) },
-        ))
-
-        if (packageManager.hasSystemFeature(PackageManager.FEATURE_LOCATION_GPS)) {
-            tiles.add(permissionToggleTile(
-                label = getString(R.string.gps_speed),
-                enabled = speedStore.enabled,
-                onDisable = { speedStore.enabled = false },
-                onEnable = { gpsPermissionLauncher.launch(Manifest.permission.ACCESS_FINE_LOCATION) },
-            ))
-            tiles.add(TileItem(
-                label = getString(R.string.units),
-                subtitle = getString(if (speedStore.isMetric) R.string.units_kmh else R.string.units_mph),
-                onClick = { settingsTilesCache = null; speedStore.isMetric = !speedStore.isMetric; renderCurrentMode() },
-            ))
-        }
-
-        tiles.add(batteryDisplayTile())
-
-        tiles.add(TileItem(
-            label = getString(R.string.hidden_apps),
-            subtitle = getString(if (hiddenAppsStore.showHidden) R.string.hidden_apps_showing else R.string.hidden_apps_hidden),
-            onClick = { settingsTilesCache = null; hiddenAppsStore.showHidden = !hiddenAppsStore.showHidden; renderCurrentMode() },
-        ))
-
-        tiles.add(orientationTile())
-
-        tiles.add(TileItem(
-            label = getString(R.string.nav_bar),
-            subtitle = getString(if (navBarStore.showNavBar) R.string.nav_bar_visible else R.string.nav_bar_hidden),
-            onClick = {
-                val show = !navBarStore.showNavBar
-                navBarStore.showNavBar = show
-                window.enableImmersiveMode(show)
-                settingsTilesCache = null
-                renderCurrentMode()
-            },
-        ))
-
-        tiles.add(TileItem(
-            label = getString(R.string.privacy_policy),
-            onClick = {
-                AlertDialog.Builder(this@AppListActivity)
-                    .setTitle(R.string.privacy_policy)
-                    .setMessage(R.string.privacy_policy_text)
-                    .setPositiveButton(R.string.ok, null)
-                    .create()
-                    .showImmersive()
-            },
-        ))
-
-        return tiles
-    }
-
-    private fun updateTile(): TileItem {
-        // While checking, the subtitle changes and the click is a no-op — guarding
-        // against a double-tap while the network call is in flight.
-        val isChecking = viewModel.isCheckingUpdate
-        val progressSub = viewModel.downloadProgressSubtitle
-        val label = getString(R.string.check_for_updates)
-        return TileItem(
-            label = label,
-            subtitle = when {
-                progressSub != null -> progressSub
-                isChecking -> getString(R.string.checking_updates)
-                else -> BuildConfig.VERSION_NAME
-            },
-            onClick = if (isChecking) ({}) else ({
-                viewModel.isCheckingUpdate = true
-                settingsTilesCache = null
-                renderCurrentMode()
-                runUpdateFlow(
-                    setClickable = { enabled ->
-                        if (enabled) {
-                            viewModel.isCheckingUpdate = false
-                            viewModel.downloadProgressSubtitle = null
-                            settingsTilesCache = null
-                            renderCurrentMode()
-                        }
-                    },
-                    // The shown list may be search-filtered or the app grid: find the tile
-                    // by label, and patch the screen only in settings mode.
-                    setSubtitle = { text ->
-                        viewModel.downloadProgressSubtitle = text
-                        settingsTilesCache = settingsTilesCache?.map {
-                            if (it.label == label) it.copy(subtitle = text) else it
-                        }
-                        if (viewModel.isSettingsMode) {
-                            adapter.updateItem({ it.label == label }) { it.copy(subtitle = text) }
-                        }
-                    },
-                )
-            }),
-        )
-    }
-
-    // Tapping "Off" launches the permission request; if granted the launcher callback sets
-    // enabled=true and re-renders. If already granted the system skips the dialog.
-    // Tapping "On" disables directly without a permission check.
-    private fun permissionToggleTile(
-        label: String,
-        enabled: Boolean,
-        onDisable: () -> Unit,
-        onEnable: () -> Unit,
-    ): TileItem = TileItem(
-        label = label,
-        subtitle = getString(if (enabled) R.string.setting_on else R.string.setting_off),
-        onClick = {
-            if (enabled) {
-                onDisable()
-                settingsTilesCache = null
-                renderCurrentMode()
-            } else {
-                onEnable()
-            }
-        },
-    )
-
-    private fun batteryDisplayTile(): TileItem {
-        val subtitleRes = when (batteryStore.display) {
-            BatteryDisplay.BOTH -> R.string.battery_display_both
-            BatteryDisplay.ICON -> R.string.battery_display_icon
-            BatteryDisplay.TEXT -> R.string.battery_display_text
-        }
-        return TileItem(
-            label = getString(R.string.battery_display),
-            subtitle = getString(subtitleRes),
-            onClick = {
-                val entries = BatteryDisplay.entries
-                batteryStore.display = entries[(entries.indexOf(batteryStore.display) + 1) % entries.size]
-                settingsTilesCache = null
-                renderCurrentMode()
-            },
-        )
-    }
-
-    // A picker rather than a cycle: tapping through five orientations would apply every
-    // one on the way to the wanted one, rotating the screen up to four times for a single
-    // change.
-    private fun orientationTile(): TileItem = TileItem(
-        label = getString(R.string.orientation),
-        subtitle = getString(ORIENTATION_OPTIONS[orientationIndex(orientationStore.orientation)].second),
-        onClick = {
-            showOptionsDialog(
-                context = this,
-                title = getString(R.string.orientation),
-                options = ORIENTATION_OPTIONS.map { getString(it.second) },
-                // Read at click time, not closed over from when the tile was built.
-                selectedIndex = orientationIndex(orientationStore.orientation),
-            ) { index ->
-                val picked = ORIENTATION_OPTIONS[index].first
-                orientationStore.orientation = picked
-                requestedOrientation = picked
-                settingsTilesCache = null
-                renderCurrentMode()
-            }
-        },
-    )
-
-    // coerceAtLeast covers a stored value no longer in the list — only reachable if a
-    // future release drops an option an older one wrote.
-    private fun orientationIndex(value: Int): Int =
-        ORIENTATION_OPTIONS.indexOfFirst { it.first == value }.coerceAtLeast(0)
-
-    private fun render(apps: List<AppEntry>) {
-        val tiles = ArrayList<TileItem>(apps.size + 1)
-        // In pick mode a "None" tile leads the grid, whatever the search says: choosing it
-        // clears the slot. It is the only way to empty a favourite.
-        if (pickMode) tiles.add(noneTile)
-        if (pickSlot != NO_SLOT) tiles.add(addLinkTile)
-        val hiddenSet = hiddenAppsStore.hiddenPackages()
+    private fun appTiles(apps: List<AppEntry>): List<TileItem> {
+        val hidden = hiddenAppsStore.hiddenPackages()
         val showHidden = hiddenAppsStore.showHidden
-        apps.forEach { entry ->
-            val isHidden = entry.component.packageName in hiddenSet
-            if (isHidden && !showHidden) return@forEach
-            tiles.add(TileItem(
-                label = entry.label,
-                icon = entry.icon,
-                dimmed = isHidden,
-                onClick = { onAppSelected(entry.component) },
-                onLongClick = if (pickMode) null else ({
-                    showTileActionsDialog(
-                        context = this,
-                        entry = entry,
-                        onAppInfo = { repository.openInfo(entry.component) },
-                        onUninstall = { repository.requestUninstall(entry.component) },
-                        hideAction = if (isHidden)
-                            R.string.tile_action_unhide to { hiddenAppsStore.unhide(entry.component.packageName); renderCurrentMode() }
-                        else
-                            R.string.tile_action_hide to { hiddenAppsStore.hide(entry.component.packageName); renderCurrentMode() },
-                    )
-                    true
-                }),
-            ))
+        val pickTiles = when {
+            pickSlot != NO_SLOT -> listOf(noneTile, addLinkTile)
+            navAppPickMode -> listOf(noneTile)
+            else -> emptyList()
         }
-        adapter.submit(tiles)
+        return pickTiles + apps
+            .filter { showHidden || it.component.packageName !in hidden }
+            .map { appTile(it, isHidden = it.component.packageName in hidden) }
     }
 
-    // Built once: render() runs on every keystroke and these tiles never change shape.
+    private fun appTile(entry: AppEntry, isHidden: Boolean) = TileItem(
+        label = entry.label,
+        icon = entry.icon,
+        dimmed = isHidden,
+        onClick = { onAppSelected(entry.component) },
+        onLongClick = if (pickMode) null else ({
+            showTileActionsDialog(
+                context = this,
+                entry = entry,
+                onAppInfo = { repository.openInfo(entry.component) },
+                onUninstall = { repository.requestUninstall(entry.component) },
+                hideAction = hideAction(entry.component.packageName, isHidden),
+            )
+            true
+        }),
+    )
+
+    private fun hideAction(packageName: String, isHidden: Boolean): Pair<Int, () -> Unit> =
+        if (isHidden) {
+            R.string.tile_action_unhide to { hiddenAppsStore.unhide(packageName); render() }
+        } else {
+            R.string.tile_action_hide to { hiddenAppsStore.hide(packageName); render() }
+        }
+
     private val noneTile by lazy {
         TileItem(
             label = getString(R.string.pick_none),
@@ -513,21 +228,6 @@ class AppListActivity : AppCompatActivity() {
         private const val EXTRA_PICK_NAV_APP = "pick_nav_app"
         private const val NO_SLOT = -1
 
-        // FULL_SENSOR rather than SENSOR or USER: it is the exact superset of the four
-        // fixed options above, so "Sensor" can reach every orientation the list can name,
-        // and it follows the accelerometer regardless of the system auto-rotate toggle —
-        // picking it here is the choice, it should not need a second one in Android's
-        // settings. Rotation reshapes the grid because no activity lists `orientation` in
-        // its configChanges, so the system recreates them and isPortrait is read afresh.
-        private val ORIENTATION_OPTIONS = listOf(
-            ActivityInfo.SCREEN_ORIENTATION_LANDSCAPE to R.string.orientation_landscape,
-            ActivityInfo.SCREEN_ORIENTATION_PORTRAIT to R.string.orientation_portrait,
-            ActivityInfo.SCREEN_ORIENTATION_REVERSE_LANDSCAPE to R.string.orientation_reverse_landscape,
-            ActivityInfo.SCREEN_ORIENTATION_REVERSE_PORTRAIT to R.string.orientation_reverse_portrait,
-            ActivityInfo.SCREEN_ORIENTATION_FULL_SENSOR to R.string.orientation_sensor,
-        )
-
-        // Callers rebuild their grid in onResume, so no result contract is needed.
         fun pickIntent(context: Context, slot: Int): Intent =
             Intent(context, AppListActivity::class.java).putExtra(EXTRA_PICK_SLOT, slot)
 
@@ -536,18 +236,15 @@ class AppListActivity : AppCompatActivity() {
     }
 }
 
-// isSettingsMode and isCheckingUpdate survive recreate() (theme toggle) here.
-// The app list itself is cached at the Application level and reused across Activity
-// instances — the ViewModel just holds the current reference and detects staleness.
+/** Holds the screen's mode and the process-wide app list load across recreation. */
 class AppListViewModel(app: Application) : AndroidViewModel(app) {
 
     var apps: Deferred<List<AppEntry>> = getApplication<MotoLauncherApp>().getApps()
         private set
 
     var isSettingsMode: Boolean = false
-    var isCheckingUpdate: Boolean = false
-    var downloadProgressSubtitle: String? = null
 
+    /** Swaps in the application's current load; true when it differs from the held one. */
     fun reloadIfStale(): Boolean {
         val fresh = getApplication<MotoLauncherApp>().getApps()
         if (fresh === apps) return false
