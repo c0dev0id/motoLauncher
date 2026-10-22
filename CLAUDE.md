@@ -167,7 +167,7 @@ Package layout under `de.codevoid.motolauncher`:
   is cached in `settingsTilesCache`; every tile that changes state sets it to `null` before
   re-rendering. Download progress patches the update tile in place, found by its label:
   in `settingsTilesCache`, and on screen only while settings mode shows, because the
-  adapter may hold a search-filtered list or the app grid. Permission-gated toggles (cellular, GPS) go through
+  adapter may hold a search-filtered list or the app grid. The permission-gated toggle (GPS) goes through
   `registerForActivityResult(RequestPermission())`; the store flips to enabled only on
   grant. A short Escape exits settings mode before finishing. Activity transitions are
   disabled (`noTransition()`) in both directions.
@@ -310,13 +310,16 @@ Package layout under `de.codevoid.motolauncher`:
   charging in the number (0–4 idle, 5–9 plugged), and `BatteryStore.display` chooses
   icon / text / both. **Wi-Fi visibility keys off the radio** (`WIFI_STATE_CHANGED_ACTION`,
   seeded from `isWifiEnabled`), bars off RSSI from `NetworkCapabilities.transportInfo`
-  (no location permission needed); losing the last network draws zero bars, it does not
-  hide the icon. `calculateSignalLevel`'s rating spans `[0, maxSignalLevel]` **inclusive**
-  and is mapped onto the five icon states by the pure `wifiIconLevel`. **Cellular** shows
-  only behind three gates — `CellularStore.enabled`, telephony on API 31+, and
-  `READ_PHONE_STATE` — and then takes `SignalStrength.level` (0..4) straight through.
-  **GPS speed** has the same shape (`SpeedStore.enabled`, `FEATURE_LOCATION_GPS`,
-  `ACCESS_FINE_LOCATION`), polls `GPS_PROVIDER` at 1 Hz, and is the one subscription that
+  (`WifiManager.connectionInfo` below API 29; no location permission needed either way);
+  losing the last network draws zero bars, it does not hide the icon.
+  `calculateSignalLevel`'s rating spans `[0, maxSignalLevel]` **inclusive** (below API 30
+  the static five-step rating) and is mapped onto the five icon states by the pure
+  `wifiIconLevel`. **Cellular** shows behind two gates — `CellularStore.enabled` and a
+  `TelephonyManager` — and takes `SignalStrength.level` (0..4) straight through, from
+  `TelephonyCallback` on API 31+ and `PhoneStateListener` below; neither needs a
+  permission. **GPS speed** is gated by `SpeedStore.enabled`, `FEATURE_LOCATION_GPS` and
+  `ACCESS_FINE_LOCATION`, listens through a `LocationListenerCompat` (a plain
+  `LocationListener` lambda throws `AbstractMethodError` below API 30), polls `GPS_PROVIDER` at 1 Hz, and is the one subscription that
   is paused while the window is hidden or the screen is off, because it costs CPU the
   navigation app needs. **`refreshOnResume` is the one resume refresh**, reached from both
   edges — `ACTION_SCREEN_ON` on `screenReceiver`, and `onWindowVisibilityChanged(VISIBLE)`
@@ -356,9 +359,9 @@ The manifest scopes package visibility to `MAIN`/`LAUNCHER` `<queries>` (plus th
 launcher-appropriate approach. Keep it that way. Permissions in use: `INTERNET` and
 `REQUEST_INSTALL_PACKAGES` (github flavor only), `REQUEST_DELETE_PACKAGES`,
 `ACCESS_WIFI_STATE`,
-`ACCESS_NETWORK_STATE`, and the runtime `READ_PHONE_STATE` (cellular bars) and
-`ACCESS_FINE_LOCATION` / `ACCESS_COARSE_LOCATION` (GPS speed), both optional and asked
-for from their settings tile.
+`ACCESS_NETWORK_STATE`, and the runtime `ACCESS_FINE_LOCATION` /
+`ACCESS_COARSE_LOCATION` (GPS speed), optional and asked for from its settings tile.
+Cellular bars need no permission.
 
 ## Build & CI
 
@@ -403,9 +406,11 @@ republishes the `dev` pre-release. Three parallel jobs plus a follow-up release 
   handle `showTileActionsDialog` returns: row order, optional rows hidden, one callback per
   row, dismissal), `EscapeKeysTest` (short vs. held Escape, dispatched through a real
   `KeyEvent.DispatcherState` so the framework's tracking rules are exercised rather than
-  assumed), `StatusBarViewTest` (`wifiIconLevel` across platform rating ranges, and that
+  assumed), `StatusBarViewTest` (`wifiIconLevel` across platform rating ranges, that
   `refreshOnResume` re-reads the clock and the battery when the bar returns to view but
-  touches neither when it leaves), `ParkStoreTest`
+  touches neither when it leaves, that cellular bars need no permission, and, on SDK 28,
+  the GPS listener surviving a provider toggle, the five-step Wi-Fi rating and the
+  cellular subscription following its toggle), `ParkStoreTest`
   (PIN round-trips against real `SharedPreferences`, the parked flag read back through a
   second instance — the path a reboot takes — and that the PIN is never written in the
   clear), `ParkLockTaskGuardTest` (the pure `shouldRequestLockTask` rule, including the

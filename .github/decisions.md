@@ -158,9 +158,9 @@ and, only while settings mode shows, in the adapter. Tile order carries no meani
 `getStringSet` returns the live internal set, so the store always returns a copy.
 
 ### Permission-gated toggles flip only on grant
-The cellular and GPS toggles request their permission through
+The GPS toggle requests its permission through
 `registerForActivityResult(RequestPermission())`. The store is set to enabled only when
-the grant arrives, so a setting never reads On without the access behind it.
+the grant arrives, so the setting never reads On without the access behind it.
 
 ### A picker for multi-valued settings whose intermediate values are disruptive
 Settings tiles cycle on tap, which suits two or three harmless values (theme, units,
@@ -217,9 +217,11 @@ From targetSdk 35, Android 15 draws every activity edge to edge and disables
 `setDecorFitsSystemWindows`, which used to give a visible navigation bar its space.
 `fitContentToSystemBars()` lays each activity out edge to edge on every API level and
 pads `android.R.id.content` by the visible system bars and the display cutout, so one
-mechanism covers Android 11 to 16. Hidden bars report no insets, so the padding follows
-the navigation-bar setting by itself. Dialog windows are floating and keep the platform
-default.
+mechanism covers Android 9 to 16. Hidden bars report no insets, so the padding follows
+the navigation-bar setting by itself. Below Android 11 that depends on androidx.core
+1.16 or newer: earlier versions passed through the legacy layout-stable inset, the
+height of a hidden navigation bar, and left an empty strip in its place. Dialog windows
+are floating and keep the platform default.
 
 ### Theme by resource qualifier only
 Layouts reference colour tokens; `values-night/colors.xml` overrides them. The theme
@@ -251,8 +253,10 @@ one `setImageLevel()`. The battery encodes charging in the level number (0–4 i
 
 ### Wi-Fi reads RSSI from `NetworkCapabilities`
 RSSI comes from `NetworkCapabilities.transportInfo` in a `NetworkCallback`, which needs
-only `ACCESS_WIFI_STATE` and `ACCESS_NETWORK_STATE`. `WifiManager.connectionInfo` would
-need location permission.
+only `ACCESS_WIFI_STATE` and `ACCESS_NETWORK_STATE`. `transportInfo` arrived in Android
+10; on Android 9 the callback reads `WifiManager.connectionInfo` instead. Without
+location permission that hides only the SSID, BSSID and MAC address (Android 9's
+`WifiServiceImpl.getConnectionInfo`); the RSSI comes through.
 
 ### The Wi-Fi icon follows the radio; no connection is zero bars
 Visibility keys off `WIFI_STATE_CHANGED_ACTION`, seeded from `isWifiEnabled`. Losing the
@@ -262,15 +266,30 @@ range" look the same.
 
 ### The Wi-Fi rating range is inclusive
 `WifiManager.calculateSignalLevel` returns `[0, maxSignalLevel]` inclusive, five values
-on a typical device. Dividing by `maxSignalLevel - 1` reported three of four bars as
+on a typical device. Before Android 11 the device's scale does not exist, and the static
+`calculateSignalLevel(rssi, 5)` rates on the icon's own five steps. Dividing by `maxSignalLevel - 1` reported three of four bars as
 full and made the three-bar icon unreachable. `wifiIconLevel` is a pure function so the
 mapping is unit-tested at both ends.
 
-### Cellular shows behind three gates and takes the level directly
-The meter appears only when the setting is on, telephony is available on API 31+ and
-`READ_PHONE_STATE` is granted. `SignalStrength.level` is documented as 0–4 and matches
-the icon's five states. A separate network watch was dropped: the telephony callback
-already reports level 0 for no coverage.
+### Cellular needs no permission and takes the level directly
+The meter appears when the setting is on and a `TelephonyManager` exists. It subscribes
+with `TelephonyCallback` on Android 12 and later and with `PhoneStateListener` before,
+which delivers the same `SignalStrength`. Neither needs a permission: `TelephonyRegistry`
+asks for `READ_PHONE_STATE` only for call forwarding, voicemail and emergency-number
+events, plus call state, data subscription, cell info and display info from Android 12,
+from Android 9 through current AOSP. The meter used to stop at Android 12 and ask for
+that permission, which bought nothing. `SignalStrength.level` is documented as 0–4 and
+matches the icon's five states. A separate network watch was dropped: the telephony
+callback already reports level 0 for no coverage.
+
+### Android 9 is the floor
+`minSdk` is 28. Everything outside the status bar is API 28 or older, goes through
+androidx, or is version-gated already. In the status bar, Wi-Fi and cellular have the
+pre-29 and pre-31 paths above, and the GPS listener is a `LocationListenerCompat`:
+before Android 11 `LocationListener`'s provider and status callbacks are abstract, so a
+lambda implementing only `onLocationChanged` threw `AbstractMethodError` the first time
+GPS was switched on or off. Robolectric runs those paths on SDK 28. What it cannot show
+is how a real Android 9 device lays out the hidden-bar insets.
 
 ### GPS speed is paused whenever it cannot be seen
 Speed polls `GPS_PROVIDER` at 1 Hz, which costs CPU the navigation app needs. It is the

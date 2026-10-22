@@ -26,7 +26,7 @@ It is built for gloved hands and a handlebar remote.
 
 ## Getting started
 
-1. Download the APK from the [latest release](https://github.com/c0dev0id/motoLauncher/releases/latest) and install it. Development builds are in the [dev pre-release](https://github.com/c0dev0id/motoLauncher/releases/tag/dev).
+1. On Android 9 or newer, download the APK from the [latest release](https://github.com/c0dev0id/motoLauncher/releases/latest) and install it. Development builds are in the [dev pre-release](https://github.com/c0dev0id/motoLauncher/releases/tag/dev).
 2. Press Home and choose motoLauncher as the default home app.
 3. Tap an empty **+** tile to put an app or a link there.
 4. Open **All Apps → Settings → Navigation app** and pick your navigation app.

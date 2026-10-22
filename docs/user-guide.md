@@ -70,9 +70,8 @@ too.
 **Orientation** opens a list and applies only the one you pick. **Sensor** follows the
 device and rotates on its own, whatever Android's auto-rotate switch says.
 
-**Cellular indicator** and **GPS Speed** ask for permission the first time you turn
-them on. They switch on only if you allow it. The cellular icon needs Android 12 or
-newer. GPS Speed and Units appear only on devices with GPS.
+**GPS Speed** asks for location permission the first time you turn it on, and
+switches on only if you allow it. GPS Speed and Units appear only on devices with GPS.
 
 The status bar shows the time on the left and Wi-Fi, cellular and battery on the right.
 GPS speed sits between them in landscape and on its own row in portrait. A Wi-Fi icon

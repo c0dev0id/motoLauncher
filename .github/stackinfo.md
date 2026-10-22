@@ -5,7 +5,7 @@
 | Device | Screen | Android |
 |---|---|---|
 | Motorcycle navigation device (primary) | 7", 1920×1080, landscape-mounted | 16 (earlier 14) |
-| Phones (secondary) | smallest width < 600dp | 11 or newer |
+| Phones (secondary) | smallest width < 600dp | 9 or newer |
 
 The navigation app the launcher starts is a separate app
 (`com.thorkracing.dmd2launcher` on the primary device). It is configured, not bundled.
@@ -14,12 +14,11 @@ The navigation app the launcher starts is a separate app
 
 | Setting | Value |
 |---|---|
-| `minSdk` | 30 (Android 11) |
+| `minSdk` | 28 (Android 9) |
 | `targetSdk` | 36 (Android 16) |
 | `compileSdk` | 36 |
 
-Feature floors above `minSdk`: the cellular indicator needs API 31; the park lock is
-offered from API 35.
+Feature floor above `minSdk`: the park lock is offered from API 35.
 
 ## Language and build
 
