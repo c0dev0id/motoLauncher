@@ -47,7 +47,7 @@ offered from API 35.
 | `androidx.constraintlayout:constraintlayout` | 2.2.0 | Declared; no layout uses it |
 | `androidx.recyclerview:recyclerview` | 1.3.2 | App list grid |
 | `androidx.activity:activity-ktx` | 1.9.3 | `viewModels`, result APIs, back dispatcher |
-| `androidx.core:core-ktx` | 1.13.1 | `FileProvider` (github), window insets, compat helpers |
+| `androidx.core:core-ktx` | 1.17.0 | `FileProvider` (github), window insets, compat helpers |
 | `androidx.lifecycle:lifecycle-runtime-ktx` | 2.8.6 | `lifecycleScope` |
 | `androidx.lifecycle:lifecycle-viewmodel-ktx` | 2.8.6 | `ViewModel`, `viewModelScope` |
 | `org.jetbrains.kotlinx:kotlinx-coroutines-android` | 1.8.1 | App enumeration and update I/O |
