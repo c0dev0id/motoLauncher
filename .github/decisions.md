@@ -157,7 +157,7 @@ and, only while settings mode shows, in the adapter. Tile order carries no meani
 `HiddenAppsStore` keeps a `Set<String>` of package names, read once per render.
 `getStringSet` returns the live internal set, so the store always returns a copy.
 
-### Permission-gated toggles flip only on grant
+### The GPS toggle flips only on grant
 The GPS toggle requests its permission through
 `registerForActivityResult(RequestPermission())`. The store is set to enabled only when
 the grant arrives, so the setting never reads On without the access behind it.
@@ -266,15 +266,17 @@ range" look the same.
 
 ### The Wi-Fi rating range is inclusive
 `WifiManager.calculateSignalLevel` returns `[0, maxSignalLevel]` inclusive, five values
-on a typical device. Before Android 11 the device's scale does not exist, and the static
-`calculateSignalLevel(rssi, 5)` rates on the icon's own five steps. Dividing by `maxSignalLevel - 1` reported three of four bars as
-full and made the three-bar icon unreachable. `wifiIconLevel` is a pure function so the
-mapping is unit-tested at both ends.
+on a typical device. Dividing by `maxSignalLevel - 1` reported three of four bars as full
+and made the three-bar icon unreachable. `wifiIconLevel` is a pure function so the
+mapping is unit-tested at both ends. Before Android 11 the device's scale does not exist,
+and the static `calculateSignalLevel(rssi, 5)` rates on the icon's own five steps.
 
 ### Cellular needs no permission and takes the level directly
-The meter appears when the setting is on and a `TelephonyManager` exists. It subscribes
-with `TelephonyCallback` on Android 12 and later and with `PhoneStateListener` before,
-which delivers the same `SignalStrength`. Neither needs a permission: `TelephonyRegistry`
+The meter appears while the setting is on. It subscribes with `TelephonyCallback` on
+Android 12 and later and with `PhoneStateListener` before, which delivers the same
+`SignalStrength`. Each subscription hands back the call that ends it; on Android 9 the
+platform holds a `PhoneStateListener` only weakly, so that stored call is also the
+reference that keeps the listener alive. Neither needs a permission: `TelephonyRegistry`
 asks for `READ_PHONE_STATE` only for call forwarding, voicemail and emergency-number
 events, plus call state, data subscription, cell info and display info from Android 12,
 from Android 9 through current AOSP. The meter used to stop at Android 12 and ask for
