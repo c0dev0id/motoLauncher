@@ -68,10 +68,10 @@ class StatusBarView @JvmOverloads constructor(
 
     // Cached once — maxSignalLevel is a fixed property that would otherwise cross the
     // Binder on every capability callback (which fires many times per second on a
-    // fluctuating link). Before API 30 the rating scale is chosen by the caller.
+    // fluctuating link). Before API 30 the rating is on the icon's own five steps.
     private val wifiMaxSignalLevel =
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) wifiManager.maxSignalLevel
-        else LEGACY_WIFI_RATINGS - 1
+        else MAX_ICON_LEVEL
 
     // Written on the main thread, read on a Binder thread in onCapabilitiesChanged.
     @Volatile private var lastWifiLevel = -1
@@ -154,7 +154,6 @@ class StatusBarView @JvmOverloads constructor(
         }
     }
 
-    // Ends whichever signal-strength subscription registerCellular started.
     private var stopSignalUpdates: (() -> Unit)? = null
 
     // Compat: LocationListener's provider and status callbacks are abstract before API 30.
@@ -316,12 +315,13 @@ class StatusBarView @JvmOverloads constructor(
             wifiManager.calculateSignalLevel(rssi)
         } else {
             @Suppress("DEPRECATION")
-            WifiManager.calculateSignalLevel(rssi, LEGACY_WIFI_RATINGS)
+            WifiManager.calculateSignalLevel(rssi, MAX_ICON_LEVEL + 1)
         }
         return wifiIconLevel(rating, wifiMaxSignalLevel)
     }
 
-    private fun applyCellularLevel(level: Int) {
+    private fun applyCellularLevel(signalLevel: Int) {
+        val level = signalLevel.coerceIn(0, MAX_ICON_LEVEL)
         if (level == lastCellularLevel) return
         lastCellularLevel = level
         binding.cellularIcon.setImageLevel(level)
@@ -331,8 +331,7 @@ class StatusBarView @JvmOverloads constructor(
         binding.cellularIcon.visibility = if (connected) View.VISIBLE else View.GONE
     }
 
-    // Two gates: the user toggle and a telephony service. Reading the signal strength
-    // needs no permission.
+    // Reading the signal strength needs no permission.
     private fun registerCellular() {
         showCellularIcon(false)
         if (!cellularStore.enabled) return
@@ -346,12 +345,11 @@ class StatusBarView @JvmOverloads constructor(
         showCellularIcon(true)
     }
 
-    // Both subscribe to signal-strength changes and return the call that unsubscribes.
     @RequiresApi(Build.VERSION_CODES.S)
     private fun listenForSignal(tm: TelephonyManager): () -> Unit {
         val callback = object : TelephonyCallback(), TelephonyCallback.SignalStrengthsListener {
             override fun onSignalStrengthsChanged(signalStrength: SignalStrength) =
-                applyCellularLevel(signalStrength.level.coerceIn(0, 4))
+                applyCellularLevel(signalStrength.level)
         }
         tm.registerTelephonyCallback(context.mainExecutor, callback)
         return { tm.unregisterTelephonyCallback(callback) }
@@ -361,7 +359,7 @@ class StatusBarView @JvmOverloads constructor(
     private fun listenForSignalBeforeS(tm: TelephonyManager): () -> Unit {
         val listener = object : PhoneStateListener() {
             override fun onSignalStrengthsChanged(signalStrength: SignalStrength) =
-                applyCellularLevel(signalStrength.level.coerceIn(0, 4))
+                applyCellularLevel(signalStrength.level)
         }
         tm.listen(listener, PhoneStateListener.LISTEN_SIGNAL_STRENGTHS)
         return { tm.listen(listener, PhoneStateListener.LISTEN_NONE) }
@@ -405,7 +403,6 @@ class StatusBarView @JvmOverloads constructor(
     companion object {
         // Our meters have five states, 0 (empty) to 4 (full).
         private const val MAX_ICON_LEVEL = 4
-        private const val LEGACY_WIFI_RATINGS = MAX_ICON_LEVEL + 1
 
         /**
          * Maps a platform Wi-Fi rating onto the icon's five states.

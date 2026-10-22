@@ -60,6 +60,12 @@ class StatusBarViewTest {
 
     private fun StatusBarView.batteryText() = findViewById<TextView>(R.id.batteryText)
 
+    private fun StatusBarView.speedText() = findViewById<TextView>(R.id.speedText)
+
+    private fun StatusBarView.wifiIcon() = findViewById<ImageView>(R.id.wifiIcon)
+
+    private fun StatusBarView.cellularIcon() = findViewById<ImageView>(R.id.cellularIcon)
+
     @Test
     fun mapsOneToOneOnAFiveRatingPlatform() {
         // The usual case: maxSignalLevel 4, ratings 0..4, icon states 0..4.
@@ -162,7 +168,7 @@ class StatusBarViewTest {
         locationManager.setProviderEnabled(LocationManager.GPS_PROVIDER, false)
         shadowOf(Looper.getMainLooper()).idle()
 
-        assertEquals(View.VISIBLE, bar.findViewById<View>(R.id.speedText).visibility)
+        assertEquals(View.VISIBLE, bar.speedText().visibility)
     }
 
     @Test
@@ -179,14 +185,14 @@ class StatusBarViewTest {
         }
         shadowOf(Looper.getMainLooper()).idle()
 
-        assertEquals(2, bar.findViewById<ImageView>(R.id.wifiIcon).drawable.level)
+        assertEquals(2, bar.wifiIcon().drawable.level)
     }
 
     @Test
     fun cellularBarsNeedNoPermission() {
         CellularStore(app).enabled = true
         val bar = attachedStatusBar()
-        assertEquals(View.VISIBLE, bar.findViewById<View>(R.id.cellularIcon).visibility)
+        assertEquals(View.VISIBLE, bar.cellularIcon().visibility)
     }
 
     @Test
@@ -196,13 +202,13 @@ class StatusBarViewTest {
         CellularStore(app).enabled = true
         val bar = attachedStatusBar()
         val telephony = shadowOf(app.getSystemService(TelephonyManager::class.java))
-        assertEquals(View.VISIBLE, bar.findViewById<View>(R.id.cellularIcon).visibility)
+        assertEquals(View.VISIBLE, bar.cellularIcon().visibility)
         assertEquals(PhoneStateListener.LISTEN_SIGNAL_STRENGTHS, telephony.eventFlags)
 
         CellularStore(app).enabled = false
         shadowOf(Looper.getMainLooper()).idle()
 
-        assertEquals(View.GONE, bar.findViewById<View>(R.id.cellularIcon).visibility)
+        assertEquals(View.GONE, bar.cellularIcon().visibility)
         assertEquals(PhoneStateListener.LISTEN_NONE, telephony.eventFlags)
     }
 
