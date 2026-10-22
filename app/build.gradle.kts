@@ -9,7 +9,7 @@ android {
 
     defaultConfig {
         applicationId = "de.codevoid.motolauncher"
-        minSdk = 30
+        minSdk = 28
         targetSdk = 36
         versionCode = (project.findProperty("appVersionCode") as String?)?.toIntOrNull() ?: 1
         versionName = (project.findProperty("appVersionName") as String?).takeIf { !it.isNullOrEmpty() } ?: "dev-local"

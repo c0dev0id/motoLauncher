@@ -7,7 +7,6 @@ import android.content.Intent
 import android.content.IntentFilter
 import android.content.SharedPreferences
 import android.content.pm.PackageManager
-import android.location.LocationListener
 import android.location.LocationManager
 import android.net.ConnectivityManager
 import android.net.Network
@@ -26,6 +25,7 @@ import android.view.LayoutInflater
 import android.view.View
 import android.widget.LinearLayout
 import androidx.core.content.ContextCompat
+import androidx.core.location.LocationListenerCompat
 import de.codevoid.motolauncher.R
 import de.codevoid.motolauncher.data.BatteryDisplay
 import de.codevoid.motolauncher.data.BatteryStore
@@ -66,8 +66,10 @@ class StatusBarView @JvmOverloads constructor(
 
     // Cached once — maxSignalLevel is a fixed property that would otherwise cross the
     // Binder on every capability callback (which fires many times per second on a
-    // fluctuating link).
-    private val wifiMaxSignalLevel = wifiManager.maxSignalLevel
+    // fluctuating link). Before API 30 the rating scale is chosen by the caller.
+    private val wifiMaxSignalLevel =
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) wifiManager.maxSignalLevel
+        else LEGACY_WIFI_RATINGS - 1
 
     // Written on the main thread, read on a Binder thread in onCapabilitiesChanged.
     @Volatile private var lastWifiLevel = -1
@@ -99,7 +101,12 @@ class StatusBarView @JvmOverloads constructor(
         override fun onCapabilitiesChanged(network: Network, caps: NetworkCapabilities) {
             // Runs on a Binder thread. Classify cheaply here and only hop to the main
             // thread when the icon level actually changes.
-            val rssi = (caps.transportInfo as? WifiInfo)?.rssi ?: return
+            val rssi = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+                (caps.transportInfo as? WifiInfo)?.rssi ?: return
+            } else {
+                @Suppress("DEPRECATION")
+                wifiManager.connectionInfo.rssi
+            }
             val level = rssiToIconLevel(rssi)
             if (level == lastWifiLevel) return
             post { applyWifiLevel(level) }
@@ -147,8 +154,9 @@ class StatusBarView @JvmOverloads constructor(
 
     private var signalCallback: TelephonyCallback? = null
 
-    private val locationListener = LocationListener { location ->
-        if (!location.hasSpeed()) return@LocationListener
+    // Compat: LocationListener's provider and status callbacks are abstract before API 30.
+    private val locationListener = LocationListenerCompat { location ->
+        if (!location.hasSpeed()) return@LocationListenerCompat
         val metric = speedStore.isMetric
         val displaySpeed = if (metric) (location.speed * 3.6).toInt() else (location.speed * 2.237).toInt()
         binding.speedText.text = "$displaySpeed ${speedUnitString(metric)}"
@@ -300,8 +308,15 @@ class StatusBarView @JvmOverloads constructor(
         binding.wifiIcon.visibility = if (connected) View.VISIBLE else View.GONE
     }
 
-    private fun rssiToIconLevel(rssi: Int): Int =
-        wifiIconLevel(wifiManager.calculateSignalLevel(rssi), wifiMaxSignalLevel)
+    private fun rssiToIconLevel(rssi: Int): Int {
+        val rating = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+            wifiManager.calculateSignalLevel(rssi)
+        } else {
+            @Suppress("DEPRECATION")
+            WifiManager.calculateSignalLevel(rssi, LEGACY_WIFI_RATINGS)
+        }
+        return wifiIconLevel(rating, wifiMaxSignalLevel)
+    }
 
     private fun applyCellularLevel(level: Int) {
         if (level == lastCellularLevel) return
@@ -374,6 +389,7 @@ class StatusBarView @JvmOverloads constructor(
     companion object {
         // Our meters have five states, 0 (empty) to 4 (full).
         private const val MAX_ICON_LEVEL = 4
+        private const val LEGACY_WIFI_RATINGS = MAX_ICON_LEVEL + 1
 
         /**
          * Maps a platform Wi-Fi rating onto the icon's five states.

@@ -1,22 +1,38 @@
 package de.codevoid.motolauncher
 
+import android.Manifest
+import android.app.Activity
 import android.app.Application
 import android.content.Intent
+import android.content.pm.PackageManager
+import android.location.LocationManager
+import android.net.ConnectivityManager
+import android.net.wifi.WifiManager
 import android.os.BatteryManager
+import android.os.Build
+import android.os.Looper
 import android.view.View
+import android.widget.ImageView
 import android.widget.TextView
 import androidx.test.core.app.ApplicationProvider
+import de.codevoid.motolauncher.data.SpeedStore
 import de.codevoid.motolauncher.ui.StatusBarView
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Test
 import org.junit.runner.RunWith
+import org.robolectric.Robolectric
 import org.robolectric.RobolectricTestRunner
+import org.robolectric.Shadows.shadowOf
+import org.robolectric.annotation.Config
+import org.robolectric.shadows.ShadowNetwork
+import org.robolectric.shadows.ShadowNetworkCapabilities
+import org.robolectric.shadows.ShadowWifiInfo
 
 /**
- * Two things about the status bar that a device would otherwise be the only way to check:
- * how a platform signal rating maps onto the five icon states, and that the resume refresh
- * re-reads the clock and the battery when the bar comes back into view.
+ * What a device would otherwise be the only way to check: how a platform signal rating maps
+ * onto the five icon states, that the resume refresh re-reads the clock and the battery when
+ * the bar comes back into view, and that the pre-Android-11 paths run on Android 9.
  *
  * On the first: `WifiManager.calculateSignalLevel` rates a signal in `[0, maxSignalLevel]`
  * inclusive, so a device reporting a maximum of 4 has five ratings, not four. Treating the
@@ -25,7 +41,13 @@ import org.robolectric.RobolectricTestRunner
 @RunWith(RobolectricTestRunner::class)
 class StatusBarViewTest {
 
-    private fun statusBar() = StatusBarView(ApplicationProvider.getApplicationContext())
+    private val app get() = ApplicationProvider.getApplicationContext<Application>()
+
+    private fun statusBar() = StatusBarView(app)
+
+    private fun attachedStatusBar(): StatusBarView = statusBar().also {
+        Robolectric.buildActivity(Activity::class.java).setup().get().setContentView(it)
+    }
 
     private fun StatusBarView.timeText() = findViewById<TextView>(R.id.timeText)
 
@@ -103,7 +125,6 @@ class StatusBarViewTest {
     fun readsTheBatteryWhenTheBarComesBackIntoView() {
         // What a change broadcast missed while the device slept would leave behind: the
         // level from before it went on charge.
-        val app = ApplicationProvider.getApplicationContext<Application>()
         app.sendStickyBroadcast(
             Intent(Intent.ACTION_BATTERY_CHANGED)
                 .putExtra(BatteryManager.EXTRA_LEVEL, 42)
@@ -117,6 +138,37 @@ class StatusBarViewTest {
 
         // Format is the caller's business; that the sticky read landed is this test's.
         assertTrue("left showing '${bar.batteryText().text}'", bar.batteryText().text.contains("42"))
+    }
+
+    @Test
+    @Config(sdk = [Build.VERSION_CODES.P])
+    fun gpsSpeedSurvivesTheProviderBeingSwitchedOffOnAndroid9() {
+        SpeedStore(app).enabled = true
+        shadowOf(app.packageManager).setSystemFeature(PackageManager.FEATURE_LOCATION_GPS, true)
+        shadowOf(app).grantPermissions(Manifest.permission.ACCESS_FINE_LOCATION)
+        val bar = attachedStatusBar()
+
+        val locationManager = app.getSystemService(LocationManager::class.java)
+        shadowOf(locationManager).setProviderEnabled(LocationManager.GPS_PROVIDER, false)
+        shadowOf(Looper.getMainLooper()).idle()
+
+        assertEquals(View.VISIBLE, bar.findViewById<View>(R.id.speedText).visibility)
+    }
+
+    @Test
+    @Config(sdk = [Build.VERSION_CODES.P])
+    fun wifiBarsComeFromTheConnectionInfoOnAndroid9() {
+        val bar = attachedStatusBar()
+        val wifiInfo = ShadowWifiInfo.newInstance().also { shadowOf(it).setRssi(-50) }
+        shadowOf(app.getSystemService(WifiManager::class.java)).setConnectionInfo(wifiInfo)
+
+        val connectivity = app.getSystemService(ConnectivityManager::class.java)
+        shadowOf(connectivity).networkCallbacks.forEach {
+            it.onCapabilitiesChanged(ShadowNetwork.newInstance(1), ShadowNetworkCapabilities.newInstance())
+        }
+        shadowOf(Looper.getMainLooper()).idle()
+
+        assertEquals(4, bar.findViewById<ImageView>(R.id.wifiIcon).drawable.level)
     }
 
     private companion object {
