@@ -102,13 +102,6 @@ class AppListActivity : AppCompatActivity() {
         },
     )
 
-    private val cellularPermissionLauncher =
-        registerForActivityResult(RequestPermission()) { granted ->
-            if (granted) cellularStore.enabled = true
-            settingsTilesCache = null
-            renderCurrentMode()
-        }
-
     private val gpsPermissionLauncher =
         registerForActivityResult(RequestPermission()) { granted ->
             if (granted) speedStore.enabled = true
@@ -255,11 +248,10 @@ class AppListActivity : AppCompatActivity() {
             ))
         }
 
-        tiles.add(permissionToggleTile(
+        tiles.add(TileItem(
             label = getString(R.string.cellular_indicator),
-            enabled = cellularStore.enabled,
-            onDisable = { cellularStore.enabled = false },
-            onEnable = { cellularPermissionLauncher.launch(Manifest.permission.READ_PHONE_STATE) },
+            subtitle = getString(if (cellularStore.enabled) R.string.setting_on else R.string.setting_off),
+            onClick = { settingsTilesCache = null; cellularStore.enabled = !cellularStore.enabled; renderCurrentMode() },
         ))
 
         if (packageManager.hasSystemFeature(android.content.pm.PackageManager.FEATURE_LOCATION_GPS)) {

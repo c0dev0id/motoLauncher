@@ -16,6 +16,7 @@ import android.net.wifi.WifiInfo
 import android.net.wifi.WifiManager
 import android.os.BatteryManager
 import android.os.Build
+import android.telephony.PhoneStateListener
 import android.telephony.SignalStrength
 import android.telephony.TelephonyCallback
 import android.telephony.TelephonyManager
@@ -24,6 +25,7 @@ import android.view.Gravity
 import android.view.LayoutInflater
 import android.view.View
 import android.widget.LinearLayout
+import androidx.annotation.RequiresApi
 import androidx.core.content.ContextCompat
 import androidx.core.location.LocationListenerCompat
 import de.codevoid.motolauncher.R
@@ -152,7 +154,8 @@ class StatusBarView @JvmOverloads constructor(
         }
     }
 
-    private var signalCallback: TelephonyCallback? = null
+    // Ends whichever signal-strength subscription registerCellular started.
+    private var stopSignalUpdates: (() -> Unit)? = null
 
     // Compat: LocationListener's provider and status callbacks are abstract before API 30.
     private val locationListener = LocationListenerCompat { location ->
@@ -328,33 +331,46 @@ class StatusBarView @JvmOverloads constructor(
         binding.cellularIcon.visibility = if (connected) View.VISIBLE else View.GONE
     }
 
-    // Three gates: cellularEnabled (user toggle), telephony available on API 31+, and
-    // READ_PHONE_STATE granted. All must hold or nothing is registered and the icon stays hidden.
+    // Two gates: the user toggle and a telephony service. Reading the signal strength
+    // needs no permission.
     private fun registerCellular() {
         showCellularIcon(false)
         if (!cellularStore.enabled) return
-        val tm = telephonyManager
-        if (tm == null || Build.VERSION.SDK_INT < Build.VERSION_CODES.S) return
-        if (ContextCompat.checkSelfPermission(context, Manifest.permission.READ_PHONE_STATE)
-            != PackageManager.PERMISSION_GRANTED) return
-
-        val cb = object : TelephonyCallback(), TelephonyCallback.SignalStrengthsListener {
-            override fun onSignalStrengthsChanged(signalStrength: SignalStrength) {
-                applyCellularLevel(signalStrength.level.coerceIn(0, 4))
-            }
+        val tm = telephonyManager ?: return
+        stopSignalUpdates = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+            listenForSignal(tm)
+        } else {
+            listenForSignalBeforeS(tm)
         }
-        signalCallback = cb
-        tm.registerTelephonyCallback(context.mainExecutor, cb)
         applyCellularLevel(0)
         showCellularIcon(true)
     }
 
+    // Both subscribe to signal-strength changes and return the call that unsubscribes.
+    @RequiresApi(Build.VERSION_CODES.S)
+    private fun listenForSignal(tm: TelephonyManager): () -> Unit {
+        val callback = object : TelephonyCallback(), TelephonyCallback.SignalStrengthsListener {
+            override fun onSignalStrengthsChanged(signalStrength: SignalStrength) =
+                applyCellularLevel(signalStrength.level.coerceIn(0, 4))
+        }
+        tm.registerTelephonyCallback(context.mainExecutor, callback)
+        return { tm.unregisterTelephonyCallback(callback) }
+    }
+
+    @Suppress("DEPRECATION")
+    private fun listenForSignalBeforeS(tm: TelephonyManager): () -> Unit {
+        val listener = object : PhoneStateListener() {
+            override fun onSignalStrengthsChanged(signalStrength: SignalStrength) =
+                applyCellularLevel(signalStrength.level.coerceIn(0, 4))
+        }
+        tm.listen(listener, PhoneStateListener.LISTEN_SIGNAL_STRENGTHS)
+        return { tm.listen(listener, PhoneStateListener.LISTEN_NONE) }
+    }
+
     private fun unregisterCellular() {
         showCellularIcon(false)
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
-            signalCallback?.let { telephonyManager?.unregisterTelephonyCallback(it) }
-        }
-        signalCallback = null
+        stopSignalUpdates?.invoke()
+        stopSignalUpdates = null
     }
 
     private fun registerGps() {

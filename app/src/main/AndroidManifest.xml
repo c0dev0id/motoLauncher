@@ -5,7 +5,6 @@
     <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />
     <uses-permission android:name="android.permission.ACCESS_WIFI_STATE" />
     <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
-    <uses-permission android:name="android.permission.READ_PHONE_STATE" />
     <!-- Mandatory since targetSdk 28 for asking the system to uninstall a package. Without
          it the request is dropped without any error, so the tile menu's Uninstall row
          simply does nothing. Normal protection level: granted at install, no runtime ask. -->

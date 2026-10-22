@@ -7,16 +7,19 @@ import android.content.Intent
 import android.content.pm.PackageManager
 import android.location.LocationManager
 import android.net.ConnectivityManager
-import android.net.wifi.WifiManager
 import android.os.BatteryManager
 import android.os.Build
 import android.os.Looper
+import android.telephony.PhoneStateListener
+import android.telephony.TelephonyManager
 import android.view.View
 import android.widget.ImageView
 import android.widget.TextView
 import androidx.test.core.app.ApplicationProvider
+import de.codevoid.motolauncher.data.CellularStore
 import de.codevoid.motolauncher.data.SpeedStore
 import de.codevoid.motolauncher.ui.StatusBarView
+import org.junit.After
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Test
@@ -27,7 +30,7 @@ import org.robolectric.Shadows.shadowOf
 import org.robolectric.annotation.Config
 import org.robolectric.shadows.ShadowNetwork
 import org.robolectric.shadows.ShadowNetworkCapabilities
-import org.robolectric.shadows.ShadowWifiInfo
+import org.robolectric.shadows.ShadowWifiManager
 
 /**
  * What a device would otherwise be the only way to check: how a platform signal rating maps
@@ -48,6 +51,10 @@ class StatusBarViewTest {
     private fun attachedStatusBar(): StatusBarView = statusBar().also {
         Robolectric.buildActivity(Activity::class.java).setup().get().setContentView(it)
     }
+
+    // ShadowWifiManager keeps the legacy rating in a static that it never resets.
+    @After
+    fun resetLegacyWifiRating() = ShadowWifiManager.setSignalLevelInPercent(1f)
 
     private fun StatusBarView.timeText() = findViewById<TextView>(R.id.timeText)
 
@@ -148,8 +155,11 @@ class StatusBarViewTest {
         shadowOf(app).grantPermissions(Manifest.permission.ACCESS_FINE_LOCATION)
         val bar = attachedStatusBar()
 
-        val locationManager = app.getSystemService(LocationManager::class.java)
-        shadowOf(locationManager).setProviderEnabled(LocationManager.GPS_PROVIDER, false)
+        // On then off: each change calls a provider callback that LocationListener
+        // leaves abstract on Android 9.
+        val locationManager = shadowOf(app.getSystemService(LocationManager::class.java))
+        locationManager.setProviderEnabled(LocationManager.GPS_PROVIDER, true)
+        locationManager.setProviderEnabled(LocationManager.GPS_PROVIDER, false)
         shadowOf(Looper.getMainLooper()).idle()
 
         assertEquals(View.VISIBLE, bar.findViewById<View>(R.id.speedText).visibility)
@@ -157,10 +167,11 @@ class StatusBarViewTest {
 
     @Test
     @Config(sdk = [Build.VERSION_CODES.P])
-    fun wifiBarsComeFromTheConnectionInfoOnAndroid9() {
+    fun wifiBarsUseTheFiveStepRatingOnAndroid9() {
+        // The shadow's static rating ignores the RSSI and returns this share of the scale:
+        // half of five steps is rating 2.
+        ShadowWifiManager.setSignalLevelInPercent(0.5f)
         val bar = attachedStatusBar()
-        val wifiInfo = ShadowWifiInfo.newInstance().also { shadowOf(it).setRssi(-50) }
-        shadowOf(app.getSystemService(WifiManager::class.java)).setConnectionInfo(wifiInfo)
 
         val connectivity = app.getSystemService(ConnectivityManager::class.java)
         shadowOf(connectivity).networkCallbacks.forEach {
@@ -168,7 +179,31 @@ class StatusBarViewTest {
         }
         shadowOf(Looper.getMainLooper()).idle()
 
-        assertEquals(4, bar.findViewById<ImageView>(R.id.wifiIcon).drawable.level)
+        assertEquals(2, bar.findViewById<ImageView>(R.id.wifiIcon).drawable.level)
+    }
+
+    @Test
+    fun cellularBarsNeedNoPermission() {
+        CellularStore(app).enabled = true
+        val bar = attachedStatusBar()
+        assertEquals(View.VISIBLE, bar.findViewById<View>(R.id.cellularIcon).visibility)
+    }
+
+    @Test
+    @Config(sdk = [Build.VERSION_CODES.P])
+    @Suppress("DEPRECATION") // getEventFlags reports the PhoneStateListener subscription.
+    fun cellularBarsSubscribeAndUnsubscribeOnAndroid9() {
+        CellularStore(app).enabled = true
+        val bar = attachedStatusBar()
+        val telephony = shadowOf(app.getSystemService(TelephonyManager::class.java))
+        assertEquals(View.VISIBLE, bar.findViewById<View>(R.id.cellularIcon).visibility)
+        assertEquals(PhoneStateListener.LISTEN_SIGNAL_STRENGTHS, telephony.eventFlags)
+
+        CellularStore(app).enabled = false
+        shadowOf(Looper.getMainLooper()).idle()
+
+        assertEquals(View.GONE, bar.findViewById<View>(R.id.cellularIcon).visibility)
+        assertEquals(PhoneStateListener.LISTEN_NONE, telephony.eventFlags)
     }
 
     private companion object {
