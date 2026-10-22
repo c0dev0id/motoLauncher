@@ -75,7 +75,7 @@ class AppListActivity : AppCompatActivity() {
     private val columns get() = if (isPortrait) 4 else 5
     private val defaultSettingsTint by lazy { ColorStateList.valueOf(ContextCompat.getColor(this, R.color.tile_default)) }
     private val activeSettingsTint by lazy { ColorStateList.valueOf(ContextCompat.getColor(this, R.color.tile_focused)) }
-    // Invalidated when isCheckingUpdate, cellular permission, or GPS permission state changes.
+    // Invalidated by every tile that changes state.
     private var settingsTilesCache: List<TileItem>? = null
     private var allApps: List<AppEntry> = emptyList()
 
@@ -255,11 +255,21 @@ class AppListActivity : AppCompatActivity() {
         ))
 
         if (packageManager.hasSystemFeature(android.content.pm.PackageManager.FEATURE_LOCATION_GPS)) {
-            tiles.add(permissionToggleTile(
+            // Off asks for the permission and gpsPermissionLauncher switches it on when
+            // granted; the system skips the dialog if it already is. On switches it off.
+            val gpsOn = speedStore.enabled
+            tiles.add(TileItem(
                 label = getString(R.string.gps_speed),
-                enabled = speedStore.enabled,
-                onDisable = { speedStore.enabled = false },
-                onEnable = { gpsPermissionLauncher.launch(Manifest.permission.ACCESS_FINE_LOCATION) },
+                subtitle = getString(if (gpsOn) R.string.setting_on else R.string.setting_off),
+                onClick = {
+                    if (gpsOn) {
+                        speedStore.enabled = false
+                        settingsTilesCache = null
+                        renderCurrentMode()
+                    } else {
+                        gpsPermissionLauncher.launch(Manifest.permission.ACCESS_FINE_LOCATION)
+                    }
+                },
             ))
             tiles.add(TileItem(
                 label = getString(R.string.units),
@@ -346,28 +356,6 @@ class AppListActivity : AppCompatActivity() {
             }),
         )
     }
-
-    // Tapping "Off" launches the permission request; if granted the launcher callback sets
-    // enabled=true and re-renders. If already granted the system skips the dialog.
-    // Tapping "On" disables directly without a permission check.
-    private fun permissionToggleTile(
-        label: String,
-        enabled: Boolean,
-        onDisable: () -> Unit,
-        onEnable: () -> Unit,
-    ): TileItem = TileItem(
-        label = label,
-        subtitle = getString(if (enabled) R.string.setting_on else R.string.setting_off),
-        onClick = {
-            if (enabled) {
-                onDisable()
-                settingsTilesCache = null
-                renderCurrentMode()
-            } else {
-                onEnable()
-            }
-        },
-    )
 
     private fun batteryDisplayTile(): TileItem {
         val subtitleRes = when (batteryStore.display) {
