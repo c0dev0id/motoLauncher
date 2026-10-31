@@ -360,7 +360,10 @@ Package layout under `de.codevoid.motolauncher`:
   a `LocationListenerCompat` (a plain `LocationListener` lambda throws
   `AbstractMethodError` below API 30), polls `GPS_PROVIDER` at 1 Hz, and is the one
   subscription that is paused while the window is hidden or the screen is off, because it
-  costs CPU the navigation app needs. **`refreshOnResume` is the one resume refresh**,
+  costs CPU the navigation app needs. `registerGps` checks window visibility and
+  `PowerManager.isInteractive` itself, so every path that starts GPS obeys that, the
+  settings toggle included. `onAttachedToWindow` only registers; the attach-time
+  `onWindowVisibilityChanged` does the first clock, battery and GPS work. **`refreshOnResume` is the one resume refresh**,
   reached from both
   edges — `ACTION_SCREEN_ON` on `screenReceiver`, and `onWindowVisibilityChanged(VISIBLE)`
   — so the two cannot drift apart. It re-reads the clock, which needs it because
@@ -467,9 +470,13 @@ republishes the `dev` pre-release. Three parallel jobs plus a follow-up release 
   release; a release without a press or a canceled one does not), `StatusBarViewTest`
   (`wifiIconLevel` across platform rating ranges, that
   `refreshOnResume` re-reads the clock and the battery when the bar returns to view but
-  touches neither when it leaves, that cellular bars need no permission, and, on SDK 28,
-  the GPS listener surviving a provider toggle, the five-step Wi-Fi rating and the
-  cellular subscription following its toggle), `ParkStoreTest`
+  touches neither when it leaves, the clock following a time zone change and the 12-hour
+  setting, GPS waiting for the bar to be seen when switched on while hidden, detaching
+  releasing every subscription, that cellular bars need no permission, Wi-Fi bars on SDK
+  29, and, on SDK 28, the GPS listener surviving a provider toggle, the five-step Wi-Fi
+  rating and the cellular subscription following its toggle; it sets
+  `robolectric.areWindowsMarkedVisible`, without which Robolectric reports every window as
+  gone and the bar never starts), `ParkStoreTest`
   (PIN round-trips against real `SharedPreferences`, the parked flag read back through a
   second instance — the path a reboot takes — that the PIN is never written in the
   clear, and that the store's file is the one both backup rule files exclude),

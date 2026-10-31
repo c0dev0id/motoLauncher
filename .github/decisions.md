@@ -381,6 +381,14 @@ Speed polls `GPS_PROVIDER` at 1 Hz, which costs CPU the navigation app needs. It
 one subscription stopped while the window is hidden or the screen is off. The other
 callbacks are event-driven and cheap enough to leave running.
 
+`registerGps` checks the condition itself (window visible, `PowerManager.isInteractive`),
+so every path that starts GPS obeys it: the window becoming visible, the screen coming
+on and the settings toggle. The toggle used to start GPS unchecked, and switching speed
+on in the app list and going straight on to the navigation app left 1 Hz GPS running
+behind it until the screen went off. Attaching starts nothing itself: `View` sends
+`onWindowVisibilityChanged` right after `onAttachedToWindow` unless the window is gone,
+and that call refreshes the clock and battery and starts GPS.
+
 ### Clock and battery are re-read on resume
 `ACTION_TIME_TICK` stops while the screen is off, so a device picked up after a night
 showed the minute it went dark until the next tick. `refreshOnResume` is called from

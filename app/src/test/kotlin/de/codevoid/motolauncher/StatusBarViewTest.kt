@@ -7,6 +7,7 @@ import android.content.Intent
 import android.content.pm.PackageManager
 import android.location.LocationManager
 import android.net.ConnectivityManager
+import android.net.wifi.WifiManager
 import android.os.BatteryManager
 import android.os.Build
 import android.os.Looper
@@ -22,6 +23,7 @@ import de.codevoid.motolauncher.ui.StatusBarView
 import org.junit.After
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
+import org.junit.Before
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.Robolectric
@@ -33,6 +35,7 @@ import org.robolectric.shadows.ShadowNetworkCapabilities
 import org.robolectric.shadows.ShadowSettings
 import org.robolectric.shadows.ShadowWifiManager
 import java.text.SimpleDateFormat
+import java.time.Duration
 import java.util.Date
 import java.util.Locale
 import java.util.TimeZone
@@ -59,12 +62,37 @@ class StatusBarViewTest {
 
     private val defaultZone: TimeZone = TimeZone.getDefault()
 
+    // Without it Robolectric reports every window as gone, and the bar starts the clock,
+    // the battery and GPS from the window becoming visible.
+    @Before
+    fun markWindowsVisible() {
+        System.setProperty(WINDOWS_VISIBLE, "true")
+    }
+
+    @After
+    fun clearWindowsVisible() {
+        System.clearProperty(WINDOWS_VISIBLE)
+    }
+
     // ShadowWifiManager keeps the legacy rating in a static that it never resets.
     @After
     fun resetLegacyWifiRating() = ShadowWifiManager.setSignalLevelInPercent(1f)
 
     @After
     fun restoreTimeZone() = TimeZone.setDefault(defaultZone)
+
+    private fun settle() = shadowOf(Looper.getMainLooper()).idleFor(Duration.ofSeconds(1))
+
+    private fun allowGps() {
+        shadowOf(app.packageManager).setSystemFeature(PackageManager.FEATURE_LOCATION_GPS, true)
+        shadowOf(app).grantPermissions(Manifest.permission.ACCESS_FINE_LOCATION)
+    }
+
+    private fun gpsListeners() =
+        shadowOf(app.getSystemService(LocationManager::class.java)).locationUpdateListeners
+
+    private fun wifiCallbacks() =
+        shadowOf(app.getSystemService(ConnectivityManager::class.java)).networkCallbacks
 
     /** The clock as it reads now in [zone]. */
     private fun clock(pattern: String, zone: String): String =
@@ -250,6 +278,50 @@ class StatusBarViewTest {
         assertEquals(2, bar.wifiIcon().drawable.level)
     }
 
+    // The rider switches speed on in the app list's settings, where Home is hidden, and may
+    // go straight on to the navigation app. GPS must wait for Home to be seen again.
+    @Test
+    fun gpsWaitsForTheBarToBeSeen() {
+        allowGps()
+        val activity = Robolectric.buildActivity(Activity::class.java).setup().get()
+        activity.setContentView(statusBar())
+        activity.window.decorView.visibility = View.INVISIBLE // what stopping an activity does
+        settle()
+
+        SpeedStore(app).enabled = true
+        settle()
+        assertTrue(gpsListeners().isEmpty())
+
+        activity.window.decorView.visibility = View.VISIBLE
+        settle()
+        assertEquals(1, gpsListeners().size)
+    }
+
+    @Test
+    fun detachingReleasesEverySubscription() {
+        allowGps()
+        SpeedStore(app).enabled = true
+        val activity = Robolectric.buildActivity(Activity::class.java).setup().get()
+        activity.setContentView(statusBar())
+        settle()
+        assertEquals(1, gpsListeners().size)
+        assertEquals(1, wifiCallbacks().size)
+
+        activity.setContentView(View(activity))
+        settle()
+
+        assertTrue(gpsListeners().isEmpty())
+        assertTrue(wifiCallbacks().isEmpty())
+        listOf(
+            Intent.ACTION_TIME_TICK,
+            Intent.ACTION_SCREEN_ON,
+            Intent.ACTION_BATTERY_CHANGED,
+            WifiManager.WIFI_STATE_CHANGED_ACTION,
+        ).forEach { action ->
+            assertTrue(action, shadowOf(app).getReceiversForIntent(Intent(action)).isEmpty())
+        }
+    }
+
     @Test
     fun cellularBarsNeedNoPermission() {
         CellularStore(app).enabled = true
@@ -277,6 +349,7 @@ class StatusBarViewTest {
     private companion object {
         /** Cannot match [HH_MM] or a percentage: the assertion has to prove a real read. */
         const val STALE = "--:--"
+        const val WINDOWS_VISIBLE = "robolectric.areWindowsMarkedVisible"
         val HH_MM = Regex("\\d{1,2}:\\d{2}")
     }
 }
