@@ -291,9 +291,9 @@ Package layout under `de.codevoid.motolauncher`:
   (not by Home). Callers compose a `List<TileItem>` (label, optional subtitle, optional
   icon, `dimmed`, and a `key` that defaults to the label; app tiles use their
   `ComponentKey`); the adapter stays dumb, calls `blockKeyLongPress()` once per view
-  holder, and resets icon/subtitle visibility, `isLongClickable` and focusability (from
-  `submit(items, touchOnly)`) on every bind because recycled holders carry the previous
-  item's state. It has stable IDs, one per key, so the remote's focus survives a
+  holder, and resets icon/subtitle visibility, the dimmed icon alpha and label colour,
+  `isLongClickable` and focusability (from `submit(items, touchOnly)`) on every bind
+  because recycled holders carry the previous item's state. It has stable IDs, one per key, so the remote's focus survives a
   `submit` of the same tiles.
 - `ui/UpdateFlow.kt` — `UpdateViewModel`, the whole check / download flow in
   `viewModelScope`, so a recreate keeps it. `state` is a `StateFlow<UpdateState>` (`Idle`,
@@ -429,9 +429,12 @@ Package layout under `de.codevoid.motolauncher`:
   (`parent=""`) are the two shapes in use: an explicit parent, or an empty one.
 - Every size is a `@dimen` with a phone default and a `sw600dp` override; add new sizes
   to both files.
-- Text holds 4.5:1 on every fill it is drawn on, in both themes, and the focus ring 3:1.
-  `ColorContrastTest` lists the pairs; a new text colour or fill adds its pairs there.
-  `signal_track` is the one deliberate exception: unlit bars recede.
+- Text holds 4.5:1 on every fill it is drawn on, in both themes, and marks that carry
+  meaning (the focus ring, the charging bolt in `battery_bolt`) 3:1. `ColorContrastTest`
+  lists the pairs; a new text colour, mark or fill adds its pairs there. `signal_track`
+  is the one deliberate exception: unlit bars recede. Never fade a whole tile with
+  `alpha`: a dimmed (hidden) app fades its icon and uses `on_surface_muted` for the
+  label, so the label and the focus ring keep their contrast.
 - The unlit bars of the signal meters use `signal_track`, not `on_surface_muted` — that
   token is secondary *text* and is far too close to `on_surface` to separate a lit bar
   from an unlit one. Keep the two roles apart.
@@ -507,7 +510,8 @@ release step:
   the body of `PRIVACY.md`, read from the module's parent directory), `AppTileAdapterTest`
   (subtitles shown as given and hidden when absent on a recycled holder; a touch-only
   submit leaves a recycled holder unfocusable and the next browse submit restores it; out
-  of touch mode, focus stays on the same tile when the list is submitted again),
+  of touch mode, focus stays on the same tile when the list is submitted again; a dimmed
+  tile fades only its icon and mutes its label),
   `HomeGridTest` (a real `HomeActivity`: empty "+" tiles cannot take focus while All Apps
   can, a reused tile follows its slot's content across resumes, and a package event while
   Home is in front rebinds the grid without a resume),
@@ -546,8 +550,8 @@ release step:
   `SLOT_COUNT` filling every grid), `OptionsDialogTest` (rows
   in caller order, one index reported per pick, dismissal, that only the selected row
   is marked selected and drawn differently, and that no row is focusable) and `ColorContrastTest` (every text colour on
-  every fill it is drawn on at 4.5:1 and the focus ring at 3:1, in both themes, read
-  through an explicit `uiMode`).
+  every fill it is drawn on at 4.5:1 and the focus ring and the charging bolt at 3:1, in
+  both themes, read through an explicit `uiMode`).
   Write new behaviour so it lands in that surface — a pure function, a store, or
   something a Robolectric activity can reach. No device is ever available to check it.
   The job caches `~/.m2/repository/org/robolectric` separately: Robolectric fetches its
