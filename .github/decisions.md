@@ -232,13 +232,18 @@ update-check state and the download subtitle, so the theme toggle's `recreate()`
 returns to settings mode. A short Escape leaves settings mode before it leaves the
 screen.
 
-### Download progress finds the update tile by its label
-Progress patches one tile in place instead of re-rendering the list on every callback.
-The tile used to be addressed as position 2 of the settings list, but the adapter does
-not always show that list: a search filter shortens it, which crashed on the first
-progress tick or overwrote another tile, and leaving settings mode during a download put
-the update tile over an app. The tile is now matched by its label in the settings cache
-and, only while settings mode shows, in the adapter. Tile order carries no meaning.
+### Settings tiles are rebuilt on every render
+`SettingsTiles` builds the list from the stores each time it is shown, and every change
+of a setting ends in one re-render callback. The list used to be cached, and ten tiles
+each had to invalidate the cache before re-rendering; a missed invalidation showed a
+stale value. The expensive part of the old rebuild was resolving the navigation app's
+label with an icon decode on the main thread; the label now comes from the loaded app
+list, so a rebuild is a dozen `TileItem`s and a keyguard query.
+
+Download progress re-renders like any other change. It used to patch the update tile in
+place, found by position and then by label, because a search filter or leaving settings
+mode changed what the adapter held; a full render reads the current mode and filter by
+construction. Stable IDs keep the remote's focus through it.
 
 ### Hidden apps are stored per package
 `HiddenAppsStore` keeps a `Set<String>` of package names, read once per render.

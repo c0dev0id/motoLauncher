@@ -2,6 +2,7 @@ package de.codevoid.motolauncher
 
 import android.app.Activity
 import android.os.Looper
+import android.view.View
 import android.widget.FrameLayout
 import androidx.recyclerview.widget.GridLayoutManager
 import androidx.recyclerview.widget.RecyclerView
@@ -38,15 +39,20 @@ class AppTileAdapterTest {
     }
 
     @Test
-    fun updatesOnlyTheMatchingItem() {
-        adapter.updateItem({ it.label == "Check for updates" }) { it.copy(subtitle = "45%") }
-        assertEquals(listOf("Dark", "45%"), shownSubtitles())
+    fun showsEachTilesSubtitle() {
+        assertEquals(listOf("Dark", "1.0.0"), shownSubtitles())
     }
 
+    // A recycled holder must not keep the previous tile's subtitle line.
     @Test
-    fun leavesTheListAloneWhenNothingMatches() {
-        adapter.updateItem({ it.label == "Navigation bar" }) { it.copy(subtitle = "x") }
-        assertEquals(listOf("Dark", "1.0.0"), shownSubtitles())
+    fun aTileWithoutASubtitleHidesTheLine() {
+        val holder = adapter.createViewHolder(FrameLayout(ApplicationProvider.getApplicationContext()), 0)
+        adapter.bindViewHolder(holder, 0)
+
+        adapter.submit(listOf(TileItem("Maps")))
+        adapter.bindViewHolder(holder, 0)
+
+        assertEquals(View.GONE, holder.binding.appSubtitle.visibility)
     }
 
     // Holders are shared between touch-only and browse tiles, so every bind sets it.

@@ -65,7 +65,7 @@ flowchart TB
     end
     subgraph widgets["UI components"]
         direction LR
-        statusbar["StatusBarView"] ~~~ adapter["AppTileAdapter<br/>TileItem"] ~~~ dialogs["TileActionsDialog<br/>OptionsDialog<br/>LinkDialog"] ~~~ updateflow["UpdateFlow"]
+        statusbar["StatusBarView"] ~~~ settings["SettingsTiles"] ~~~ adapter["AppTileAdapter<br/>TileItem"] ~~~ dialogs["TileActionsDialog<br/>OptionsDialog<br/>LinkDialog"] ~~~ updateflow["UpdateFlow"]
     end
     subgraph input["Input and window"]
         direction LR

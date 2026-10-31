@@ -162,37 +162,41 @@ Package layout under `de.codevoid.motolauncher`:
   `touchOnly` and cannot take focus, so the remote skips it (and the tile-0 seed misses
   when slot 0 is empty; the first remote key then lands on the first focusable tile).
 - `AppListActivity` — `RecyclerView` + `GridLayoutManager`, whose span count is
-  `TileSize.listColumns` and is set in place when Tile size changes; focus is seeded on
-  the first cell once the first load resolves. Only browse tiles can take focus: settings
-  mode and both pick modes submit their tiles `touchOnly`. Three modes, decided by intent extras: **browse**
-  (tap launches, long-press opens the tile menu), **slot pick**
-  (`pickIntent(context, slot)`: a leading "None" tile clears the slot, an "Add link" tile
-  opens `showLinkDialog` pre-filled from the slot's current link, any app tile is written
-  to that `FavoritesStore` slot), and **nav-app pick** (`navAppPickerIntent`: writes
-  `NavAppStore`). Pick modes finish on selection; callers rebuild in `onResume`, so there is
-  no result contract. `AppListViewModel.apps` is a `StateFlow` of the app list, reloaded
-  through `getApps()` on every package generation and shared while the activity is
-  started; the activity re-renders when a new list instance arrives and on every
-  `onResume`. Filtering runs
-  `AppRepository.filterApps` on every keystroke, then drops packages in `HiddenAppsStore`
-  unless `showHidden` is on (hidden apps then render dimmed). `AppListViewModel` (same
-  file) carries `isSettingsMode`, `isCheckingUpdate` and `downloadProgressSubtitle` so the
-  theme toggle's `recreate()` restores them. The header `TouchOnlyRow` holds the back
-  button, the search box and a single `settingsButton` (hidden in pick mode) that toggles
-  settings mode; `renderCurrentMode()` then swaps the RecyclerView between the app grid
-  and text-only settings tiles (theme, nav app, update check with live download progress
-  in the github flavor, park lock when `ParkLockRules.shouldOfferParkLock` allows it,
-  cellular toggle, GPS speed toggle + units when the device has `FEATURE_LOCATION_GPS`,
-  battery display, hidden apps, orientation, tile size, nav bar, privacy policy).
-  Orientation and Tile size open `showOptionsDialog`. The settings list
-  is cached in `settingsTilesCache`; every tile that changes state sets it to `null` before
-  re-rendering. Download progress patches the update tile in place, found by its label:
-  in `settingsTilesCache`, and on screen only while settings mode shows, because the
-  adapter may hold a search-filtered list or the app grid. The GPS toggle asks for fine and
-  coarse location together through `RequestMultiplePermissions()`; the store flips to
-  enabled only when fine location is granted, and the tile reads On only while both the
-  setting and the permission hold. A short Escape exits settings mode before finishing. Activity
-  transitions are disabled (`noTransition()`) in both directions.
+  `TileSize.listColumns` and is synced on every render; focus is seeded on the first cell
+  once the first list arrives. Only browse tiles can take focus: settings mode and both
+  pick modes submit their tiles `touchOnly`. Three modes, the sealed `Mode` parsed once
+  from the intent extras: **`Browse`** (tap launches, long-press opens the tile menu),
+  **`PickSlot(slot)`** (`pickIntent(context, slot)`: a leading "None" tile clears the slot,
+  an "Add link" tile opens `showLinkDialog` pre-filled from the slot's current link, any
+  app tile is written to that `FavoritesStore` slot), and **`PickNavApp`**
+  (`navAppPickerIntent`: writes `NavAppStore`). Pick modes finish on selection; callers
+  rebuild in `onResume`, so there is no result contract. `AppListViewModel.apps` is a
+  `StateFlow` of the app list, reloaded through `getApps()` on every package generation
+  and shared while the activity is started; the activity re-renders when a new list
+  instance arrives and on every `onResume`. `renderCurrentMode()` is the one render path:
+  it trims the search text once, then shows either the settings tiles filtered by label or
+  the pick tiles followed by `appTiles(...)` — a pure top-level function that drops
+  packages in `HiddenAppsStore` unless `showHidden` is on (hidden apps then render dimmed)
+  and keys each tile by its `ComponentKey` — over `AppRepository.filterApps`.
+  `AppListViewModel` (same file) carries `isSettingsMode`, `isCheckingUpdate` and
+  `downloadProgressSubtitle` so the theme toggle's `recreate()` restores them. The header
+  `TouchOnlyRow` holds the back button, the search box and a single `settingsButton`
+  (hidden in pick mode) that toggles settings mode. A short Escape exits settings mode
+  before finishing. Activity transitions are disabled (`noTransition()`) in both
+  directions.
+- `SettingsTiles` — the settings mode: builds its tiles on every render (theme, nav app,
+  update check with live download progress in the github flavor, park lock when
+  `ParkLockRules.shouldOfferParkLock` allows it, cellular toggle, GPS speed toggle + units
+  when the device has `FEATURE_LOCATION_GPS`, battery display, hidden apps, orientation,
+  tile size, nav bar, privacy policy) and owns their stores, the option tables and the
+  location permission request. Every change of a setting ends in one `onChanged()`, the
+  activity's `renderCurrentMode`; there is no cached list to invalidate. The nav app's
+  label comes from the loaded app list, falling back to the package name. Download
+  progress re-renders like any other change. It is created in `onCreate` because it
+  registers the permission request. Orientation and Tile size open `showOptionsDialog`.
+  The GPS toggle asks for fine and coarse location together through
+  `RequestMultiplePermissions()`; the store flips to enabled only when fine location is
+  granted, and the tile reads On only while both the setting and the permission hold.
 - `ParkActivity` — the park lock: a PIN keypad for short unattended stops, in **its own
   task** (`singleInstance` + `taskAffinity`), which is load-bearing — `HomeActivity` is
   `singleTask` and the root of the home task, so a Home press clears anything stacked above
@@ -287,9 +291,7 @@ Package layout under `de.codevoid.motolauncher`:
   holder, and resets icon/subtitle visibility, `isLongClickable` and focusability (from
   `submit(items, touchOnly)`) on every bind because recycled holders carry the previous
   item's state. It has stable IDs, one per key, so the remote's focus survives a
-  `submit` of the same tiles. `updateItem` replaces the first item
-  matching a predicate, and does nothing when none matches, for the download-progress
-  subtitle.
+  `submit` of the same tiles.
 - `ui/UpdateFlow.kt` — `AppCompatActivity.runUpdateFlow(setClickable, setSubtitle)`: the
   whole check / prompt / download / error flow; outcomes as `AlertDialog`s, progress
   (`"45% · 2.2 MB/s"`, throttled to 500 ms) through `setSubtitle`. The percentage is
@@ -478,7 +480,7 @@ republishes the `dev` pre-release. Three parallel jobs plus a follow-up release 
   `deleteInstalledUpdate` over JSON fixtures and temp files), `ImmersiveTest` (content
   padding follows dispatched bar and cutout insets), `PrivacyPolicyTest` (the in-app text is
   the body of `PRIVACY.md`, read from the module's parent directory), `AppTileAdapterTest`
-  (`updateItem` patches only the matching tile and ignores a missing one; a touch-only
+  (subtitles shown as given and hidden when absent on a recycled holder; a touch-only
   submit leaves a recycled holder unfocusable and the next browse submit restores it; out
   of touch mode, focus stays on the same tile when the list is submitted again),
   `HomeGridTest` (a real `HomeActivity`: empty "+" tiles cannot take focus while All Apps
