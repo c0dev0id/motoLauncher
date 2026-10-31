@@ -570,11 +570,16 @@ assumed to behave like 16.
 ## Updates
 
 ### Releases and the `dev` pre-release are two channels
-A release build (`1.0.x`) queries the latest release; a dev build (`dev-<sha>`) queries
-the `dev` pre-release. The installed version name picks the channel, so there is no
-setting. GitHub's latest release never resolves to a pre-release. CI deletes and
-recreates `dev` on every push to `main`, so that channel is one stable URL and "keep only
-the latest" needs no cleanup. The version comes from the APK filename
+A release build (a plain version such as `1.0.3`) queries the latest release; a dev
+build (`dev-<sha>`) queries the `dev` pre-release. The installed version name picks the
+channel, so there is no setting. GitHub's latest release never resolves to a
+pre-release. CI updates `dev` in place on every push to `main`: the tag moves to the
+built commit, the new APK is uploaded, then the old one is deleted. That channel is one
+stable URL and "keep only the latest" needs no cleanup. CI used to delete and recreate
+the release, which gave the updater a 404 in between, and because `gh release delete`
+ran without `--cleanup-tag` the tag stayed on the first commit ever built. For the
+seconds between upload and delete both APKs are attached, and the updater may still be
+offered the older one. The version comes from the APK filename
 (`motoLauncher-<versionName>.apk`). Any published build that differs from the installed
 one counts as an update. The check is user-triggered only: the device is mostly
 offline.
@@ -638,12 +643,22 @@ installed dev builds stayed upgradable.
 
 ### Releases are cut by hand
 `Release` runs from `main` on demand and takes the next patch after the newest `v*` tag,
-starting at 1.0.0. It builds both artifacts before pushing anything, then pushes the
-release commit and tag in one atomic push, so a failed build or a `main` that moved
-meanwhile leaves no tag behind. Re-running after a later step failed stops at the empty
-`[Unreleased]` section instead of publishing an empty release; the Play bundle is kept
-as an artifact for a manual upload. The release commit is pushed with `GITHUB_TOKEN`,
-which triggers no workflow, so `Build` does not republish `dev` for it.
+starting at 1.0.0. Its `build` job has read access only and no Play secret: it commits
+and tags locally, builds both artifacts, and keeps them with both mapping files, the
+notes and the release commit (as a git bundle) in an artifact before anything is pushed.
+Its `publish` job has write access, runs no Gradle, and pushes the release commit and
+tag in one atomic push, so a failed build or a `main` that moved meanwhile leaves no tag
+behind. The split exists because the single job used to hold `contents: write` and the
+Play service account JSON in its environment, readable by every step including the
+Gradle build and the actions it loads.
+
+Re-running only the failed jobs repeats `publish` with the same artifact: the push and
+the GitHub release are skipped when they already exist, so a failed Play upload can be
+retried alone. A new run after a release was pushed stops at the empty `[Unreleased]`
+section instead of publishing an empty release, and the check counts entries, so a
+section with only headings stops it too. The Play bundle in the artifact also serves a
+manual upload. The release commit is pushed with `GITHUB_TOKEN`, which triggers no
+workflow, so `Build` does not republish `dev` for it.
 
 ### Release notes come from the changelog
 The `[Unreleased]` section becomes the version's section, the GitHub release text and
@@ -653,7 +668,8 @@ release. The first entry that does not fit ends the list, so the notes never ski
 
 ### The Play upload needs a published app and a secret
 The Play Developer API cannot create an app, so the first bundle is uploaded by hand from
-the workflow artifact. The upload step runs only when `PLAY_SERVICE_ACCOUNT_JSON` is set.
+the workflow artifact. The upload step runs only when `PLAY_SERVICE_ACCOUNT_JSON` is set;
+the job sees only a `HAS_PLAY` flag, and the secret itself is passed to that one step.
 Until the app has had a release published from the Console, the API accepts only `draft`
 releases, hence the status input.
 
@@ -667,7 +683,8 @@ its body.
 
 ### Three workflows
 `Check` runs on every push to a branch other than `main`. `Build` runs on push to `main`
-and republishes the `dev` pre-release. `Release` runs on demand and is the only producer
+and republishes the `dev` pre-release; a newer push cancels an older run, which could
+otherwise finish last and publish the older build. `Release` runs on demand and is the only producer
 of a versioned release. For a long time `Build` was the whole pipeline, so a branch got
 no signal before merge on a project that cannot be built locally.
 
@@ -693,7 +710,27 @@ a PR therefore triggers nothing, and PRs from forks go unchecked.
 
 ### The debug build installs beside the release build
 The debug variant has a `.debug` application ID suffix and its own app name, so a branch
-can be tested on the device without replacing the launcher in daily use.
+can be tested on the device without replacing the launcher in daily use. It is signed
+with `app/debug.keystore`, committed on purpose: each CI runner used to generate its own
+debug key, so a branch APK could not install over one from an earlier run. The key signs
+only the `.debug` ID. The debug build type sets `SELF_UPDATE` to false, because the dev
+channel serves the release-ID build, which would install as a second launcher instead of
+an update.
+
+### Release builds in CI must be signed
+Without the signing variables Gradle builds the release unsigned, which is right for a
+local build and wrong for CI, where it showed only at install. `Build` and `Release`
+pass `-PrequireSigning`, and Gradle then stops when a `SIGNING_*` variable is empty. The
+keystore secret reaches its decode step through `env`, not expanded into the script.
+
+### Actions run on Node 24; third-party ones are pinned
+All actions are on their Node 24 majors. `actions/*` are referenced by major tag. The
+third-party ones are pinned to a commit, with the version as a comment, because a moved
+tag would run new code with the job's permissions: `setup-gradle` injects itself into the
+Gradle run that sees the signing secrets, and `upload-google-play` gets the Play secret.
+`setup-gradle` from v6 defaults to a commercial caching service; `cache-provider: basic`
+keeps the open-source cache v4 used. The release steps use `gh` instead of a third-party
+release action.
 
 ### Robolectric's SDK jar is cached separately
 Robolectric downloads its ~100 MB `android-all` jar at test runtime into `~/.m2`,

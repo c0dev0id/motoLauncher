@@ -73,12 +73,15 @@ JVM unit tests in `app/src/test/kotlin`, with Android resources included.
 
 ## CI/CD
 
-GitHub Actions on `ubuntu-latest` with `gradle/actions/setup-gradle@v4`.
+GitHub Actions on `ubuntu-latest`, Node 24 actions: `actions/checkout@v7`,
+`actions/setup-java@v6`, `actions/cache@v6`, `actions/upload-artifact@v7`,
+`actions/download-artifact@v8`, `gradle/actions/setup-gradle` v6.4.1 and
+`r0adkll/upload-google-play` v1.1.5 (both pinned to a commit), and the `gh` CLI.
 
 | Workflow | Trigger | Runs | Produces |
 |---|---|---|---|
 | `Check` | push to any branch except `main`, manual | release script tests; lint and unit tests for `githubDebug`; `assemble` for `githubDebug` and `playDebug` | `app-debug` artifact |
 | `Build` | push to `main` | `lintGithubRelease`, `lintPlayRelease`, unit tests, signed `assembleGithubRelease` | `dev` pre-release |
-| `Release` | manual, from `main` | signed `assembleGithubRelease` and `bundlePlayRelease` | `v1.0.x` tag and GitHub release; Play upload (`r0adkll/upload-google-play`) |
+| `Release` | manual, from `main` | `build`: signed `assembleGithubRelease` and `bundlePlayRelease`; `publish`: push, GitHub release, Play upload | `release-<version>` artifact, `v<version>` tag and GitHub release, Play upload |
 
 The project is not built locally.

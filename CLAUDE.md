@@ -455,10 +455,12 @@ Three workflows. **`Check`** (`.github/workflows/check.yml`) is the pre-merge ga
 push to a branch other than `main`, plus `workflow_dispatch`. It is a
 single job: the release script's unit tests, then one Gradle invocation (see *Commands*)
 that lints and tests `githubDebug` — both flavors share every source and test — and
-assembles the debug variant of both flavors, sharing compilation and one daemon start-up. The debug builds are unminified, unshrunk and debug-signed, and are
+assembles the debug variant of both flavors, sharing compilation and one daemon start-up. The debug builds are unminified, unshrunk and signed with the committed
+`app/debug.keystore`, so APKs from different runs install over each other, and are
 uploaded as the `app-debug` artifact — with a `.debug` `applicationIdSuffix`, so they
 install alongside the release build and a branch can be tested on the device without
-disturbing the launcher in daily use. `--continue` means one run reports lint, test and compile failures together.
+disturbing the launcher in daily use. The debug build type sets `SELF_UPDATE` to
+false: the dev channel serves the release-ID build, which would install beside it. `--continue` means one run reports lint, test and compile failures together.
 There is deliberately **no `pull_request` trigger**: a check run attaches to the head
 commit, so the push run's result already shows on a PR, and the event only added a second
 run when a PR was opened onto an already-built branch. The consequence is that opening a
@@ -467,7 +469,9 @@ requests from forks would go unchecked. The concurrency group (`check-<ref_name>
 `cancel-in-progress`) now only supersedes an older run when you push twice quickly.
 
 **`Build`** (`.github/workflows/build.yml`) runs **only on push to `main`** and
-republishes the `dev` pre-release. Three parallel jobs plus a follow-up release step:
+republishes the `dev` pre-release; a newer push cancels an older run (concurrency group
+`build`), so an older run never publishes last. Three parallel jobs plus a follow-up
+release step:
 
 - `./gradlew lintGithubRelease lintPlayRelease` — the variants that ship; plain `lint`
   covers only the default debug variant, which `Check` already lints.
@@ -552,24 +556,37 @@ republishes the `dev` pre-release. Three parallel jobs plus a follow-up release 
   edit to that file costs one re-download. A test that adds a new SDK through `@Config`
   must come with an edit to that file: an unchanged key never saves the new jar, and every
   run downloads it again.
-- `./gradlew assembleGithubRelease -PappVersionName=dev-<sha>
+- `./gradlew assembleGithubRelease -PrequireSigning -PappVersionName=dev-<sha>
   -PappVersionCode=<commit count>` — minified + shrunk, signed via the `SIGNING_KEYSTORE_*` / `SIGNING_KEY_*` env vars
-  (already configured on the repo; do not add or commit signing material). Without
-  those properties the version is `dev-local` / `1`. The checkout is full-depth because
+  (already configured on the repo; do not add or commit release signing material;
+  `app/debug.keystore` is debug-only and committed on purpose). `-PrequireSigning` makes
+  Gradle fail when one of them is empty instead of building unsigned. Without the version
+  properties the version is `dev-local` / `1`. The checkout is full-depth because
   the versionCode is `git rev-list --count HEAD`, shared with `Release`.
-- `draft-release` deletes and recreates the `dev` pre-release with the fresh APK, so
-  the update endpoint stays a single stable URL and "keep only the latest" needs no
-  cleanup.
+- `dev-release` updates the `dev` pre-release in place with `gh`: it moves the `dev`
+  tag to the built commit, uploads the new APK, then deletes the other assets. The update
+  endpoint stays one stable URL that never answers 404, and "keep only the latest" needs
+  no cleanup.
 
-**`Release`** (`.github/workflows/release.yml`) is manual, from `main` only. It picks the
-next `1.0.x` after the newest `v*` tag (1.0.0 first), runs `.github/scripts/changelog.py
-release` to move `[Unreleased]` under that version, commits, builds the github APK and
-the play bundle, and only then pushes commit and tag atomically. It publishes the APK as
-the GitHub release `v1.0.x` with the changelog section as text, keeps the bundle and
-mapping as an artifact, and — when the `PLAY_SERVICE_ACCOUNT_JSON` secret exists —
-uploads the bundle to the chosen Play track with `changelog.py play-notes` as "What's
-new" (plain text, whole entries within 500 characters, plus the release link). So
-`[Unreleased]` must hold the release's entries before it runs, or it refuses.
+**`Release`** (`.github/workflows/release.yml`) is manual, from `main` only, and has two
+jobs. `build` (read-only, holds the signing secrets) picks the next patch version after
+the newest `v*` tag (1.0.0 first), runs `.github/scripts/changelog.py release` to move
+`[Unreleased]` under that version, commits and tags locally, builds the github APK and
+the play bundle, and keeps the APK, the bundle, both mapping files, the notes and the
+release commit as a git bundle in the `release-<version>` artifact. `publish` (contents
+write, no Gradle) pushes commit and tag atomically, creates the GitHub release
+`v<version>` with `gh` and the changelog section as text, and — when the
+`PLAY_SERVICE_ACCOUNT_JSON` secret exists (job-level `HAS_PLAY`; the secret itself
+reaches only the upload step) — uploads the bundle to the chosen Play track with
+`changelog.py play-notes` as "What's new" (plain text, whole entries within 500
+characters, plus the release link). Push and release creation are skipped when already
+done, so `publish` can be re-run alone. `[Unreleased]` must hold at least one entry
+before it runs, or it refuses.
+
+The actions run on their Node 24 majors. `actions/*` are referenced by major tag; the
+third-party `gradle/actions/setup-gradle` and `r0adkll/upload-google-play` are pinned to
+a commit SHA with the version as a comment. `setup-gradle` runs with
+`cache-provider: basic`, the open-source cache, not its default commercial one.
 
 No workflow can be run locally, and a green `Check` is the first real signal a branch
 gets — it does not cover the release builds, so a minification or shrinking failure

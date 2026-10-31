@@ -1,2 +1,2 @@
-# Keep line numbers for readable stack traces in nightly builds.
+# Keeps line numbers in stack traces, which the mapping file translates back.
 -keepattributes SourceFile,LineNumberTable
