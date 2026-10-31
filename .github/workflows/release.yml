@@ -1,8 +1,9 @@
 name: Release
 
-# Cuts the next 1.0.x from main: moves the [Unreleased] changelog entries under the new
-# version, tags it, publishes the github APK as a GitHub release and uploads the play
-# bundle to Google Play.
+# Cuts the next patch version from main: moves the [Unreleased] changelog entries under
+# the new version, tags it, publishes the github APK as a GitHub release and uploads the
+# play bundle to Google Play. The build job holds the signing secrets and read access;
+# the publish job holds write access and the Play secret, and runs no Gradle.
 on:
   workflow_dispatch:
     inputs:
@@ -21,19 +22,20 @@ concurrency:
   group: release
 
 jobs:
-  release:
+  build:
     if: github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
     timeout-minutes: 30
     permissions:
-      contents: write
-    env:
-      PLAY_SERVICE_ACCOUNT_JSON: ${{ secrets.PLAY_SERVICE_ACCOUNT_JSON }}
+      contents: read
+    outputs:
+      version: ${{ steps.version.outputs.version }}
 
     steps:
       - uses: actions/checkout@v4
         with:
           fetch-depth: 0
+          persist-credentials: false
 
       - uses: actions/setup-java@v4
         with:
@@ -43,6 +45,7 @@ jobs:
       - uses: gradle/actions/setup-gradle@v4
 
       - name: Choose the version
+        id: version
         run: |
           last=$(git tag --list 'v[0-9]*.[0-9]*.[0-9]*' --sort=-v:refname | head -n1)
           if [ -z "$last" ]; then
@@ -51,19 +54,23 @@ jobs:
             IFS=. read -r major minor patch <<< "${last#v}"
             version="$major.$minor.$((patch + 1))"
           fi
+          echo "version=$version" >> "$GITHUB_OUTPUT"
           echo "VERSION=$version" >> "$GITHUB_ENV"
 
+      # The release commit and tag travel to the publish job as a git bundle.
       - name: Write the release notes and commit the changelog
         run: |
-          python3 .github/scripts/changelog.py release "$VERSION" "$(date -u +%F)" > "$RUNNER_TEMP/notes.md"
-          mkdir "$RUNNER_TEMP/whatsnew"
+          out="$RUNNER_TEMP/release"
+          mkdir -p "$out/whatsnew"
+          python3 .github/scripts/changelog.py release "$VERSION" "$(date -u +%F)" > "$out/notes.md"
           python3 .github/scripts/changelog.py play-notes \
             "https://github.com/${GITHUB_REPOSITORY}/releases/tag/v$VERSION" \
-            < "$RUNNER_TEMP/notes.md" > "$RUNNER_TEMP/whatsnew/whatsnew-en-US"
+            < "$out/notes.md" > "$out/whatsnew/whatsnew-en-US"
           git config user.name c0dev0id
           git config user.email sh+git@codevoid.de
           git commit -qam "Release $VERSION"
           git tag "v$VERSION"
+          git bundle create "$out/release.bundle" "refs/tags/v$VERSION" "^$GITHUB_SHA"
 
       - name: Decode signing keystore
         run: |
@@ -79,39 +86,74 @@ jobs:
           ./gradlew assembleGithubRelease bundlePlayRelease \
             -PappVersionName="$VERSION" \
             -PappVersionCode="$(git rev-list --count HEAD)"
-          mv app/build/outputs/apk/github/release/app-github-release.apk "motoLauncher-$VERSION.apk"
+          out="$RUNNER_TEMP/release"
+          cp app/build/outputs/apk/github/release/app-github-release.apk "$out/motoLauncher-$VERSION.apk"
+          cp app/build/outputs/bundle/playRelease/app-play-release.aab "$out/"
+          mkdir "$out/mapping"
+          cp app/build/outputs/mapping/githubRelease/mapping.txt "$out/mapping/github.txt"
+          cp app/build/outputs/mapping/playRelease/mapping.txt "$out/mapping/play.txt"
 
-      # Nothing is pushed until both builds exist, and the push fails as a whole if main
-      # moved meanwhile.
-      - name: Push the release commit and tag
-        run: git push --atomic origin HEAD:main "refs/tags/v$VERSION"
-
-      - name: Publish the GitHub release
-        uses: softprops/action-gh-release@v2
-        with:
-          tag_name: v${{ env.VERSION }}
-          name: ${{ env.VERSION }}
-          body_path: ${{ runner.temp }}/notes.md
-          files: motoLauncher-${{ env.VERSION }}.apk
-
-      - name: Upload the Play bundle
+      # Kept before anything is pushed, so a failed publish loses nothing.
+      - name: Keep the release files
         uses: actions/upload-artifact@v4
         with:
-          name: play-bundle-${{ env.VERSION }}
-          path: |
-            app/build/outputs/bundle/playRelease/app-play-release.aab
-            app/build/outputs/mapping/playRelease/mapping.txt
+          name: release-${{ env.VERSION }}
+          path: ${{ runner.temp }}/release/
           if-no-files-found: error
 
+  publish:
+    needs: build
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    permissions:
+      contents: write
+    env:
+      VERSION: ${{ needs.build.outputs.version }}
+      HAS_PLAY: ${{ secrets.PLAY_SERVICE_ACCOUNT_JSON != '' }}
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Fetch the release files
+        uses: actions/download-artifact@v4.1.3
+        with:
+          name: release-${{ env.VERSION }}
+          path: ${{ runner.temp }}/release
+
+      # One atomic push, which fails as a whole if main moved since the build. A re-run of
+      # this job finds the tag already pushed and goes on.
+      - name: Push the release commit and tag
+        run: |
+          git fetch -q "$RUNNER_TEMP/release/release.bundle" "refs/tags/v$VERSION:refs/tags/v$VERSION"
+          commit=$(git rev-parse "v$VERSION^{commit}")
+          if [ "$(git ls-remote origin "refs/tags/v$VERSION" | cut -f1)" = "$commit" ]; then
+            echo "v$VERSION is already pushed"
+          else
+            git push --atomic origin "$commit:refs/heads/main" "refs/tags/v$VERSION"
+          fi
+
+      - name: Publish the GitHub release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          if gh release view "v$VERSION" > /dev/null 2>&1; then
+            echo "The v$VERSION release exists"
+          else
+            gh release create "v$VERSION" "$RUNNER_TEMP/release/motoLauncher-$VERSION.apk" \
+              --verify-tag --title "$VERSION" --notes-file "$RUNNER_TEMP/release/notes.md"
+          fi
+
       - name: Upload to Google Play
-        if: env.PLAY_SERVICE_ACCOUNT_JSON != ''
+        if: env.HAS_PLAY == 'true'
         uses: r0adkll/upload-google-play@v1
         with:
           serviceAccountJsonPlainText: ${{ secrets.PLAY_SERVICE_ACCOUNT_JSON }}
           packageName: de.codevoid.motolauncher
-          releaseFiles: app/build/outputs/bundle/playRelease/app-play-release.aab
+          releaseFiles: ${{ runner.temp }}/release/app-play-release.aab
           releaseName: ${{ env.VERSION }}
           tracks: ${{ inputs.play_track }}
           status: ${{ inputs.play_status }}
-          whatsNewDirectory: ${{ runner.temp }}/whatsnew
-          mappingFile: app/build/outputs/mapping/playRelease/mapping.txt
+          whatsNewDirectory: ${{ runner.temp }}/release/whatsnew
+          mappingFile: ${{ runner.temp }}/release/mapping/play.txt
