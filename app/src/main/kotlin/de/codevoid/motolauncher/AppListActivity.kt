@@ -181,7 +181,10 @@ class AppListActivity : AppCompatActivity() {
         val query = binding.searchBox.text.toString().trim()
         if (viewModel.isSettingsMode) {
             val all = settingsTilesCache ?: buildSettingsTiles().also { settingsTilesCache = it }
-            adapter.submit(if (query.isEmpty()) all else all.filter { it.label.contains(query, ignoreCase = true) })
+            adapter.submit(
+                if (query.isEmpty()) all else all.filter { it.label.contains(query, ignoreCase = true) },
+                touchOnly = true,
+            )
         } else {
             render(AppRepository.filterApps(allApps, query))
         }
@@ -468,7 +471,7 @@ class AppListActivity : AppCompatActivity() {
                 }),
             ))
         }
-        adapter.submit(tiles)
+        adapter.submit(tiles, touchOnly = pickMode)
     }
 
     // Built once: render() runs on every keystroke and these tiles never change shape.

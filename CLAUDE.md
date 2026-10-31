@@ -83,9 +83,11 @@ These drive nearly every UI decision — violating them defeats the point of the
   emits: dpad-left/right/up/down, Enter, Escape. Traversal is Android's native View
   focus engine, not custom key handling — keep it that way.
 - **The remote may only ever launch apps.** Everything that needs touch to get back out
-  of (app info, the search field, the back/settings buttons, every dialog) is deliberately
-  unreachable from the remote: touch-only controls sit in a `TouchOnlyRow`, key-driven
-  long-press is blocked on every tile, and a short Escape on Home does nothing. Do not
+  of (app info, the search field, the back/settings buttons, every dialog) and all
+  configuration is deliberately unreachable from the remote: touch-only controls sit in a
+  `TouchOnlyRow`, the tiles of the app list's settings and pick modes and Home's empty "+"
+  tiles cannot take focus, key-driven long-press is blocked on every tile, and a short
+  Escape on Home does nothing. Do not
   "fix" any of these by making them dpad-reachable. The one thing a held key may do is
   launch: holding Escape starts the configured navigation app (see below), which adds no
   route into configuration. Configuration itself is a touch workflow: empty "+" tiles
@@ -150,10 +152,13 @@ Package layout under `de.codevoid.motolauncher`:
   creates new tiles (re-seeding on every resume would drag the remote back to the first
   tile after every launch), and `bindTile` must null the long-click listener and drop `isLongClickable` for
   a tile that has no long-press, or the framework keeps arming the timer from the tile's
-  previous binding.
+  previous binding. `bindTile` also sets focusability on every bind: an empty "+" tile is
+  `touchOnly` and cannot take focus, so the remote skips it (and the tile-0 seed misses
+  when slot 0 is empty; the first remote key then lands on the first focusable tile).
 - `AppListActivity` — `RecyclerView` + `GridLayoutManager`, whose span count is
   `TileSize.listColumns` and is set in place when Tile size changes; focus is seeded on
-  the first cell once the first load resolves. Three modes, decided by intent extras: **browse**
+  the first cell once the first load resolves. Only browse tiles can take focus: settings
+  mode and both pick modes submit their tiles `touchOnly`. Three modes, decided by intent extras: **browse**
   (tap launches, long-press opens the tile menu), **slot pick**
   (`pickIntent(context, slot)`: a leading "None" tile clears the slot, an "Add link" tile
   opens `showLinkDialog` pre-filled from the slot's current link, any app tile is written
@@ -253,8 +258,9 @@ Package layout under `de.codevoid.motolauncher`:
 - `ui/AppTileAdapter` + `ui/TileItem` — the `RecyclerView` adapter used by the app list
   (not by Home). Callers compose a `List<TileItem>` (label, optional subtitle, optional
   icon, `dimmed`); the adapter stays dumb, calls `blockKeyLongPress()` once per view
-  holder, and resets icon/subtitle visibility and `isLongClickable` on every bind because
-  recycled holders carry the previous item's state. `updateItem` replaces the first item
+  holder, and resets icon/subtitle visibility, `isLongClickable` and focusability (from
+  `submit(items, touchOnly)`) on every bind because recycled holders carry the previous
+  item's state. `updateItem` replaces the first item
   matching a predicate, and does nothing when none matches, for the download-progress
   subtitle.
 - `ui/UpdateFlow.kt` — `AppCompatActivity.runUpdateFlow(setClickable, setSubtitle)`: the
@@ -417,7 +423,7 @@ republishes the `dev` pre-release. Three parallel jobs plus a follow-up release 
   unit tests in `app/src/test/kotlin` (`isIncludeAndroidResources = true`, so real resources and view
   inflation work; see *Commands* for running a single class or test).
   Robolectric runs them against SDK 36, which needs JDK 21 — hence JDK 21 in CI.
-  Seventeen classes, and the shape they set: `AppRepositoryTest` (the pure `sortApps` /
+  Eighteen classes, and the shape they set: `AppRepositoryTest` (the pure `sortApps` /
   `filterApps`), `FavoritesStoreTest` (app and link slot round-trips against real
   `SharedPreferences`, the two representations cleaning each other up, and
   `clearSlotsForPackage` matching whole package names and leaving link slots alone),
@@ -425,7 +431,10 @@ republishes the `dev` pre-release. Three parallel jobs plus a follow-up release 
   `deleteInstalledUpdate` over JSON fixtures and temp files), `ImmersiveTest` (content
   padding follows dispatched bar and cutout insets), `PrivacyPolicyTest` (the in-app text is
   the body of `PRIVACY.md`, read from the module's parent directory), `AppTileAdapterTest`
-  (`updateItem` patches only the matching tile and ignores a missing one),
+  (`updateItem` patches only the matching tile and ignores a missing one; a touch-only
+  submit leaves a recycled holder unfocusable and the next browse submit restores it),
+  `HomeGridTest` (a real `HomeActivity`: empty "+" tiles cannot take focus while All Apps
+  can, and a reused tile follows its slot's content across resumes),
   `TileActionsDialogTest` (inflates the dialog through the
   handle `showTileActionsDialog` returns: row order, optional rows hidden, one callback per
   row, dismissal), `EscapeKeysTest` (short vs. held Escape, dispatched through a real

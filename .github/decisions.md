@@ -33,6 +33,13 @@ launches. Configuration is a touch workflow placed where it is used; there is no
 separate settings screen. An earlier Configure Favorites activity duplicated the
 in-place flows and was removed.
 
+Configuration is touch-only even where Escape could leave it: the tiles of the app
+list's settings mode and both pick modes, and Home's empty "+" tiles, cannot take focus.
+They are the same views as the launch tiles, so focusability is set on every bind. They
+used to be focusable on the reasoning that settings mode is entered by touch. It also
+survives a trip to the navigation app, though, and from there the remote reached the
+Park lock tile and a set-PIN screen it cannot leave.
+
 ### Native focus traversal
 Dpad navigation uses Android's View focus engine, not custom key handling. A fixed grid
 traverses correctly by visual proximity, and custom handling would have to re-implement

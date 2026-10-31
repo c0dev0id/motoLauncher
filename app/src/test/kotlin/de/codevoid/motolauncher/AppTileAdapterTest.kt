@@ -5,6 +5,8 @@ import androidx.test.core.app.ApplicationProvider
 import de.codevoid.motolauncher.ui.AppTileAdapter
 import de.codevoid.motolauncher.ui.TileItem
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
+import org.junit.Assert.assertTrue
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
@@ -36,5 +38,19 @@ class AppTileAdapterTest {
     fun leavesTheListAloneWhenNothingMatches() {
         adapter.updateItem({ it.label == "Navigation bar" }) { it.copy(subtitle = "x") }
         assertEquals(listOf("Dark", "1.0.0"), shownSubtitles())
+    }
+
+    // Holders are shared between touch-only and browse tiles, so every bind sets it.
+    @Test
+    fun touchOnlyTilesCannotTakeFocusAndARecycledHolderCanAgain() {
+        val holder = adapter.createViewHolder(FrameLayout(ApplicationProvider.getApplicationContext()), 0)
+
+        adapter.submit(listOf(TileItem("Theme")), touchOnly = true)
+        adapter.bindViewHolder(holder, 0)
+        assertFalse(holder.binding.root.isFocusable)
+
+        adapter.submit(listOf(TileItem("Maps")))
+        adapter.bindViewHolder(holder, 0)
+        assertTrue(holder.binding.root.isFocusable)
     }
 }

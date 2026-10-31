@@ -232,11 +232,12 @@ class HomeActivity : AppCompatActivity() {
         iconRes = R.drawable.ic_add,
         onClick = { pickForSlot(index) },
         onLongClick = { pickForSlot(index); true },
+        touchOnly = true,
     )
 
     // Tiles are reused across rebinds, so a tile without a long-press must clear the
     // previous listener and drop isLongClickable, or the framework keeps arming the
-    // long-press timer for it.
+    // long-press timer for it. A touchOnly tile cannot take focus, so the remote skips it.
     private fun bindTile(
         tile: ItemAppTileBinding,
         label: String,
@@ -244,6 +245,7 @@ class HomeActivity : AppCompatActivity() {
         iconRes: Int = 0,
         onClick: () -> Unit,
         onLongClick: (() -> Boolean)? = null,
+        touchOnly: Boolean = false,
     ) {
         tile.appLabel.text = label
         when {
@@ -251,6 +253,7 @@ class HomeActivity : AppCompatActivity() {
             iconRes != 0 -> tile.appIcon.setImageResource(iconRes)
             else -> tile.appIcon.setImageDrawable(null)
         }
+        tile.root.isFocusable = !touchOnly
         tile.root.setOnClickListener { onClick() }
         if (onLongClick != null) {
             tile.root.setOnLongClickListener { onLongClick() }

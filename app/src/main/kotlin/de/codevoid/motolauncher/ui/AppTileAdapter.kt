@@ -13,9 +13,13 @@ import de.codevoid.motolauncher.databinding.ItemAppTileBinding
 class AppTileAdapter(private var items: List<TileItem>) :
     RecyclerView.Adapter<AppTileAdapter.TileViewHolder>() {
 
+    private var touchOnly = false
+
+    /** Shows [newItems]. [touchOnly] tiles cannot take focus, so the remote cannot reach them. */
     @SuppressLint("NotifyDataSetChanged")
-    fun submit(newItems: List<TileItem>) {
+    fun submit(newItems: List<TileItem>, touchOnly: Boolean = false) {
         items = newItems
+        this.touchOnly = touchOnly
         notifyDataSetChanged()
     }
 
@@ -48,6 +52,7 @@ class AppTileAdapter(private var items: List<TileItem>) :
         binding.appIcon.bindOptional(item.icon)
         binding.appSubtitle.bindOptional(item.subtitle)
         binding.root.alpha = if (item.dimmed) 0.35f else 1.0f
+        binding.root.isFocusable = !touchOnly
 
         binding.root.setOnClickListener { item.onClick() }
         val onLongClick = item.onLongClick
