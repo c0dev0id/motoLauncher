@@ -43,7 +43,6 @@ Feature floor above `minSdk`: the park lock is offered from API 35.
 |---|---|---|
 | `androidx.appcompat:appcompat` | 1.7.0 | Activities, night mode, `AlertDialog` |
 | `com.google.android.material:material` | 1.12.0 | Material3 base theme |
-| `androidx.constraintlayout:constraintlayout` | 2.2.0 | Declared; no layout uses it |
 | `androidx.recyclerview:recyclerview` | 1.3.2 | App list grid |
 | `androidx.activity:activity-ktx` | 1.9.3 | `viewModels`, result APIs, back dispatcher |
 | `androidx.core:core-ktx` | 1.17.0 | `FileProvider` (github), window insets, compat helpers |
@@ -60,7 +59,6 @@ with `org.json`, both from the platform.
 |---|---|
 | JUnit | 4.13.2 |
 | Robolectric | 4.16.1 |
-| `androidx.test.ext:junit` | 1.3.0 |
 | `androidx.test:core` | 1.7.0 |
 | `kotlinx-coroutines-test` | 1.8.1 |
 
