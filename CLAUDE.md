@@ -280,9 +280,11 @@ Package layout under `de.codevoid.motolauncher`:
   pair on release still cannot produce a hold — there is no elapsed time to measure. The
   file stays pure key plumbing — the action lives in `ui/QuickLaunch.kt`
   (`Context.launchNavApp()`: `NavAppStore` → `AppRepository.launchIfInstalled`).
-- `ui/TouchOnlyRow` — a `LinearLayout` whose `addFocusables()` contributes nothing, so
-  its children are invisible to dpad traversal but still take touch focus (an `EditText`
-  inside it still opens the IME). `focusableInTouchMode` and
+- `ui/TouchOnlyRow` — a `LinearLayout` that refuses every way the framework moves focus
+  into it without the child asking: focus search (`addFocusables`), default focus
+  (`onRequestFocusInDescendants`) and a child becoming focusable
+  (`focusableViewAvailable`). Its children still take touch focus (an `EditText` inside
+  it still opens the IME). `focusableInTouchMode` and
   `descendantFocusability="blocksDescendants"` were both tried and rejected; see
   `.github/decisions.md`.
 - `ui/TileActionsDialog.kt` — `showTileActionsDialog()` (Remove row only when `onRemove`
@@ -414,7 +416,7 @@ republishes the `dev` pre-release. Three parallel jobs plus a follow-up release 
   unit tests in `app/src/test/kotlin` (`isIncludeAndroidResources = true`, so real resources and view
   inflation work; see *Commands* for running a single class or test).
   Robolectric runs them against SDK 36, which needs JDK 21 — hence JDK 21 in CI.
-  Fifteen classes, and the shape they set: `AppRepositoryTest` (the pure `sortApps` /
+  Sixteen classes, and the shape they set: `AppRepositoryTest` (the pure `sortApps` /
   `filterApps`), `FavoritesStoreTest` (app and link slot round-trips against real
   `SharedPreferences`, the two representations cleaning each other up, and
   `clearSlotsForPackage` matching whole package names and leaving link slots alone),
@@ -427,7 +429,9 @@ republishes the `dev` pre-release. Three parallel jobs plus a follow-up release 
   handle `showTileActionsDialog` returns: row order, optional rows hidden, one callback per
   row, dismissal), `EscapeKeysTest` (short vs. held Escape, dispatched through a real
   `KeyEvent.DispatcherState` so the framework's tracking rules are exercised rather than
-  assumed), `StatusBarViewTest` (`wifiIconLevel` across platform rating ranges, that
+  assumed), `TouchOnlyRowTest` (out of touch mode, focus search, default focus, the
+  refocus after a removal and a child becoming focusable all skip the row, while a child's
+  own request still focuses it), `StatusBarViewTest` (`wifiIconLevel` across platform rating ranges, that
   `refreshOnResume` re-reads the clock and the battery when the bar returns to view but
   touches neither when it leaves, that cellular bars need no permission, and, on SDK 28,
   the GPS listener surviving a provider toggle, the five-step Wi-Fi rating and the

@@ -39,9 +39,15 @@ traverses correctly by visual proximity, and custom handling would have to re-im
 what the framework already does.
 
 ### `TouchOnlyRow` hides controls from the dpad
-`TouchOnlyRow.addFocusables()` contributes nothing, so its children are invisible to the
-focus finder while touch focus still works (`requestFocus()` never consults
-`addFocusables`). Two alternatives failed:
+The framework moves focus into a subtree without the child asking in three ways, and
+`TouchOnlyRow` refuses all three: it adds nothing in `addFocusables()` (focus search),
+returns false from `onRequestFocusInDescendants()` (default focus when the first remote
+key leaves touch mode, and the refocus after the focused view is removed), and drops
+`focusableViewAvailable()` (outside touch mode the window hands focus to a view that
+becomes focusable while nothing has it). A touch focuses the touched view directly and
+passes none of them, so the search field still opens the keyboard. The first version
+overrode only `addFocusables()`; default focus then put the remote on the app list's back
+button and on park keypad key "1". Two alternatives failed:
 - `focusableInTouchMode` on the `EditText`: it implies `focusable`, and the dpad path
   ignores the touch-mode flag, so the field stayed reachable.
 - `descendantFocusability="blocksDescendants"`: it blocks touch focus too, so the search
