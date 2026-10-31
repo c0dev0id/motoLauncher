@@ -106,8 +106,8 @@ These drive nearly every UI decision — violating them defeats the point of the
 - **Hold Escape → launch the navigation app** chosen in settings (`NavAppStore`), from
   Home and from the app list alike. No nav app configured, or uninstalled: nothing happens.
 - **In-app update check** (github flavor only — Google Play forbids self-updating): a
-  release build compares itself to the latest GitHub release, a `dev-` build to the `dev`
-  pre-release, and offers the install if they differ. Must be **user-triggered** (the
+  release build compares itself to the latest GitHub release, a `dev-` build to the
+  newest file in the codevoid.de dist store, and offers the install if they differ. Must be **user-triggered** (the
   device is mostly offline — never auto-poll the network).
 - **Privacy policy** shown as text from the settings mode (Play requires it in-app);
   `privacy_policy_text` is the body of `PRIVACY.md`, and `PrivacyPolicyTest` compares them.
@@ -279,10 +279,10 @@ Package layout under `de.codevoid.motolauncher`:
   `res/xml/data_extraction_rules.xml` (Android 12+) and `res/xml/backup_rules.xml`
   (Android 11 and lower) exclude `park.xml`, and the rules can only match whole files. A
   new store goes into `settings` unless it must stay out of backups too.
-- `update/UpdateChecker` — github flavor only. One-shot GET on
-  `releaseApiUrl(VERSION_NAME)`: the `dev` tag for a `dev-` build, `releases/latest`
-  otherwise. `parseRelease`
-  takes the first `.apk` asset and derives the version from its filename
+- `update/UpdateChecker` — github flavor only. One-shot GET: a `dev-` build asks the
+  dist store's `latest` address (`DIST_LATEST`, JSON with `name`, `version` and a
+  relative `url`, read by `parseDistFile`), any other build GitHub's `releases/latest`.
+  `parseRelease` takes the first `.apk` asset and derives the version from its filename
   (`motoLauncher-<versionName>.apk`); `isNewer` is a plain string inequality against
   `BuildConfig.VERSION_NAME`, so any differing published build counts as an update.
   Install is a hand-off: download to `cacheDir/updates/` (with a bytes-written progress
@@ -511,9 +511,10 @@ publish jobs:
   screen, a setting change shows at once, the nav app falls back to its package name, the
   slot picker leads with None and Add link without a settings button, the nav-app picker
   with None only),
-  `UpdateCheckerTest` (`parseRelease` / `isNewer` / `releaseApiUrl` /
+  `UpdateCheckerTest` (`parseRelease` / `parseDistFile` / `isNewer` /
   `deleteInstalledUpdate` over JSON fixtures and temp files; an asset name with a path is
-  skipped), `UpdateViewModelTest` (the flow driven by fake lookup and download functions:
+  skipped; a dist file's address resolves against the `latest` URL, and one without a
+  version or address, or not named as a bare APK, is rejected), `UpdateViewModelTest` (the flow driven by fake lookup and download functions:
   both check outcomes, a tap while busy starting nothing, a failure reported once and the
   flow idle again, download progress then the installer, and the progress text),
   `UpdateErrorTextTest` (a 404, another status, no connection, a timeout and anything
@@ -583,9 +584,9 @@ publish jobs:
   properties the version is `dev-local` / `1`. The checkout is full-depth because
   the versionCode is `git rev-list --count HEAD`, shared with `Release`.
 - `dev-release` updates the `dev` pre-release in place with `gh`: it moves the `dev`
-  tag to the built commit, uploads the new APK, then deletes the other assets. The update
-  endpoint stays one stable URL that never answers 404, and "keep only the latest" needs
-  no cleanup.
+  tag to the built commit, uploads the new APK, then deletes the other assets. The
+  download page stays one stable URL, and "keep only the latest" needs no cleanup. The
+  updater no longer reads it.
 - `dist` pushes the same APK to the codevoid.de dist store as
   `motoLauncher-dev-<sha>.apk` with `?version=dev-<sha>`. It has no `GITHUB_TOKEN`
   permissions (same-run artifacts download with the runner's own token); the

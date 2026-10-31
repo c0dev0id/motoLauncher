@@ -17,7 +17,7 @@ class UpdateErrorTextTest {
 
     private val context = ApplicationProvider.getApplicationContext<Context>()
 
-    // CI deletes and recreates the dev pre-release, so a 404 is a matter of minutes.
+    // A 404 means nothing is published at the address yet.
     @Test
     fun notFoundSaysToTryAgainShortly() {
         assertEquals(context.getString(R.string.update_error_not_found), context.updateErrorText(HttpStatusException(404)))

@@ -22,7 +22,7 @@ The status bar reads the Wi-Fi signal strength and, with the cellular indicator 
 on, the mobile signal strength, to draw its signal bars.
 
 The Google Play version makes no network connections. The version from the GitHub release
-page connects to GitHub only when you tap the update check, to look for and download a
-newer version.
+page connects only when you tap the update check, to look for and download a newer
+version: a release connects to GitHub, a development build to codevoid.de.
 
 Questions: https://github.com/c0dev0id/motoLauncher/issues

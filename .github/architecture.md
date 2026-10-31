@@ -33,6 +33,7 @@ flowchart LR
 
     nav["Navigation app"]
     gh["GitHub releases<br/>and dev pre-release"]
+    dist["codevoid.de<br/>dist store"]
     play["Google Play"]
     ci["GitHub Actions"]
 
@@ -44,15 +45,17 @@ flowchart LR
     repo <--> la
     repo -- uninstall --> installer
     update -- install --> installer
-    update -- download --> gh
+    update -- release builds --> gh
+    update -- dev builds --> dist
     ci -- publishes APK --> gh
+    ci -- pushes dev APK --> dist
     ci -- uploads bundle --> play
     play -- installs and updates --> launcher
 
     classDef primary fill:#2F6FED,stroke:#1E4FB0,color:#FFFFFF
     classDef external fill:#EEF1F5,stroke:#9AA5B4,color:#14181D
     class home,list,park,app primary
-    class nav,gh,play,ci,rider external
+    class nav,gh,dist,play,ci,rider external
 ```
 
 ## Layers

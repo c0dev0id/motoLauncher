@@ -34,7 +34,8 @@
   itself if unpinned, and survives a reboot. Offered on Android 15+ without a secure
   lock screen.
 - **Self-update (github flavor).** A user-triggered check against the latest release
-  for a release build, or the `dev` pre-release for a dev build, with download progress
+  for a release build, or the newest build in the codevoid.de dist store for a dev
+  build, with download progress
   on the tile and a hand-off to the system installer.
 - **Google Play build.** The play flavor has no updater and no network access; Play
   updates it.

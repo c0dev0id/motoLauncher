@@ -128,7 +128,7 @@ jobs:
           name: app-release
 
       # Updated in place: the tag moves to this commit and the new APK replaces the old
-      # one, so the release the updater asks for exists throughout.
+      # one, so the download page exists throughout.
       - name: Publish the dev pre-release
         env:
           GH_TOKEN: ${{ github.token }}
