@@ -1,9 +1,10 @@
 name: Release
 
 # Cuts the next patch version from main: moves the [Unreleased] changelog entries under
-# the new version, tags it, publishes the github APK as a GitHub release and uploads the
-# play bundle to Google Play. The build job holds the signing secrets and read access;
-# the publish job holds write access and the Play secret, and runs no Gradle.
+# the new version, tags it, publishes the github APK as a GitHub release and in the dist
+# store's release channel, and uploads the play bundle to Google Play. The build job holds
+# the signing secrets and read access; the publish job holds write access and the Play
+# secret, and runs no Gradle; the dist job holds only the dist token.
 on:
   workflow_dispatch:
     inputs:
@@ -160,3 +161,29 @@ jobs:
           status: ${{ inputs.play_status }}
           whatsNewDirectory: ${{ runner.temp }}/release/whatsnew
           mappingFile: ${{ runner.temp }}/release/mapping/play.txt
+
+  # After publish, so the store never serves a release whose tag did not reach main.
+  dist:
+    needs: [build, publish]
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions: {}
+    env:
+      VERSION: ${{ needs.build.outputs.version }}
+
+    steps:
+      - name: Fetch the release files
+        uses: actions/download-artifact@v8
+        with:
+          name: release-${{ env.VERSION }}
+          path: ${{ runner.temp }}/release
+
+      # The token selects the dist repository; the version equals the build's versionName.
+      - name: Push the release APK to the release channel
+        env:
+          DIST_TOKEN: ${{ secrets.DIST_TOKEN }}
+        run: |
+          curl -fsS -H "Authorization: Bearer $DIST_TOKEN" \
+            -H "Content-Type: application/vnd.android.package-archive" \
+            -T "$RUNNER_TEMP/release/motoLauncher-$VERSION.apk" \
+            "https://home.codevoid.de/dist/release/motoLauncher-$VERSION.apk?version=$VERSION"

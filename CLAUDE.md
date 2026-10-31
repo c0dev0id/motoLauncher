@@ -484,7 +484,7 @@ requests from forks would go unchecked. The concurrency group (`check-<ref_name>
 `cancel-in-progress`) now only supersedes an older run when you push twice quickly.
 
 **`Build`** (`.github/workflows/build.yml`) runs **only on push to `main`**,
-republishes the `dev` pre-release and pushes the dev APK to the dist store; a newer push cancels an older run (concurrency group
+republishes the `dev` pre-release and pushes the dev APK to the dist store's nightly channel; a newer push cancels an older run (concurrency group
 `build`), so an older run never publishes last. Three parallel jobs plus two follow-up
 publish jobs:
 
@@ -587,12 +587,12 @@ publish jobs:
   tag to the built commit, uploads the new APK, then deletes the other assets. The
   download page stays one stable URL, and "keep only the latest" needs no cleanup. The
   updater no longer reads it.
-- `dist` pushes the same APK to the home.codevoid.de dist store as
-  `motoLauncher-dev-<sha>.apk` with `?version=dev-<sha>`. It has no `GITHUB_TOKEN`
-  permissions (same-run artifacts download with the runner's own token); the
-  `DIST_TOKEN` secret, which selects the dist repository, reaches only the push step.
+- `dist` pushes the same APK to the home.codevoid.de dist store's nightly channel:
+  `PUT /dist/nightly/motoLauncher-dev-<sha>.apk?version=dev-<sha>`. It has no
+  `GITHUB_TOKEN` permissions (same-run artifacts download with the runner's own token);
+  the `DIST_TOKEN` secret, which selects the dist repository, reaches only the push step.
 
-**`Release`** (`.github/workflows/release.yml`) is manual, from `main` only, and has two
+**`Release`** (`.github/workflows/release.yml`) is manual, from `main` only, and has three
 jobs. `build` (read-only, holds the signing secrets) picks the next patch version after
 the newest `v*` tag (1.0.0 first), runs `.github/scripts/changelog.py release` to move
 `[Unreleased]` under that version, commits and tags locally, builds the github APK and
@@ -604,8 +604,10 @@ write, no Gradle) pushes commit and tag atomically, creates the GitHub release
 reaches only the upload step) — uploads the bundle to the chosen Play track with
 `changelog.py play-notes` as "What's new" (plain text, whole entries within 500
 characters, plus the release link). Push and release creation are skipped when already
-done, so `publish` can be re-run alone. `[Unreleased]` must hold at least one entry
-before it runs, or it refuses.
+done, so `publish` can be re-run alone. `dist` waits for `publish` and pushes the APK
+from the artifact to the release channel (`PUT /dist/release/motoLauncher-<version>.apk
+?version=<version>`), with no `GITHUB_TOKEN` permissions and `DIST_TOKEN` only in that
+step. `[Unreleased]` must hold at least one entry before it runs, or it refuses.
 
 The actions run on their Node 24 majors. `actions/*` are referenced by major tag; the
 third-party `gradle/actions/setup-gradle` and `r0adkll/upload-google-play` are pinned to

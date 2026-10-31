@@ -734,8 +734,8 @@ its body.
 
 ### Three workflows
 `Check` runs on every push to a branch other than `main`. `Build` runs on push to `main`,
-republishes the `dev` pre-release and pushes the dev APK to the dist store; a newer push
-cancels an older run, which could
+republishes the `dev` pre-release and pushes the dev APK to the dist store's nightly
+channel; a newer push cancels an older run, which could
 otherwise finish last and publish the older build. `Release` runs on demand and is the only producer
 of a versioned release. For a long time `Build` was the whole pipeline, so a branch got
 no signal before merge on a project that cannot be built locally.
@@ -784,13 +784,17 @@ Gradle run that sees the signing secrets, and `upload-google-play` gets the Play
 keeps the open-source cache v4 used. The release steps use `gh` instead of a third-party
 release action.
 
-### The dist push is a job of its own
-`Build` pushes the dev APK to the dist store from a separate `dist` job rather than a
-step of `dev-release`. It needs no `GITHUB_TOKEN` permissions, so `DIST_TOKEN` never
-shares a job with write access, and a failure on one side leaves the other published.
-The push is plain `curl -T`, which sends the `Content-Length` the store requires. The
-version sent is the full `dev-<sha>` version name, not the bare hash, so the app can
-compare it with its own `versionName` as is.
+### The dist pushes are jobs of their own
+`Build` pushes every dev APK to the dist store's nightly channel and `Release` every
+release APK to its release channel (`PUT /dist/<channel>/<file>`), each from a separate
+`dist` job rather than a step of `dev-release` or `publish`. Those jobs need no
+`GITHUB_TOKEN` permissions, so `DIST_TOKEN` never shares a job with write access, and in
+`Build` a failure on one side leaves the other published. `Release`'s `dist` job waits
+for `publish`, so the store never serves a release whose tag did not reach `main`; a
+re-run of `publish` runs it again. The push is plain `curl -T`, which sends the
+`Content-Length` the store requires. The version sent is the full version name
+(`dev-<sha>`, not the bare hash, or `1.0.x`), so the app can compare it with its own
+`versionName` as is.
 
 ### Robolectric's SDK jar is cached separately
 Robolectric downloads its ~100 MB `android-all` jar at test runtime into `~/.m2`,

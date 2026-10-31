@@ -80,7 +80,7 @@ GitHub Actions on `ubuntu-latest`, Node 24 actions: `actions/checkout@v7`,
 | Workflow | Trigger | Runs | Produces |
 |---|---|---|---|
 | `Check` | push to any branch except `main`, manual | release script tests; lint and unit tests for `githubDebug`; `assemble` for `githubDebug` and `playDebug` | `app-debug` artifact |
-| `Build` | push to `main` | `lintGithubRelease`, `lintPlayRelease`, unit tests, signed `assembleGithubRelease` | `dev` pre-release, dev APK in the home.codevoid.de dist store |
-| `Release` | manual, from `main` | `build`: signed `assembleGithubRelease` and `bundlePlayRelease`; `publish`: push, GitHub release, Play upload | `release-<version>` artifact, `v<version>` tag and GitHub release, Play upload |
+| `Build` | push to `main` | `lintGithubRelease`, `lintPlayRelease`, unit tests, signed `assembleGithubRelease` | `dev` pre-release, dev APK in the dist store's nightly channel |
+| `Release` | manual, from `main` | `build`: signed `assembleGithubRelease` and `bundlePlayRelease`; `publish`: push, GitHub release, Play upload; `dist`: push to the dist store | `release-<version>` artifact, `v<version>` tag and GitHub release, Play upload, APK in the dist store's release channel |
 
 The project is not built locally.
