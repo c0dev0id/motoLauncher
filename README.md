@@ -9,7 +9,7 @@ It is built for gloved hands and a handlebar remote.
 
 ## Features
 
-- **Big-tile home grid** — eleven slots for apps or links, plus All Apps.
+- **Big-tile home grid** — slots for apps or links plus All Apps, in three tile sizes to suit the screen.
 - **Remote control** — dpad, Enter and Escape. The remote can only launch, so it never gets stuck.
 - **Hold Escape for navigation** — starts your navigation app from anywhere in the launcher.
 - **All Apps** — search the list and hide the apps you never use.
@@ -56,6 +56,7 @@ In **All Apps → Settings**, by touch.
 | Battery | Icon + text (default), Icon only, Text only |
 | Hidden apps | Hidden (default), Showing (dimmed) |
 | Orientation | Sensor (default), Landscape, Portrait, Reverse landscape, Reverse portrait |
+| Tile size | Medium (default, 12 tiles), Large (8), Small (15) |
 | Navigation bar | Hidden (default), Visible |
 | Privacy policy | Shows the privacy policy |
 

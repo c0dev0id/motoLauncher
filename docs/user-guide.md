@@ -5,7 +5,8 @@ so it can never leave you on a screen you cannot get out of with gloves on.
 
 ## Fill the home screen
 
-Home has eleven slots and an **All Apps** tile. An empty slot shows a **+**.
+Home has eleven slots and an **All Apps** tile, or seven or fourteen with a different
+**Tile size** (see below). An empty slot shows a **+**.
 
 1. Tap a **+** tile. The app picker opens.
 2. Tap an app to put it in the slot.
@@ -61,6 +62,7 @@ too.
 |---|---|
 | Theme | Dark (default), Light |
 | Orientation | Sensor (default), Landscape, Portrait, Reverse landscape, Reverse portrait |
+| Tile size | Medium (default), Large, Small |
 | Navigation bar | Hidden (default), Visible |
 | Battery | Icon + text (default), Icon only, Text only |
 | Cellular indicator | Off (default), On |
@@ -70,6 +72,12 @@ too.
 **Orientation** opens a list with the current choice filled in blue and applies only the
 one you pick. **Sensor** follows the device and rotates on its own, whatever Android's
 auto-rotate switch says.
+
+**Tile size** fits the tiles to your screen. The list shows how many tiles Home gets
+with each size: Large 8, Medium 12, Small 15. Pick Large on a smaller screen and Small
+on a bigger one. All Apps follows with fewer or more apps per row. Home keeps its tile
+count when the screen rotates. Apps in slots that a smaller grid cannot show stay
+there and come back when you pick a bigger grid.
 
 **GPS Speed** asks for location permission the first time you turn it on, and
 switches on only if you allow it. GPS Speed and Units appear only on devices with GPS.
