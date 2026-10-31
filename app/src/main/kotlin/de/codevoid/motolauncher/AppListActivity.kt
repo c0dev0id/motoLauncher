@@ -38,7 +38,7 @@ import de.codevoid.motolauncher.ui.fitContentToSystemBars
 import de.codevoid.motolauncher.ui.isPortrait
 import de.codevoid.motolauncher.ui.launchNavApp
 import de.codevoid.motolauncher.ui.noTransition
-import de.codevoid.motolauncher.ui.showLinkDialog
+import de.codevoid.motolauncher.ui.LinkDialog
 import de.codevoid.motolauncher.ui.MenuDialog
 import de.codevoid.motolauncher.ui.menuRows
 import de.codevoid.motolauncher.ui.showUpdateEvent
@@ -105,6 +105,14 @@ class AppListActivity : AppCompatActivity() {
         settings = SettingsTiles(this, updates, onChanged = ::renderCurrentMode)
 
         supportFragmentManager.setFragmentResultListener(APP_MENU, this) { _, result -> onAppMenu(result) }
+        supportFragmentManager.setFragmentResultListener(ADD_LINK, this) { _, result ->
+            favoritesStore.setLink(
+                result.getInt(EXTRA_SLOT),
+                requireNotNull(result.getString(LinkDialog.LABEL)),
+                requireNotNull(result.getString(LinkDialog.URL)),
+            )
+            finish()
+        }
 
         binding.backButton.setOnClickListener { finish() }
         binding.appGrid.layoutManager = GridLayoutManager(this, columns)
@@ -201,10 +209,14 @@ class AppListActivity : AppCompatActivity() {
         icon = ContextCompat.getDrawable(this, R.drawable.ic_link),
         onClick = {
             val existing = favoritesStore.getSlotEntry(slot) as? SlotEntry.Link
-            showLinkDialog(existing?.label ?: "", existing?.url ?: "") { label, url ->
-                favoritesStore.setLink(slot, label, url)
-                finish()
-            }
+            LinkDialog.show(
+                supportFragmentManager,
+                ADD_LINK,
+                existing?.label.orEmpty(),
+                existing?.url.orEmpty(),
+                editing = existing != null,
+                extras = Bundle().apply { putInt(EXTRA_SLOT, slot) },
+            )
         },
     )
 
@@ -262,7 +274,9 @@ class AppListActivity : AppCompatActivity() {
         private const val EXTRA_PICK_SLOT = "pick_slot"
         private const val EXTRA_PICK_NAV_APP = "pick_nav_app"
         private const val APP_MENU = "appList.appMenu"
+        private const val ADD_LINK = "appList.addLink"
         private const val EXTRA_APP = "app"
+        private const val EXTRA_SLOT = "slot"
 
         // Pickers write the choice themselves and callers rebuild in onResume, so there is
         // no result contract.

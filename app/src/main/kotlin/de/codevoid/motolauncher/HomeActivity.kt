@@ -36,9 +36,9 @@ import de.codevoid.motolauncher.ui.fitContentToSystemBars
 import de.codevoid.motolauncher.ui.noTransition
 import de.codevoid.motolauncher.ui.isPortrait
 import de.codevoid.motolauncher.ui.launchNavApp
+import de.codevoid.motolauncher.ui.LinkDialog
 import de.codevoid.motolauncher.ui.MenuDialog
 import de.codevoid.motolauncher.ui.menuRows
-import de.codevoid.motolauncher.ui.showLinkDialog
 import kotlinx.coroutines.flow.drop
 import kotlinx.coroutines.launch
 
@@ -76,6 +76,14 @@ class HomeActivity : AppCompatActivity() {
         onBackPressedDispatcher.addCallback(this) { /* home is the root; swallow back */ }
         supportFragmentManager.setFragmentResultListener(APP_MENU, this) { _, result -> onAppMenu(result) }
         supportFragmentManager.setFragmentResultListener(LINK_MENU, this) { _, result -> onLinkMenu(result) }
+        supportFragmentManager.setFragmentResultListener(LINK_EDIT, this) { _, result ->
+            favorites.setLink(
+                result.getInt(EXTRA_SLOT),
+                requireNotNull(result.getString(LinkDialog.LABEL)),
+                requireNotNull(result.getString(LinkDialog.URL)),
+            )
+            showGrid()
+        }
 
         val app = application as MotoLauncherApp
         // Warms the app-list cache, so All Apps opens with the list decoded.
@@ -297,10 +305,14 @@ class HomeActivity : AppCompatActivity() {
         when (result.getInt(MenuDialog.ROW)) {
             R.string.link_action_edit -> {
                 val link = favorites.getSlotEntry(slot) as? SlotEntry.Link ?: return
-                showLinkDialog(link.label, link.url) { label, url ->
-                    favorites.setLink(slot, label, url)
-                    showGrid()
-                }
+                LinkDialog.show(
+                    supportFragmentManager,
+                    LINK_EDIT,
+                    link.label,
+                    link.url,
+                    editing = true,
+                    extras = Bundle().apply { putInt(EXTRA_SLOT, slot) },
+                )
             }
             R.string.link_action_remove -> {
                 favorites.clearSlot(slot)
@@ -312,6 +324,7 @@ class HomeActivity : AppCompatActivity() {
     private companion object {
         const val APP_MENU = "home.appMenu"
         const val LINK_MENU = "home.linkMenu"
+        const val LINK_EDIT = "home.linkEdit"
         const val EXTRA_SLOT = "slot"
         const val EXTRA_APP = "app"
     }
