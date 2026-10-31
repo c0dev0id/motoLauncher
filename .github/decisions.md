@@ -15,6 +15,24 @@ keeps the APK small.
 (`startMainActivity`) and opening app info (`startAppDetailsActivity`), and it walks
 every user profile. Its `Callback` reports changes for exactly the apps it enumerates.
 
+### An app is a component in a profile
+The app list shows every app from every profile; a launcher holds no personal data, and
+some riders hand the device to people who only want big buttons. The same component can
+be installed in the personal and the work profile, so an app is a `ComponentKey`
+(component plus `UserHandle`). Launch, App info and Uninstall go to that profile; the
+uninstaller takes it as `Intent.EXTRA_USER` and checks that it is one of ours. An app
+stored in a preference keeps its profile as the profile's serial number, because a
+`UserHandle` id can be reused by a later profile and a serial number cannot. The own user
+is stored as no serial at all, so a favourite set before profiles were tracked reads
+unchanged. A serial whose profile no longer exists, for example after a restore on
+another device, reads as an empty slot. Hidden apps stay per package, across profiles.
+
+### Every launch checks the app still resolves
+A tile can outlive its app: the uninstaller's dialog closes before the package is gone,
+so the screen behind it resumes with the old tile, and a stored navigation app outlives
+its uninstall. `startMainActivity` throws for an activity that no longer resolves, so
+`AppRepository.launch` asks `isActivityEnabled` first and does nothing when it is not.
+
 ### Scoped package visibility
 The manifest declares `MAIN`/`LAUNCHER` `<queries>` instead of `QUERY_ALL_PACKAGES`. A
 launcher only needs launchable apps, and the broad permission is discouraged.
@@ -123,8 +141,8 @@ then redid the whole resolve on the main thread in `onResume`.
 Fourteen slots plus the fixed All Apps tile fill the largest grid, 5×3. A smaller grid
 shows the leading slots; the others keep their contents and reappear when the grid grows
 again, so changing the tile size never loses configuration. A slot holds a flattened
-`ComponentName`, or the `link:` marker with the label and URL in two sibling keys. Each
-setter removes the other representation's keys.
+`ComponentName` with its profile's serial in a sibling key, or the `link:` marker with
+the label and URL in two sibling keys. Every write removes all of a slot's keys first.
 
 ### Remove instead of Reassign
 The tile menu once offered "Reassign app". Remove followed by tapping the empty "+" tile

@@ -1,17 +1,18 @@
 package de.codevoid.motolauncher.data
 
-import android.content.ComponentName
 import android.content.Context
+import android.os.UserManager
 
 class NavAppStore(context: Context) {
 
     private val prefs = context.getSharedPreferences(SETTINGS_PREFS, Context.MODE_PRIVATE)
+    private val users = context.getSystemService(Context.USER_SERVICE) as UserManager
 
-    var navApp: ComponentName?
-        get() = prefs.getString(KEY, null)?.let { ComponentName.unflattenFromString(it) }
+    var navApp: ComponentKey?
+        get() = prefs.getComponentKey(KEY, users)
         set(value) {
-            if (value != null) prefs.edit().putString(KEY, value.flattenToString()).apply()
-            else prefs.edit().remove(KEY).apply()
+            if (value != null) prefs.edit().putComponentKey(KEY, value, users).apply()
+            else prefs.edit().removeComponentKey(KEY).apply()
         }
 
     companion object {

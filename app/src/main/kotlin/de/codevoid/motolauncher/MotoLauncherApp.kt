@@ -63,7 +63,7 @@ class MotoLauncherApp : Application() {
                 // Only an actual removal clears a favourite. "Failed to resolve" must not:
                 // an app on unmounted external storage is unavailable, not uninstalled,
                 // and dropping the slot then would lose the configuration for good.
-                FavoritesStore(this@MotoLauncherApp).clearSlotsForPackage(packageName)
+                FavoritesStore(this@MotoLauncherApp).clearSlotsForPackage(packageName, user)
                 packageGeneration++
             }
 

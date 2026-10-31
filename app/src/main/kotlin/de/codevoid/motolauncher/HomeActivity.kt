@@ -1,6 +1,5 @@
 package de.codevoid.motolauncher
 
-import android.content.ComponentName
 import android.content.Intent
 import android.graphics.drawable.Drawable
 import android.net.Uri
@@ -15,6 +14,7 @@ import androidx.appcompat.app.AppCompatActivity
 import androidx.lifecycle.ViewModel
 import de.codevoid.motolauncher.data.AppEntry
 import de.codevoid.motolauncher.data.AppRepository
+import de.codevoid.motolauncher.data.ComponentKey
 import de.codevoid.motolauncher.data.FavoritesStore
 import de.codevoid.motolauncher.data.NavBarStore
 import de.codevoid.motolauncher.data.OrientationStore
@@ -150,8 +150,7 @@ class HomeActivity : AppCompatActivity() {
         val slots = favorites.allSlots().take(tiles.size - 1)
         val generation = (application as MotoLauncherApp).packageGeneration
         if (generation != cache.generation || slots != cache.slots) {
-            val appComponents = slots.filterIsInstance<SlotEntry.App>().map { it.component }
-            cache.apps = repository.loadByComponents(appComponents)
+            cache.apps = repository.loadByKeys(slots.filterIsInstance<SlotEntry.App>().map { it.key })
             cache.generation = generation
             cache.slots = slots
         }
@@ -160,19 +159,19 @@ class HomeActivity : AppCompatActivity() {
         slots.forEachIndexed { index, slotEntry ->
             when (slotEntry) {
                 is SlotEntry.App -> {
-                    val entry = apps[slotEntry.component]
+                    val entry = apps[slotEntry.key]
                     if (entry != null) {
                         bindTile(
                             tile = tiles[index],
                             label = entry.label,
                             icon = entry.icon,
-                            onClick = { repository.launch(entry.component) },
+                            onClick = { repository.launch(entry.key) },
                             onLongClick = {
                                 showTileActionsDialog(
                                     context = this,
                                     entry = entry,
-                                    onAppInfo = { repository.openInfo(entry.component) },
-                                    onUninstall = { repository.requestUninstall(entry.component) },
+                                    onAppInfo = { repository.openInfo(entry.key) },
+                                    onUninstall = { repository.requestUninstall(entry.key) },
                                     onRemove = { favorites.clearSlot(index); buildGrid() },
                                 )
                                 true
@@ -272,11 +271,11 @@ class HomeActivity : AppCompatActivity() {
 }
 
 // Survives the activity, so a recreate — the theme toggle, or a rotation under the Sensor
-// orientation — reuses the resolved favourites instead of re-running loadByComponents and
+// orientation — reuses the resolved favourites instead of re-running loadByKeys and
 // re-decoding every icon on the main thread. Keyed by the same (packageGeneration, slots)
 // pair as before; nothing about when the cache is considered stale has changed.
 class FavoritesCache : ViewModel() {
-    var apps: Map<ComponentName, AppEntry> = emptyMap()
+    var apps: Map<ComponentKey, AppEntry> = emptyMap()
     var generation: Int = -1
     var slots: List<SlotEntry?> = emptyList()
 }

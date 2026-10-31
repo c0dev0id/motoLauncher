@@ -227,23 +227,29 @@ Package layout under `de.codevoid.motolauncher`:
   re-pinning) and no secure lock screen (`KeyguardManager.isDeviceSecure`, whose power
   button is the better park lock). Hiding the tile is enough because nothing else starts
   this activity: the restore path only fires on an `isParked` the tile set.
+- `data/ComponentKey` — an app is a component in a user profile (`ComponentKey`), because
+  the list shows every profile and the same component can exist in several.
+  `getComponentKey` / `putComponentKey` / `removeComponentKey` persist one: the flattened
+  component under the key, the profile's serial number under `<key>_user`, which is left
+  out for the own user. A serial whose profile is gone reads as null.
 - `data/AppRepository` — thin wrapper over `LauncherApps` (not `PackageManager`),
-  iterating all `UserManager` profiles. `launch` → `startMainActivity` (and
-  `launchIfInstalled` for a stored component, gated on `isActivityEnabled` because
-  `startMainActivity` throws on one that no longer exists), `openInfo` →
-  `startAppDetailsActivity`, `requestUninstall` → `ACTION_DELETE` hand-off (needs both
-  `REQUEST_DELETE_PACKAGES` and the `ACTION_DELETE` `<queries>` entry, or it silently does
-  nothing). `loadApps` walks every profile and skips the launcher's own package;
-  `loadByComponents` resolves only the requested components so Home never enumerates or
-  rasterizes every installed app. `sortApps` / `filterApps` are pure companion functions,
-  deliberately free of `Context`.
+  iterating all `UserManager` profiles, and taking `ComponentKey`s. `launch` →
+  `startMainActivity`, but only when `isActivityEnabled` says the app still resolves,
+  because `startMainActivity` throws otherwise and both tiles and the stored nav app can be
+  stale; `openInfo` → `startAppDetailsActivity`, `requestUninstall` → `ACTION_DELETE`
+  hand-off with `EXTRA_USER` (needs both `REQUEST_DELETE_PACKAGES` and the `ACTION_DELETE`
+  `<queries>` entry, or it silently does nothing). `loadApps` walks every profile and
+  skips the launcher's own package; `loadByKeys` resolves only the requested apps so Home
+  never enumerates or rasterizes every installed app. `sortApps` / `filterApps` are pure
+  companion functions, deliberately free of `Context`.
 - `data/*Store` — one small class per `SharedPreferences` concern, all synchronous
   getters/setters. `FavoritesStore` (file `favorites`, `SLOT_COUNT` = 14, enough for the
-  largest Home grid; a smaller grid shows the leading slots and keeps the rest): `slot_<i>` is a
-  flattened `ComponentName` or the literal `link:` marker, in which case
-  `slot_<i>_label` / `slot_<i>_url` hold the link; `getSlotEntry` returns the sealed
-  `SlotEntry`, `getSlot` only the app case, and `setSlot` / `setLink` / `clearSlot` each
-  clean up the other representation's keys. `HiddenAppsStore` (file `hidden_apps`) keeps
+  largest Home grid; a smaller grid shows the leading slots and keeps the rest): `slot_<i>`
+  is an app (`ComponentKey`, with `slot_<i>_user`) or the literal `link:` marker, in which
+  case `slot_<i>_label` / `slot_<i>_url` hold the link; `getSlotEntry` returns the sealed
+  `SlotEntry`, `getSlot` only the app case, and every write first removes all of the
+  slot's keys. `clearSlotsForPackage` clears a package in one profile only. `NavAppStore`
+  keeps a `ComponentKey` the same way. `HiddenAppsStore` (file `hidden_apps`) keeps
   a package-name `Set` plus `showHidden`, and always returns a copy because
   `getStringSet` hands out its live internal set. Everything else shares the `settings`
   file (`SETTINGS_PREFS`): `ThemeStore` (default dark, drives `AppCompatDelegate.setDefaultNightMode`),
@@ -297,7 +303,7 @@ Package layout under `de.codevoid.motolauncher`:
   window is told apart from a real press. A remote that emits an instantaneous down/up
   pair on release still cannot produce a hold — there is no elapsed time to measure. The
   file stays pure key plumbing — the action lives in `ui/QuickLaunch.kt`
-  (`Context.launchNavApp()`: `NavAppStore` → `AppRepository.launchIfInstalled`).
+  (`Context.launchNavApp()`: `NavAppStore` → `AppRepository.launch`).
 - `ui/TouchOnlyRow` — a `LinearLayout` that refuses every way the framework moves focus
   into it without the child asking: focus search (`addFocusables`), default focus
   (`onRequestFocusInDescendants`) and a child becoming focusable

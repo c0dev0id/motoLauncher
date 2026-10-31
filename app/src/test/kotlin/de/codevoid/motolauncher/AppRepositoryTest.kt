@@ -2,8 +2,10 @@ package de.codevoid.motolauncher
 
 import android.content.ComponentName
 import android.graphics.drawable.ColorDrawable
+import android.os.Process
 import de.codevoid.motolauncher.data.AppEntry
 import de.codevoid.motolauncher.data.AppRepository
+import de.codevoid.motolauncher.data.ComponentKey
 import org.junit.Assert.assertEquals
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -13,7 +15,7 @@ import org.robolectric.RobolectricTestRunner
 class AppRepositoryTest {
 
     private fun entry(label: String) =
-        AppEntry(ComponentName("pkg.$label", "pkg.$label.Main"), label, ColorDrawable())
+        AppEntry(ComponentKey(ComponentName("pkg.$label", "pkg.$label.Main"), Process.myUserHandle()), label, ColorDrawable())
 
     @Test
     fun sortsCaseInsensitively() {

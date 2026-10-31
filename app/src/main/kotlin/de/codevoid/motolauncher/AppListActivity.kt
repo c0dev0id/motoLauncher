@@ -3,7 +3,6 @@ package de.codevoid.motolauncher
 import android.Manifest
 import android.app.Application
 import android.app.KeyguardManager
-import android.content.ComponentName
 import android.content.Context
 import android.content.Intent
 import android.content.pm.ActivityInfo
@@ -30,6 +29,7 @@ import de.codevoid.motolauncher.data.AppRepository
 import de.codevoid.motolauncher.data.BatteryDisplay
 import de.codevoid.motolauncher.data.BatteryStore
 import de.codevoid.motolauncher.data.CellularStore
+import de.codevoid.motolauncher.data.ComponentKey
 import de.codevoid.motolauncher.data.FavoritesStore
 import de.codevoid.motolauncher.data.HiddenAppsStore
 import de.codevoid.motolauncher.data.NavAppStore
@@ -205,8 +205,8 @@ class AppListActivity : AppCompatActivity() {
         val navAppSubtitle = if (currentNavApp == null) {
             getString(R.string.pick_none)
         } else {
-            repository.loadByComponents(listOf(currentNavApp))[currentNavApp]?.label
-                ?: currentNavApp.packageName
+            repository.loadByKeys(listOf(currentNavApp))[currentNavApp]?.label
+                ?: currentNavApp.component.packageName
         }
         tiles.add(TileItem(
             label = getString(R.string.nav_app),
@@ -455,23 +455,24 @@ class AppListActivity : AppCompatActivity() {
         val hiddenSet = hiddenAppsStore.hiddenPackages()
         val showHidden = hiddenAppsStore.showHidden
         apps.forEach { entry ->
-            val isHidden = entry.component.packageName in hiddenSet
+            val packageName = entry.key.component.packageName
+            val isHidden = packageName in hiddenSet
             if (isHidden && !showHidden) return@forEach
             tiles.add(TileItem(
                 label = entry.label,
                 icon = entry.icon,
                 dimmed = isHidden,
-                onClick = { onAppSelected(entry.component) },
+                onClick = { onAppSelected(entry.key) },
                 onLongClick = if (pickMode) null else ({
                     showTileActionsDialog(
                         context = this,
                         entry = entry,
-                        onAppInfo = { repository.openInfo(entry.component) },
-                        onUninstall = { repository.requestUninstall(entry.component) },
+                        onAppInfo = { repository.openInfo(entry.key) },
+                        onUninstall = { repository.requestUninstall(entry.key) },
                         hideAction = if (isHidden)
-                            R.string.tile_action_unhide to { hiddenAppsStore.unhide(entry.component.packageName); renderCurrentMode() }
+                            R.string.tile_action_unhide to { hiddenAppsStore.unhide(packageName); renderCurrentMode() }
                         else
-                            R.string.tile_action_hide to { hiddenAppsStore.hide(entry.component.packageName); renderCurrentMode() },
+                            R.string.tile_action_hide to { hiddenAppsStore.hide(packageName); renderCurrentMode() },
                     )
                     true
                 }),
@@ -507,11 +508,11 @@ class AppListActivity : AppCompatActivity() {
         )
     }
 
-    private fun onAppSelected(component: ComponentName) {
+    private fun onAppSelected(app: ComponentKey) {
         when {
-            navAppPickMode -> { navAppStore.navApp = component; finish() }
-            pickSlot != NO_SLOT -> { favoritesStore.setSlot(pickSlot, component); finish() }
-            else -> repository.launch(component)
+            navAppPickMode -> { navAppStore.navApp = app; finish() }
+            pickSlot != NO_SLOT -> { favoritesStore.setSlot(pickSlot, app); finish() }
+            else -> repository.launch(app)
         }
     }
 

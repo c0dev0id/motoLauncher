@@ -5,6 +5,6 @@ import de.codevoid.motolauncher.data.AppRepository
 import de.codevoid.motolauncher.data.NavAppStore
 
 fun Context.launchNavApp() {
-    val component = NavAppStore(this).navApp ?: return
-    AppRepository(this).launchIfInstalled(component)
+    val app = NavAppStore(this).navApp ?: return
+    AppRepository(this).launch(app)
 }

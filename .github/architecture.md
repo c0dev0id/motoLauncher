@@ -99,6 +99,7 @@ entities. All but `park` are included in Android backup.
 erDiagram
     favorites {
         string slot_N "N = 0..13: flattened ComponentName, or the marker link:"
+        long slot_N_user "app slots in another profile: its serial number"
         string slot_N_label "link slots only"
         string slot_N_url "link slots only"
     }
@@ -109,6 +110,7 @@ erDiagram
     settings {
         boolean dark_theme "default true"
         string nav_app "flattened ComponentName"
+        long nav_app_user "nav app in another profile: its serial number"
         int orientation "default FULL_SENSOR"
         string tile_size "LARGE, MEDIUM or SMALL"
         boolean show_nav_bar "default false"
@@ -124,6 +126,7 @@ erDiagram
     }
     launcher_activity {
         string component "package/class, resolved through LauncherApps"
+        string user "the profile it is installed in"
     }
     favorites }o--o{ launcher_activity : "app slots launch"
     settings }o--o| launcher_activity : "nav_app launches"

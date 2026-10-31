@@ -2,9 +2,11 @@ package de.codevoid.motolauncher
 
 import android.content.ComponentName
 import android.graphics.drawable.ColorDrawable
+import android.os.Process
 import android.widget.TextView
 import androidx.test.core.app.ApplicationProvider
 import de.codevoid.motolauncher.data.AppEntry
+import de.codevoid.motolauncher.data.ComponentKey
 import de.codevoid.motolauncher.ui.showTileActionsDialog
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
@@ -16,7 +18,11 @@ import org.robolectric.RobolectricTestRunner
 @RunWith(RobolectricTestRunner::class)
 class TileActionsDialogTest {
 
-    private val entry = AppEntry(ComponentName("com.example", "com.example.Main"), "Example", ColorDrawable())
+    private val entry = AppEntry(
+        ComponentKey(ComponentName("com.example", "com.example.Main"), Process.myUserHandle()),
+        "Example",
+        ColorDrawable(),
+    )
 
     private class Calls {
         var appInfo = 0
