@@ -67,8 +67,9 @@ too.
 | GPS Speed | Off (default), On |
 | Units | km/h (default), mph |
 
-**Orientation** opens a list and applies only the one you pick. **Sensor** follows the
-device and rotates on its own, whatever Android's auto-rotate switch says.
+**Orientation** opens a list with the current choice filled in blue and applies only the
+one you pick. **Sensor** follows the device and rotates on its own, whatever Android's
+auto-rotate switch says.
 
 **GPS Speed** asks for location permission the first time you turn it on, and
 switches on only if you allow it. GPS Speed and Units appear only on devices with GPS.
