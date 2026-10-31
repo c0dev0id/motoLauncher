@@ -1,7 +1,9 @@
 # Features
 
-- **Home grid.** 4×3 in landscape, 3×4 in portrait: eleven favourite slots plus a fixed
-  All Apps tile. A slot holds an app, a link (label + URL, opened with `ACTION_VIEW`),
+- **Home grid.** 8, 12 (default) or 15 tiles by the Tile size setting: 4×2, 4×3 or 5×3
+  in landscape, transposed in portrait so rotation keeps the count. All but the last
+  tile are favourite slots; the last is a fixed All Apps tile. Slots that a smaller grid
+  cannot show keep their contents. A slot holds an app, a link (label + URL, opened with `ACTION_VIEW`),
   or nothing; an empty "+" tile opens the picker for that slot.
 - **Remote operation.** Dpad, Enter and Escape drive Home and the app list through the
   native focus engine. The remote can only launch: every configuration path is
@@ -18,10 +20,13 @@
   the navigation-app picker (with None).
 - **Settings mode.** A toggle in the app list header swaps the grid for settings tiles:
   theme, navigation app, update check (github flavor), park lock, cellular indicator,
-  GPS speed and units, battery display, hidden apps, orientation, navigation bar,
-  privacy policy. The search field filters them.
+  GPS speed and units, battery display, hidden apps, orientation, tile size, navigation
+  bar, privacy policy. The search field filters them.
 - **Orientation.** Landscape, portrait, their reverses, or Sensor (default), chosen
   from a picker. The grid and status bar reshape on rotation.
+- **Tile size.** Large, Medium (default) or Small, chosen from a picker that shows each
+  size's Home tile count. Sets the Home grid and the app list's columns (4, 5 or 6 in
+  landscape, 3, 4 or 5 in portrait) together.
 - **Status bar.** Time, optional GPS speed in km/h or mph, Wi-Fi, optional cellular,
   and battery as icon, text or both. Clock and battery refresh when the screen wakes or
   Home returns to view.

@@ -98,7 +98,7 @@ entities.
 ```mermaid
 erDiagram
     favorites {
-        string slot_N "N = 0..10: flattened ComponentName, or the marker link:"
+        string slot_N "N = 0..13: flattened ComponentName, or the marker link:"
         string slot_N_label "link slots only"
         string slot_N_url "link slots only"
     }
@@ -110,6 +110,7 @@ erDiagram
         boolean dark_theme "default true"
         string nav_app "flattened ComponentName"
         int orientation "default FULL_SENSOR"
+        string tile_size "LARGE, MEDIUM or SMALL"
         boolean show_nav_bar "default false"
         boolean cellular_enabled "default false"
         boolean speed_enabled "default false"

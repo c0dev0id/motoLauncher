@@ -72,8 +72,11 @@ These drive nearly every UI decision — violating them defeats the point of the
   `orientation` there would freeze the layout in whatever shape it started in. The device
   is a 7" landscape screen; portrait exists for phones. Every activity calls
   `setRequestedOrientation` in `onCreate` and `onResume`; grid shape
-  follows `Context.isPortrait` (`ui/LayoutUtils.kt`): Home is 4×3 landscape / 3×4
-  portrait, the app list 5 / 4 columns, and the status bar has a `layout-port` variant.
+  follows the Tile size setting (`TileSize`) and `Context.isPortrait`
+  (`ui/LayoutUtils.kt`): Home is 4×2, 4×3 (default) or 5×3 in landscape and the same
+  grid transposed in portrait, so rotating never changes the tile count; the app list
+  has 4 / 5 / 6 columns in landscape and 3 / 4 / 5 in portrait; and the status bar has a
+  `layout-port` variant.
   The status bar is always hidden (immersive mode); the navigation bar follows
   `NavBarStore` (hidden by default).
 - **Home and the app list must be operable by remote** using only the keys the remote
@@ -125,13 +128,16 @@ Package layout under `de.codevoid.motolauncher`:
   `Deferred<List<AppEntry>>` on an IO scope, reissued only when `packageGeneration` moved.
   Callers detect a stale list by comparing the returned `Deferred` instance, not by a flag.
   Home warms it in `onCreate` so "All Apps" opens with the list already decoded.
-- `HomeActivity` — the launcher entry (`category.HOME`, `singleTask`). Fixed grid of 12
-  tiles: 11 favourite slots + a pinned "All Apps" tile in the last cell. The grid is **not**
-  a RecyclerView: `populateGrid()` inflates `item_app_tile` 12 times into weighted
-  `LinearLayout` rows once in `onCreate`, and `buildGrid()` rebinds them in `onResume`.
+- `HomeActivity` — the launcher entry (`category.HOME`, `singleTask`). Fixed grid of 8,
+  12 or 15 tiles (`TileSize.homeTileCount`): the leading favourite slots + a pinned "All
+  Apps" tile in the last cell. The grid is **not** a RecyclerView:
+  `populateGrid(tileSize)` inflates `item_app_tile` once per cell into weighted
+  `LinearLayout` rows, and `buildGrid()` rebinds them in `onResume`. `onResume` calls
+  `populateGrid` only when the stored size differs from `gridTileSize`, the size the
+  tiles were built for: on the first resume, and on return from a Tile size change.
   Weighted layout divides space in the layout pass by construction, which is what fixed
   the cold-start "third row cut off" first-frame race. `buildGrid` keeps the resolved
-  `AppEntry`s in `FavoritesCache`, a `ViewModel`, keyed on (`packageGeneration`, current
+  `AppEntry`s in `FavoritesCache`, a `ViewModel`, keyed on (`packageGeneration`, visible
   slot list), so returning from the navigation app costs no Binder calls or icon decoding.
   It is a `ViewModel` rather than an activity field because a recreate — the theme toggle,
   or a rotation under the Sensor orientation — would otherwise start it empty and redo the
@@ -140,13 +146,14 @@ Package layout under `de.codevoid.motolauncher`:
   (`ACTION_VIEW` on the URL / Edit link / Remove) or empty ("+" opens the picker for that
   slot). Back is swallowed; a short Escape does nothing and a held Escape runs
   `launchNavApp()` (`EscapeKeys`). A `StatusBarView` sits above the grid. Two consequences
-  of reusing the same 12 views: remote focus is seeded on tile 0 *once* in `onCreate`
-  (re-seeding in `onResume` would drag the remote back to the first tile after every
-  launch), and `bindTile` must null the long-click listener and drop `isLongClickable` for
+  of reusing the same views: remote focus is seeded on tile 0 only when `populateGrid`
+  creates new tiles (re-seeding on every resume would drag the remote back to the first
+  tile after every launch), and `bindTile` must null the long-click listener and drop `isLongClickable` for
   a tile that has no long-press, or the framework keeps arming the timer from the tile's
   previous binding.
-- `AppListActivity` — `RecyclerView` + `GridLayoutManager`; focus is seeded on the first
-  cell once the first load resolves. Three modes, decided by intent extras: **browse**
+- `AppListActivity` — `RecyclerView` + `GridLayoutManager`, whose span count is
+  `TileSize.listColumns` and is set in place when Tile size changes; focus is seeded on
+  the first cell once the first load resolves. Three modes, decided by intent extras: **browse**
   (tap launches, long-press opens the tile menu), **slot pick**
   (`pickIntent(context, slot)`: a leading "None" tile clears the slot, an "Add link" tile
   opens `showLinkDialog` pre-filled from the slot's current link, any app tile is written
@@ -163,7 +170,8 @@ Package layout under `de.codevoid.motolauncher`:
   and text-only settings tiles (theme, nav app, update check with live download progress
   in the github flavor, park lock when `ParkActivity.shouldOfferParkLock` allows it,
   cellular toggle, GPS speed toggle + units when the device has `FEATURE_LOCATION_GPS`,
-  battery display, hidden apps, orientation, nav bar, privacy policy). The settings list
+  battery display, hidden apps, orientation, tile size, nav bar, privacy policy).
+  Orientation and Tile size open `showOptionsDialog`. The settings list
   is cached in `settingsTilesCache`; every tile that changes state sets it to `null` before
   re-rendering. Download progress patches the update tile in place, found by its label:
   in `settingsTilesCache`, and on screen only while settings mode shows, because the
@@ -218,7 +226,8 @@ Package layout under `de.codevoid.motolauncher`:
   rasterizes every installed app. `sortApps` / `filterApps` are pure companion functions,
   deliberately free of `Context`.
 - `data/*Store` — one small class per `SharedPreferences` concern, all synchronous
-  getters/setters. `FavoritesStore` (file `favorites`, `SLOT_COUNT` = 11): `slot_<i>` is a
+  getters/setters. `FavoritesStore` (file `favorites`, `SLOT_COUNT` = 14, enough for the
+  largest Home grid; a smaller grid shows the leading slots and keeps the rest): `slot_<i>` is a
   flattened `ComponentName` or the literal `link:` marker, in which case
   `slot_<i>_label` / `slot_<i>_url` hold the link; `getSlotEntry` returns the sealed
   `SlotEntry`, `getSlot` only the app case, and `setSlot` / `setLink` / `clearSlot` each
@@ -227,7 +236,8 @@ Package layout under `de.codevoid.motolauncher`:
   `getStringSet` hands out its live internal set. Everything else shares the `settings`
   file: `ThemeStore` (default dark, drives `AppCompatDelegate.setDefaultNightMode`),
   `NavAppStore`, `OrientationStore`, `NavBarStore`, `CellularStore`, `SpeedStore`
-  (enabled + metric), `BatteryStore` (`BatteryDisplay` enum), and `ParkStore` (parked
+  (enabled + metric), `BatteryStore` (`BatteryDisplay` enum), `TileSizeStore` (`TileSize`
+  enum: Home grid per orientation and app-list columns; default `MEDIUM`), and `ParkStore` (parked
   flag + salted-hash park PIN; the hash is hygiene, not security). `StatusBarView` listens to
   that file by key, so a new status-bar setting is a new public `KEY_*` constant plus a
   branch in its `prefsListener`, not new lifecycle wiring.
@@ -404,7 +414,7 @@ republishes the `dev` pre-release. Three parallel jobs plus a follow-up release 
   unit tests in `app/src/test/kotlin` (`isIncludeAndroidResources = true`, so real resources and view
   inflation work; see *Commands* for running a single class or test).
   Robolectric runs them against SDK 36, which needs JDK 21 — hence JDK 21 in CI.
-  Fourteen classes, and the shape they set: `AppRepositoryTest` (the pure `sortApps` /
+  Fifteen classes, and the shape they set: `AppRepositoryTest` (the pure `sortApps` /
   `filterApps`), `FavoritesStoreTest` (app and link slot round-trips against real
   `SharedPreferences`, the two representations cleaning each other up, and
   `clearSlotsForPackage` matching whole package names and leaving link slots alone),
@@ -427,7 +437,10 @@ republishes the `dev` pre-release. Three parallel jobs plus a follow-up release 
   clear), `ParkLockTaskGuardTest` (the pure `shouldRequestLockTask` rule, including the
   settle window that stops a redundant second pin request), `ParkLockAvailabilityTest`
   (the pure `shouldOfferParkLock` rule, with the API boundary written as numbers so it is
-  pinned independently of the constant) and `OptionsDialogTest` (rows
+  pinned independently of the constant), `TileSizeStoreTest` (default and round trip
+  through a second instance, an unknown stored name falling back to Medium, the 8 / 12 /
+  15 Home counts, portrait as the landscape grid transposed, the app-list columns, and
+  `SLOT_COUNT` filling every grid), `OptionsDialogTest` (rows
   in caller order, one index reported per pick, dismissal, and that only the selected row
   is marked selected and drawn differently) and `ColorContrastTest` (every text colour on
   every fill it is drawn on at 4.5:1 and the focus ring at 3:1, in both themes, read

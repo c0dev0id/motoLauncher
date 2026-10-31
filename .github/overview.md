@@ -12,8 +12,9 @@ press on the road can strand the rider on a screen that needs touch to get out o
 
 motoLauncher is a home app built around those two inputs.
 
-- **Big, fixed tiles.** Home is a grid of twelve large tiles that never scrolls. No
-  primary flow needs a swipe.
+- **Big, fixed tiles.** Home is a grid of large tiles that never scrolls: twelve by
+  default, eight or fifteen to suit a smaller or larger screen. No primary flow needs a
+  swipe.
 - **A remote that can only launch.** The remote moves a focus highlight with the
   native View focus engine and launches with Enter. Everything that needs touch to leave
   is unreachable from it. Holding Escape starts the navigation app from anywhere in the

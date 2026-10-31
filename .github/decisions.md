@@ -79,15 +79,16 @@ shows the real timestamps if that is ever suspected.
 ## Home screen
 
 ### Weighted `LinearLayout` grid, not `RecyclerView`
-Twelve tiles, always visible, never scrolling. With a `RecyclerView` the adapter bound
+A fixed set of tiles, always visible, never scrolling. With a `RecyclerView` the adapter bound
 before the parent's final size was known, and on cold start the first frame showed the
 third row cut off; the workaround recomputed row height on every layout pass. Nested
 weighted `LinearLayout`s divide the space in the layout pass by construction. Tiles are
-inflated once in `onCreate` and rebound in `onResume`.
+inflated when the activity first resumes or the tile size has changed since, and are
+rebound on every resume.
 
-### Consequences of reusing the twelve tile views
-Remote focus is seeded on the first tile once, in `onCreate`. Re-seeding in `onResume`
-would pull the remote back to the first tile after every launch. `bindTile` clears the
+### Consequences of reusing the tile views
+Remote focus is seeded on the first tile only when new tiles are inflated. Re-seeding on
+every resume would pull the remote back to the first tile after every launch. `bindTile` clears the
 long-click listener and `isLongClickable` for a tile without a long press, or the
 framework keeps arming the timer from the tile's previous binding.
 
@@ -98,7 +99,9 @@ was an activity field until the Sensor orientation made rotation common: every r
 then redid the whole resolve on the main thread in `onResume`.
 
 ### Favourites are slots in `SharedPreferences`
-Eleven slots plus the fixed All Apps tile fill the 4×3 grid. A slot holds a flattened
+Fourteen slots plus the fixed All Apps tile fill the largest grid, 5×3. A smaller grid
+shows the leading slots; the others keep their contents and reappear when the grid grows
+again, so changing the tile size never loses configuration. A slot holds a flattened
 `ComponentName`, or the `link:` marker with the label and URL in two sibling keys. Each
 setter removes the other representation's keys.
 
@@ -106,6 +109,27 @@ setter removes the other representation's keys.
 The tile menu once offered "Reassign app". Remove followed by tapping the empty "+" tile
 is simpler and avoids carrying the current occupant and the pick target across the
 picker round trip.
+
+### Tile size is a tile count, the same in both orientations
+Tile size (Large, Medium, Small) sets Home to 8, 12 or 15 tiles and the app list to 4, 5
+or 6 columns in landscape, 3, 4 or 5 in portrait. It exists so the physical tile size
+can follow the screen: tile area scales with the square of the diagonal, so a 6" screen
+needs about 9 tiles and an 8" about 16 to keep the 7" device's tile size.
+
+The first design offered separate −1 / +1 offsets for Home's columns and rows. It was
+dropped before it was built, for two reasons. Offsets applied per screen axis give
+different tile counts in landscape and portrait whenever the two differ, so a rotation
+under Sensor would have hidden or shown a slot and moved All Apps. And a fourth
+landscape row leaves a tile shorter than its icon plus a two-line label on the 7"
+device, which would have needed the icon to shrink to fit. The portrait grid is now the
+landscape grid transposed. In landscape no shape (4×2, 4×3, 5×3) has more than the
+default three rows; the one extra row, Small in portrait, runs along the screen's long
+side. The tile layout is unchanged.
+
+The app list follows the same setting rather than its own, so the choice reads as one
+decision about the screen. It is a picker, not a cycling tile: each step reflows the
+settings grid, which moves the Tile size tile out from under the finger, and the picker
+shows each size's tile count before it is applied.
 
 ### The picker writes the slot itself
 `AppListActivity.pickIntent(context, slot)` stores the choice in `FavoritesStore` and
