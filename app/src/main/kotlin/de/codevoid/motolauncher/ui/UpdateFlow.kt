@@ -3,8 +3,8 @@ package de.codevoid.motolauncher.ui
 import android.app.Application
 import android.content.Context
 import android.content.Intent
+import android.os.Bundle
 import android.os.SystemClock
-import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
@@ -117,27 +117,45 @@ fun UpdateState.Downloading.progressText(): String =
     (percent?.let { "$it% · " } ?: "") + "%.1f MB/s".format(bytesPerSecond / (1024.0 * 1024))
 
 /** Shows [event]: a message, the install prompt, the installer, or the failure. */
-fun AppCompatActivity.showUpdateEvent(event: UpdateEvent, updates: UpdateViewModel) {
+fun AppCompatActivity.showUpdateEvent(event: UpdateEvent) {
     when (event) {
-        UpdateEvent.UpToDate -> showUpdateMessage(getString(R.string.update_none))
-        is UpdateEvent.Available -> AlertDialog.Builder(this)
-            .setTitle(getString(R.string.update_available, event.release.versionName))
-            .setPositiveButton(R.string.update_download) { _, _ -> updates.download(event.release) }
-            .setNegativeButton(R.string.cancel, null)
-            .create()
-            .showImmersive()
+        UpdateEvent.UpToDate -> MessageDialog.tell(supportFragmentManager, getString(R.string.update_none))
+        is UpdateEvent.Available -> MessageDialog.ask(
+            supportFragmentManager,
+            DOWNLOAD_REQUEST,
+            question = getString(R.string.update_available, event.release.versionName),
+            positive = getString(R.string.update_download),
+            extras = event.release.toBundle(),
+        )
         is UpdateEvent.Install -> startActivity(event.intent)
-        is UpdateEvent.Failed -> showUpdateMessage(getString(R.string.update_failed, updateErrorText(event.error)))
+        is UpdateEvent.Failed ->
+            MessageDialog.tell(supportFragmentManager, getString(R.string.update_failed, updateErrorText(event.error)))
     }
 }
 
-private fun AppCompatActivity.showUpdateMessage(text: String) {
-    AlertDialog.Builder(this)
-        .setMessage(text)
-        .setPositiveButton(R.string.ok, null)
-        .create()
-        .showImmersive()
+/**
+ * Starts the download once the install prompt is accepted. Call it from `onCreate`, so a
+ * prompt that outlived a recreate still reaches the flow.
+ */
+fun AppCompatActivity.downloadWhenAccepted(updates: UpdateViewModel) {
+    supportFragmentManager.setFragmentResultListener(DOWNLOAD_REQUEST, this) { _, result ->
+        updates.download(result.toReleaseInfo())
+    }
 }
+
+private const val DOWNLOAD_REQUEST = "update.download"
+
+private fun ReleaseInfo.toBundle() = Bundle().apply {
+    putString("versionName", versionName)
+    putString("apkUrl", apkUrl)
+    putString("apkName", apkName)
+}
+
+private fun Bundle.toReleaseInfo() = ReleaseInfo(
+    versionName = requireNotNull(getString("versionName")),
+    apkUrl = requireNotNull(getString("apkUrl")),
+    apkName = requireNotNull(getString("apkName")),
+)
 
 /** [error] in words a rider can act on. */
 fun Context.updateErrorText(error: Exception): String = when (error) {

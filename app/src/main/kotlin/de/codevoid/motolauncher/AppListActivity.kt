@@ -32,6 +32,7 @@ import de.codevoid.motolauncher.ui.AppTileAdapter
 import de.codevoid.motolauncher.ui.EscapeKeys
 import de.codevoid.motolauncher.ui.TileItem
 import de.codevoid.motolauncher.ui.UpdateViewModel
+import de.codevoid.motolauncher.ui.downloadWhenAccepted
 import de.codevoid.motolauncher.ui.enableImmersiveMode
 import de.codevoid.motolauncher.ui.fitContentToSystemBars
 import de.codevoid.motolauncher.ui.isPortrait
@@ -126,10 +127,11 @@ class AppListActivity : AppCompatActivity() {
             }
         }
         if (BuildConfig.SELF_UPDATE) {
+            downloadWhenAccepted(updates)
             lifecycleScope.launch {
                 repeatOnLifecycle(Lifecycle.State.STARTED) {
                     launch { updates.state.drop(1).collect { if (viewModel.isSettingsMode) renderCurrentMode() } }
-                    updates.events.collect { showUpdateEvent(it, updates) }
+                    updates.events.collect(::showUpdateEvent)
                 }
             }
         }

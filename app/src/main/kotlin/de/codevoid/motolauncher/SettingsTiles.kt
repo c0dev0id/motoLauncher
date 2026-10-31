@@ -7,7 +7,6 @@ import android.content.pm.PackageManager
 import android.os.Build
 import androidx.activity.result.contract.ActivityResultContracts.RequestMultiplePermissions
 import androidx.annotation.StringRes
-import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.content.ContextCompat
 import de.codevoid.motolauncher.data.AppEntry
@@ -24,13 +23,13 @@ import de.codevoid.motolauncher.data.ThemeStore
 import de.codevoid.motolauncher.data.TileSize
 import de.codevoid.motolauncher.data.TileSizeStore
 import de.codevoid.motolauncher.ui.MenuDialog
+import de.codevoid.motolauncher.ui.MessageDialog
 import de.codevoid.motolauncher.ui.TileItem
 import de.codevoid.motolauncher.ui.UpdateState
 import de.codevoid.motolauncher.ui.UpdateViewModel
 import de.codevoid.motolauncher.ui.enableImmersiveMode
 import de.codevoid.motolauncher.ui.noTransition
 import de.codevoid.motolauncher.ui.progressText
-import de.codevoid.motolauncher.ui.showImmersive
 
 /**
  * The app list's settings mode: its tiles and what tapping them does. Every change of a
@@ -229,12 +228,11 @@ class SettingsTiles(
     )
 
     private fun showPrivacyPolicy() {
-        AlertDialog.Builder(activity)
-            .setTitle(R.string.privacy_policy)
-            .setMessage(R.string.privacy_policy_text)
-            .setPositiveButton(R.string.ok, null)
-            .create()
-            .showImmersive()
+        MessageDialog.tell(
+            activity.supportFragmentManager,
+            activity.getString(R.string.privacy_policy_text),
+            title = activity.getString(R.string.privacy_policy),
+        )
     }
 
     private companion object {
