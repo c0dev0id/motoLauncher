@@ -227,6 +227,13 @@ are floating and keep the platform default.
 Layouts reference colour tokens; `values-night/colors.xml` overrides them. The theme
 toggle needs no colour logic in code.
 
+### Text holds 4.5:1 on every fill, in both themes
+The pressed fill is a per-theme value: a light accent tint in the light theme, a deep
+accent in the dark. A single deep blue left the light theme's dark labels at 2.38:1
+while a finger was down. Turning labels white while pressed was rejected because every
+text and glyph colour on a tile would then need a state list; with a per-theme fill,
+`on_surface` and `on_surface_muted` read on it unchanged.
+
 ### Signal meters have their own "unlit" colour
 Unlit bars were once drawn in `on_surface_muted`, a secondary-text colour that sits
 about 1.85:1 from `on_surface` in the dark theme, so full and empty signal looked
