@@ -7,7 +7,7 @@ class HiddenAppsStore(context: Context) {
     private val prefs = context.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
 
     // Returns a mutable copy — callers must not mutate the live SharedPreferences set.
-    fun hiddenPackages(): Set<String> = prefs.getStringSet(KEY_HIDDEN, emptySet())!!.toHashSet()
+    fun hiddenPackages(): Set<String> = prefs.getStringSet(KEY_HIDDEN, null).orEmpty().toHashSet()
 
     fun hide(packageName: String) {
         prefs.edit().putStringSet(KEY_HIDDEN, hiddenPackages() + packageName).apply()

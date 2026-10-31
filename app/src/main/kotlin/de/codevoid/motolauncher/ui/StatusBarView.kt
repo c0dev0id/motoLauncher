@@ -35,6 +35,7 @@ import de.codevoid.motolauncher.R
 import de.codevoid.motolauncher.data.BatteryDisplay
 import de.codevoid.motolauncher.data.BatteryStore
 import de.codevoid.motolauncher.data.CellularStore
+import de.codevoid.motolauncher.data.SETTINGS_PREFS
 import de.codevoid.motolauncher.data.SpeedStore
 import de.codevoid.motolauncher.databinding.ViewStatusBarBinding
 import java.text.SimpleDateFormat
@@ -66,7 +67,7 @@ class StatusBarView @JvmOverloads constructor(
     private val cellularStore = CellularStore(context)
     private val batteryStore = BatteryStore(context)
     private val settingsPrefs =
-        context.getSharedPreferences(SpeedStore.PREFS, Context.MODE_PRIVATE)
+        context.getSharedPreferences(SETTINGS_PREFS, Context.MODE_PRIVATE)
 
     // Fixed per device, so read once. Before API 30 the rating is on the icon's own five steps.
     private val wifiMaxSignalLevel =

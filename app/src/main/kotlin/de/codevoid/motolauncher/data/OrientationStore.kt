@@ -5,7 +5,7 @@ import android.content.pm.ActivityInfo
 
 class OrientationStore(context: Context) {
 
-    private val prefs = context.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
+    private val prefs = context.getSharedPreferences(SETTINGS_PREFS, Context.MODE_PRIVATE)
 
     // Sensor by default: the device is landscape-mounted, but a launcher that cannot
     // follow the screen it is on is worse out of the box than one that can. An install
@@ -16,7 +16,6 @@ class OrientationStore(context: Context) {
         set(value) { prefs.edit().putInt(KEY, value).apply() }
 
     companion object {
-        private const val PREFS = "settings"
         private const val KEY = "orientation"
     }
 }

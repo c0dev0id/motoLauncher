@@ -5,7 +5,7 @@ import android.content.Context
 
 class NavAppStore(context: Context) {
 
-    private val prefs = context.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
+    private val prefs = context.getSharedPreferences(SETTINGS_PREFS, Context.MODE_PRIVATE)
 
     var navApp: ComponentName?
         get() = prefs.getString(KEY, null)?.let { ComponentName.unflattenFromString(it) }
@@ -15,7 +15,6 @@ class NavAppStore(context: Context) {
         }
 
     companion object {
-        private const val PREFS = "settings"
         private const val KEY = "nav_app"
     }
 }

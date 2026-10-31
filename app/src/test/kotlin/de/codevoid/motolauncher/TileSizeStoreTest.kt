@@ -3,6 +3,7 @@ package de.codevoid.motolauncher
 import android.content.Context
 import androidx.test.core.app.ApplicationProvider
 import de.codevoid.motolauncher.data.FavoritesStore
+import de.codevoid.motolauncher.data.SETTINGS_PREFS
 import de.codevoid.motolauncher.data.TileSize
 import de.codevoid.motolauncher.data.TileSizeStore
 import org.junit.Assert.assertEquals
@@ -29,7 +30,7 @@ class TileSizeStoreTest {
 
     @Test
     fun unknownStoredValueFallsBackToMedium() {
-        context.getSharedPreferences("settings", Context.MODE_PRIVATE)
+        context.getSharedPreferences(SETTINGS_PREFS, Context.MODE_PRIVATE)
             .edit().putString("tile_size", "HUGE").commit()
         assertEquals(TileSize.MEDIUM, TileSizeStore(context).tileSize)
     }

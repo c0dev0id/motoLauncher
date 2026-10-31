@@ -29,7 +29,7 @@ enum class TileSize(
 }
 
 class TileSizeStore(context: Context) {
-    private val prefs = context.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
+    private val prefs = context.getSharedPreferences(SETTINGS_PREFS, Context.MODE_PRIVATE)
 
     var tileSize: TileSize
         get() = prefs.getString(KEY, null)
@@ -38,7 +38,6 @@ class TileSizeStore(context: Context) {
         set(value) { prefs.edit().putString(KEY, value.name).apply() }
 
     companion object {
-        private const val PREFS = "settings"
         private const val KEY = "tile_size"
     }
 }

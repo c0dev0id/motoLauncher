@@ -5,7 +5,7 @@ import android.content.Context
 enum class BatteryDisplay { BOTH, ICON, TEXT }
 
 class BatteryStore(context: Context) {
-    private val prefs = context.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
+    private val prefs = context.getSharedPreferences(SETTINGS_PREFS, Context.MODE_PRIVATE)
 
     var display: BatteryDisplay
         get() = prefs.getString(KEY_BATTERY_DISPLAY, null)
@@ -14,7 +14,6 @@ class BatteryStore(context: Context) {
         set(value) { prefs.edit().putString(KEY_BATTERY_DISPLAY, value.name).apply() }
 
     companion object {
-        private const val PREFS = "settings"
         const val KEY_BATTERY_DISPLAY = "battery_display"
     }
 }

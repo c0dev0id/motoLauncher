@@ -5,7 +5,7 @@ import androidx.appcompat.app.AppCompatDelegate
 
 class ThemeStore(context: Context) {
 
-    private val prefs = context.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
+    private val prefs = context.getSharedPreferences(SETTINGS_PREFS, Context.MODE_PRIVATE)
 
     var isDark: Boolean
         get() = prefs.getBoolean(KEY_DARK, true)
@@ -21,7 +21,6 @@ class ThemeStore(context: Context) {
     }
 
     companion object {
-        private const val PREFS = "settings"
         private const val KEY_DARK = "dark_theme"
     }
 }

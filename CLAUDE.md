@@ -246,7 +246,7 @@ Package layout under `de.codevoid.motolauncher`:
   clean up the other representation's keys. `HiddenAppsStore` (file `hidden_apps`) keeps
   a package-name `Set` plus `showHidden`, and always returns a copy because
   `getStringSet` hands out its live internal set. Everything else shares the `settings`
-  file: `ThemeStore` (default dark, drives `AppCompatDelegate.setDefaultNightMode`),
+  file (`SETTINGS_PREFS`): `ThemeStore` (default dark, drives `AppCompatDelegate.setDefaultNightMode`),
   `NavAppStore`, `OrientationStore`, `NavBarStore`, `CellularStore`, `SpeedStore`
   (enabled + metric), `BatteryStore` (`BatteryDisplay` enum), `TileSizeStore` (`TileSize`
   enum: Home grid per orientation and app-list columns; default `MEDIUM`). `StatusBarView`
