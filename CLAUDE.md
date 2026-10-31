@@ -465,7 +465,7 @@ republishes the `dev` pre-release. Three parallel jobs plus a follow-up release 
   unit tests in `app/src/test/kotlin` (`isIncludeAndroidResources = true`, so real resources and view
   inflation work; see *Commands* for running a single class or test).
   Robolectric runs them against SDK 36, which needs JDK 21 — hence JDK 21 in CI.
-  Twenty-four classes, and the shape they set: `AppRepositoryTest` (the pure `sortApps` /
+  Twenty-six classes, and the shape they set: `AppRepositoryTest` (the pure `sortApps` /
   `filterApps`), `FavoritesStoreTest` (app and link slot round-trips against real
   `SharedPreferences`, a work-profile app keeping its profile through a profile added to
   Robolectric's `UserManager`, a gone profile reading empty, every write leaving no stale
@@ -475,7 +475,13 @@ republishes the `dev` pre-release. Three parallel jobs plus a follow-up release 
   event only advances the generation), `MotoLauncherAppTest` (driven through Robolectric's
   `LauncherApps` shadow: the app list is reused until a package event, and an uninstall
   clears its favourite), `FavoritesCacheTest` (only unseen keys are loaded, an unresolved
-  one is not asked again, a new generation reloads everything),
+  one is not asked again, a new generation reloads everything), `AppTilesTest` (the pure
+  `appTiles`: hidden apps left out or dimmed, tiles keyed by `ComponentKey`, tap and long
+  press reaching their app), `AppListActivityTest` (a real `AppListActivity`, reading tiles
+  through the adapter: settings mode is touch-only and a short Escape leaves it before the
+  screen, a setting change shows at once, the nav app falls back to its package name, the
+  slot picker leads with None and Add link without a settings button, the nav-app picker
+  with None only),
   `UpdateCheckerTest` (`parseRelease` / `isNewer` / `releaseApiUrl` /
   `deleteInstalledUpdate` over JSON fixtures and temp files), `ImmersiveTest` (content
   padding follows dispatched bar and cutout insets), `PrivacyPolicyTest` (the in-app text is
@@ -488,7 +494,7 @@ republishes the `dev` pre-release. Three parallel jobs plus a follow-up release 
   Home is in front rebinds the grid without a resume),
   `TileActionsDialogTest` (inflates the dialog through the
   handle `showTileActionsDialog` returns: row order, optional rows hidden, one callback per
-  row, dismissal, no row focusable), `LinkDialogTest` (out of touch mode, default focus
+  row, dismissal, no row focusable; the link menu shows only Edit link and Remove), `LinkDialogTest` (out of touch mode, default focus
   finds neither field and no button is focusable, while the keyboard's Next still moves
   from the label to the URL), `EscapeKeysTest` (short vs. held Escape, dispatched through a real
   `KeyEvent.DispatcherState` so the framework's tracking rules are exercised rather than
