@@ -106,7 +106,7 @@ jobs:
           name: app-release
           path: app/build/outputs/apk/github/release/app-github-release.apk
 
-  draft-release:
+  dev-release:
     needs: build
     runs-on: ubuntu-latest
     permissions:
@@ -120,27 +120,23 @@ jobs:
         with:
           name: app-release
 
-      - name: Rename APK
-        run: |
-          SHORT_SHA="${GITHUB_SHA:0:7}"
-          mv app-github-release.apk "motoLauncher-dev-${SHORT_SHA}.apk"
-          echo "apk_name=motoLauncher-dev-${SHORT_SHA}.apk" >> "$GITHUB_ENV"
-
-      - name: Delete existing dev release
+      # Updated in place: the tag moves to this commit and the new APK replaces the old
+      # one, so the release the updater asks for exists throughout.
+      - name: Publish the dev pre-release
         env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: gh release delete dev --yes 2>/dev/null || true
-
-      - name: Create pre-release
-        uses: softprops/action-gh-release@v2
-        with:
-          tag_name: dev
-          name: Development Build
-          body: |
-            Automated development build from commit ${{ github.sha }} on ${{ github.ref_name }}.
-
-            This is a pre-release snapshot — not intended for production use.
-          draft: false
-          prerelease: true
-          make_latest: false
-          files: ${{ env.apk_name }}
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          apk="motoLauncher-dev-${GITHUB_SHA::7}.apk"
+          mv app-github-release.apk "$apk"
+          notes="Automated development build from commit $GITHUB_SHA on $GITHUB_REF_NAME. This is a pre-release snapshot, not intended for production use."
+          git tag -f dev "$GITHUB_SHA"
+          git push -f origin refs/tags/dev
+          if gh release view dev > /dev/null 2>&1; then
+            gh release upload dev "$apk" --clobber
+            gh release edit dev --title "Development Build" --notes "$notes" --prerelease --latest=false
+            gh release view dev --json assets --jq '.assets[].name' \
+              | { grep -vxF "$apk" || true; } \
+              | while read -r old; do gh release delete-asset dev "$old" --yes; done
+          else
+            gh release create dev "$apk" --title "Development Build" --notes "$notes" --prerelease --latest=false
+          fi
