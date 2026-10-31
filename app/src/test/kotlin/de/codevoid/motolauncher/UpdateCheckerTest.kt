@@ -38,6 +38,17 @@ class UpdateCheckerTest {
     }
 
     @Test
+    fun parseReleaseSkipsAnAssetNameWithAPath() {
+        val json = """
+            {"assets":[
+              {"name":"../motoLauncher-dev-evil.apk","browser_download_url":"https://x/evil.apk"},
+              {"name":"motoLauncher-dev-abc1234.apk","browser_download_url":"https://x/app.apk"}
+            ]}
+        """.trimIndent()
+        assertEquals("motoLauncher-dev-abc1234.apk", UpdateChecker.parseRelease(json)?.apkName)
+    }
+
+    @Test
     fun parseReleaseReturnsNullWithoutApkAsset() {
         assertNull(UpdateChecker.parseRelease("""{"assets":[{"name":"readme.txt"}]}"""))
     }

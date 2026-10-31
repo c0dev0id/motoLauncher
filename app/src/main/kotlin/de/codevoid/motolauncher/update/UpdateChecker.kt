@@ -121,14 +121,15 @@ class UpdateChecker(private val context: Context) {
         /**
          * Extracts the APK asset from a GitHub release JSON. The version name is derived
          * from the asset filename (`motoLauncher-<versionName>.apk`), matching the build's
-         * `versionName` so [isNewer] can compare them directly.
+         * `versionName` so [isNewer] can compare them directly. An asset whose name is not a
+         * bare file name is skipped, since the name becomes the download's file name.
          */
         fun parseRelease(json: String): ReleaseInfo? {
             val assets = JSONObject(json).optJSONArray("assets") ?: return null
             for (i in 0 until assets.length()) {
                 val asset = assets.getJSONObject(i)
                 val name = asset.optString("name")
-                if (!name.endsWith(".apk")) continue
+                if (!name.endsWith(".apk") || '/' in name) continue
                 return ReleaseInfo(
                     versionName = name.removeSuffix(".apk").removePrefix(APK_PREFIX),
                     apkUrl = asset.optString("browser_download_url"),
