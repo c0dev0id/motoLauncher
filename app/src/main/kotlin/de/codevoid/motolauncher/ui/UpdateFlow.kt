@@ -1,95 +1,142 @@
 package de.codevoid.motolauncher.ui
 
+import android.app.Application
 import android.content.Context
+import android.content.Intent
+import android.os.SystemClock
 import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
-import androidx.lifecycle.lifecycleScope
+import androidx.lifecycle.AndroidViewModel
+import androidx.lifecycle.viewModelScope
 import de.codevoid.motolauncher.R
 import de.codevoid.motolauncher.update.HttpStatusException
 import de.codevoid.motolauncher.update.ReleaseInfo
 import de.codevoid.motolauncher.update.UpdateChecker
 import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.channels.Channel
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.receiveAsFlow
 import kotlinx.coroutines.launch
 import java.net.ConnectException
 import java.net.HttpURLConnection
 import java.net.SocketTimeoutException
 import java.net.UnknownHostException
 
-// User-triggered update check: the caller is disabled while the flow is in flight
-// (setClickable false → true) and each outcome — latest build, update available with an
-// install prompt, failure — is a dialog. Off-bike, touch-only flow, so stock alert
-// buttons are acceptable.
-//
-// CancellationException is an Exception, so the catches rethrow it: a job cancelled
-// at ON_DESTROY must complete as cancelled, not as "handled". Dialogs reached after
-// the activity is gone are dropped by showImmersive().
-fun AppCompatActivity.runUpdateFlow(
-    setClickable: (Boolean) -> Unit = {},
-    setSubtitle: (String) -> Unit = {},
-) {
-    val checker = UpdateChecker(this)
+/** What the update flow is doing; the update tile shows it. */
+sealed interface UpdateState {
+    data object Idle : UpdateState
+    data object Checking : UpdateState
 
-    fun showMessage(text: String) {
-        AlertDialog.Builder(this)
-            .setMessage(text)
-            .setPositiveButton(R.string.ok, null)
-            .create()
-            .showImmersive()
+    /** [percent] is null while the server has not sent a length. */
+    data class Downloading(val percent: Int?, val bytesPerSecond: Long) : UpdateState
+}
+
+/** An outcome the screen shows once. */
+sealed interface UpdateEvent {
+    data object UpToDate : UpdateEvent
+    data class Available(val release: ReleaseInfo) : UpdateEvent
+    data class Install(val intent: Intent) : UpdateEvent
+    data class Failed(val error: Exception) : UpdateEvent
+}
+
+/**
+ * The user-triggered update check and download. It survives a recreate of the screen,
+ * runs one step at a time, and delivers each outcome once to whichever activity collects
+ * [events].
+ */
+class UpdateViewModel internal constructor(
+    app: Application,
+    private val findRelease: suspend () -> ReleaseInfo?,
+    private val fetch: suspend (ReleaseInfo, onProgress: (written: Long, total: Long) -> Unit) -> Intent,
+) : AndroidViewModel(app) {
+
+    constructor(app: Application) : this(app, UpdateChecker(app))
+
+    private constructor(app: Application, checker: UpdateChecker) : this(
+        app,
+        findRelease = checker::check,
+        fetch = { release, onProgress -> checker.installIntent(checker.download(release, onProgress)) },
+    )
+
+    private val _state = MutableStateFlow<UpdateState>(UpdateState.Idle)
+    val state: StateFlow<UpdateState> = _state.asStateFlow()
+
+    private val _events = Channel<UpdateEvent>(Channel.BUFFERED)
+    val events: Flow<UpdateEvent> = _events.receiveAsFlow()
+
+    /** Asks the release channel for a different build; ignored while a check or download runs. */
+    fun check() = startIfIdle(UpdateState.Checking) {
+        val release = findRelease()
+        _events.send(if (release == null) UpdateEvent.UpToDate else UpdateEvent.Available(release))
     }
 
-    fun showError(e: Exception) = showMessage(getString(R.string.update_failed, updateErrorText(e)))
+    /** Downloads [release] for the installer; ignored while a check or download runs. */
+    fun download(release: ReleaseInfo) = startIfIdle(UpdateState.Downloading(null, 0)) {
+        var lastBytes = 0L
+        var lastTime = SystemClock.elapsedRealtime()
+        val installer = fetch(release) { written, total ->
+            val now = SystemClock.elapsedRealtime()
+            if (now - lastTime >= PROGRESS_INTERVAL_MS) {
+                _state.value = UpdateState.Downloading(
+                    percent = if (total > 0) (written * 100 / total).toInt() else null,
+                    bytesPerSecond = (written - lastBytes) * 1000 / (now - lastTime),
+                )
+                lastBytes = written
+                lastTime = now
+            }
+        }
+        _events.send(UpdateEvent.Install(installer))
+    }
 
-    fun downloadAndInstall(release: ReleaseInfo) {
-        setClickable(false)
-        lifecycleScope.launch {
-            var lastBytes = 0L
-            var lastTime = System.currentTimeMillis()
-            var lastUpdate = 0L
+    private fun startIfIdle(busy: UpdateState, work: suspend () -> Unit) {
+        if (_state.value != UpdateState.Idle) return
+        _state.value = busy
+        viewModelScope.launch {
             try {
-                startActivity(checker.installIntent(checker.download(release) { written, total ->
-                    val now = System.currentTimeMillis()
-                    if (now - lastUpdate >= 500) {
-                        val elapsed = (now - lastTime).coerceAtLeast(1)
-                        val speedMBs = (written - lastBytes) * 1000.0 / elapsed / (1024.0 * 1024)
-                        lastBytes = written
-                        lastTime = now
-                        lastUpdate = now
-                        val pct = if (total > 0) "${written * 100 / total}% \u00b7 " else ""
-                        runOnUiThread { setSubtitle(pct + "%.1f MB/s".format(speedMBs)) }
-                    }
-                }))
+                work()
             } catch (e: CancellationException) {
                 throw e
             } catch (e: Exception) {
-                showError(e)
+                _events.send(UpdateEvent.Failed(e))
             } finally {
-                setClickable(true)
+                _state.value = UpdateState.Idle
             }
         }
     }
 
-    fun promptInstall(release: ReleaseInfo) {
-        AlertDialog.Builder(this)
-            .setTitle(getString(R.string.update_available, release.versionName))
-            .setPositiveButton(R.string.update_download) { _, _ -> downloadAndInstall(release) }
+    private companion object {
+        const val PROGRESS_INTERVAL_MS = 500L
+    }
+}
+
+/** The update tile's progress line, such as "45% · 2.2 MB/s". */
+fun UpdateState.Downloading.progressText(): String =
+    (percent?.let { "$it% · " } ?: "") + "%.1f MB/s".format(bytesPerSecond / (1024.0 * 1024))
+
+/** Shows [event]: a message, the install prompt, the installer, or the failure. */
+fun AppCompatActivity.showUpdateEvent(event: UpdateEvent, updates: UpdateViewModel) {
+    when (event) {
+        UpdateEvent.UpToDate -> showUpdateMessage(getString(R.string.update_none))
+        is UpdateEvent.Available -> AlertDialog.Builder(this)
+            .setTitle(getString(R.string.update_available, event.release.versionName))
+            .setPositiveButton(R.string.update_download) { _, _ -> updates.download(event.release) }
             .setNegativeButton(R.string.cancel, null)
             .create()
             .showImmersive()
+        is UpdateEvent.Install -> startActivity(event.intent)
+        is UpdateEvent.Failed -> showUpdateMessage(getString(R.string.update_failed, updateErrorText(event.error)))
     }
+}
 
-    setClickable(false)
-    lifecycleScope.launch {
-        try {
-            val release = checker.check()
-            if (release == null) showMessage(getString(R.string.update_none)) else promptInstall(release)
-        } catch (e: CancellationException) {
-            throw e
-        } catch (e: Exception) {
-            showError(e)
-        } finally {
-            setClickable(true)
-        }
-    }
+private fun AppCompatActivity.showUpdateMessage(text: String) {
+    AlertDialog.Builder(this)
+        .setMessage(text)
+        .setPositiveButton(R.string.ok, null)
+        .create()
+        .showImmersive()
 }
 
 /** [error] in words a rider can act on. */

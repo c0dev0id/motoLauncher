@@ -24,20 +24,23 @@ import de.codevoid.motolauncher.data.ThemeStore
 import de.codevoid.motolauncher.data.TileSize
 import de.codevoid.motolauncher.data.TileSizeStore
 import de.codevoid.motolauncher.ui.TileItem
+import de.codevoid.motolauncher.ui.UpdateState
+import de.codevoid.motolauncher.ui.UpdateViewModel
 import de.codevoid.motolauncher.ui.enableImmersiveMode
 import de.codevoid.motolauncher.ui.noTransition
-import de.codevoid.motolauncher.ui.runUpdateFlow
+import de.codevoid.motolauncher.ui.progressText
 import de.codevoid.motolauncher.ui.showImmersive
 import de.codevoid.motolauncher.ui.showOptionsDialog
 
 /**
  * The app list's settings mode: its tiles and what tapping them does. Every change of a
- * setting ends in one call to [onChanged], after which the caller shows [tiles] again.
- * Construct it in `onCreate`: it registers the location permission request.
+ * setting ends in one call to [onChanged], after which the caller shows [tiles] again; the
+ * caller also shows them again when [updates] changes state. Construct it in `onCreate`:
+ * it registers the location permission request.
  */
 class SettingsTiles(
     private val activity: AppCompatActivity,
-    private val viewModel: AppListViewModel,
+    private val updates: UpdateViewModel,
     private val onChanged: () -> Unit,
 ) {
     private val themeStore = ThemeStore(activity)
@@ -113,33 +116,15 @@ class SettingsTiles(
         )
     }
 
-    private fun updateTile(): TileItem {
-        val isChecking = viewModel.isCheckingUpdate
-        return TileItem(
-            label = activity.getString(R.string.check_for_updates),
-            subtitle = viewModel.downloadProgressSubtitle
-                ?: if (isChecking) activity.getString(R.string.checking_updates) else BuildConfig.VERSION_NAME,
-            onClick = { if (!isChecking) checkForUpdate() },
-        )
-    }
-
-    private fun checkForUpdate() {
-        viewModel.isCheckingUpdate = true
-        onChanged()
-        activity.runUpdateFlow(
-            setClickable = { enabled ->
-                if (enabled) {
-                    viewModel.isCheckingUpdate = false
-                    viewModel.downloadProgressSubtitle = null
-                    onChanged()
-                }
-            },
-            setSubtitle = { text ->
-                viewModel.downloadProgressSubtitle = text
-                onChanged()
-            },
-        )
-    }
+    private fun updateTile() = TileItem(
+        label = activity.getString(R.string.check_for_updates),
+        subtitle = when (val state = updates.state.value) {
+            UpdateState.Idle -> BuildConfig.VERSION_NAME
+            UpdateState.Checking -> activity.getString(R.string.checking_updates)
+            is UpdateState.Downloading -> state.progressText()
+        },
+        onClick = updates::check,
+    )
 
     private fun offerParkLock() = ParkLockRules.shouldOfferParkLock(
         sdkInt = Build.VERSION.SDK_INT,

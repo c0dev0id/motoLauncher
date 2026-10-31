@@ -29,6 +29,7 @@ import de.codevoid.motolauncher.databinding.ActivityAppListBinding
 import de.codevoid.motolauncher.ui.AppTileAdapter
 import de.codevoid.motolauncher.ui.EscapeKeys
 import de.codevoid.motolauncher.ui.TileItem
+import de.codevoid.motolauncher.ui.UpdateViewModel
 import de.codevoid.motolauncher.ui.enableImmersiveMode
 import de.codevoid.motolauncher.ui.fitContentToSystemBars
 import de.codevoid.motolauncher.ui.isPortrait
@@ -36,8 +37,10 @@ import de.codevoid.motolauncher.ui.launchNavApp
 import de.codevoid.motolauncher.ui.noTransition
 import de.codevoid.motolauncher.ui.showLinkDialog
 import de.codevoid.motolauncher.ui.showTileActionsDialog
+import de.codevoid.motolauncher.ui.showUpdateEvent
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.drop
 import kotlinx.coroutines.flow.filterNotNull
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
@@ -61,6 +64,7 @@ class AppListActivity : AppCompatActivity() {
     private lateinit var repository: AppRepository
     private lateinit var settings: SettingsTiles
     private val viewModel: AppListViewModel by viewModels()
+    private val updates: UpdateViewModel by viewModels()
     private val adapter = AppTileAdapter(emptyList())
     private val favoritesStore by lazy { FavoritesStore(this) }
     private val navAppStore by lazy { NavAppStore(this) }
@@ -94,7 +98,7 @@ class AppListActivity : AppCompatActivity() {
         window.fitContentToSystemBars()
 
         repository = AppRepository(this)
-        settings = SettingsTiles(this, viewModel, onChanged = ::renderCurrentMode)
+        settings = SettingsTiles(this, updates, onChanged = ::renderCurrentMode)
 
         binding.backButton.setOnClickListener { finish() }
         binding.appGrid.layoutManager = GridLayoutManager(this, columns)
@@ -114,6 +118,14 @@ class AppListActivity : AppCompatActivity() {
         lifecycleScope.launch {
             repeatOnLifecycle(Lifecycle.State.STARTED) {
                 viewModel.apps.filterNotNull().collect(::showApps)
+            }
+        }
+        if (BuildConfig.SELF_UPDATE) {
+            lifecycleScope.launch {
+                repeatOnLifecycle(Lifecycle.State.STARTED) {
+                    launch { updates.state.drop(1).collect { if (viewModel.isSettingsMode) renderCurrentMode() } }
+                    updates.events.collect { showUpdateEvent(it, updates) }
+                }
             }
         }
     }
@@ -282,6 +294,4 @@ class AppListViewModel(app: Application) : AndroidViewModel(app) {
     }
 
     var isSettingsMode: Boolean = false
-    var isCheckingUpdate: Boolean = false
-    var downloadProgressSubtitle: String? = null
 }

@@ -178,8 +178,10 @@ Package layout under `de.codevoid.motolauncher`:
   the pick tiles followed by `appTiles(...)` — a pure top-level function that drops
   packages in `HiddenAppsStore` unless `showHidden` is on (hidden apps then render dimmed)
   and keys each tile by its `ComponentKey` — over `AppRepository.filterApps`.
-  `AppListViewModel` (same file) carries `isSettingsMode`, `isCheckingUpdate` and
-  `downloadProgressSubtitle` so the theme toggle's `recreate()` restores them. The header
+  `AppListViewModel` (same file) carries `isSettingsMode` so the theme toggle's
+  `recreate()` restores it. In the github flavor the activity also collects
+  `UpdateViewModel`: its state re-renders the settings tiles, its events become dialogs or
+  the installer through `showUpdateEvent`. The header
   `TouchOnlyRow` holds the back button, the search box and a single `settingsButton`
   (hidden in pick mode) that toggles settings mode. A short Escape exits settings mode
   before finishing. Activity transitions are disabled (`noTransition()`) in both
@@ -191,8 +193,9 @@ Package layout under `de.codevoid.motolauncher`:
   tile size, nav bar, privacy policy) and owns their stores, the option tables and the
   location permission request. Every change of a setting ends in one `onChanged()`, the
   activity's `renderCurrentMode`; there is no cached list to invalidate. The nav app's
-  label comes from the loaded app list, falling back to the package name. Download
-  progress re-renders like any other change. It is created in `onCreate` because it
+  label comes from the loaded app list, falling back to the package name. The update
+  tile shows `UpdateViewModel.state` and taps `check()`, which ignores a tap while busy;
+  every state change re-renders like any other change. It is created in `onCreate` because it
   registers the permission request. Orientation and Tile size open `showOptionsDialog`.
   The GPS toggle asks for fine and coarse location together through
   `RequestMultiplePermissions()`; the store flips to enabled only when fine location is
@@ -292,12 +295,19 @@ Package layout under `de.codevoid.motolauncher`:
   `submit(items, touchOnly)`) on every bind because recycled holders carry the previous
   item's state. It has stable IDs, one per key, so the remote's focus survives a
   `submit` of the same tiles.
-- `ui/UpdateFlow.kt` — `AppCompatActivity.runUpdateFlow(setClickable, setSubtitle)`: the
-  whole check / prompt / download / error flow; outcomes as `AlertDialog`s, progress
-  (`"45% · 2.2 MB/s"`, throttled to 500 ms) through `setSubtitle`. The percentage is
-  concatenated, never passed through `String.format` — a `%` in a format template crashed
-  once. `CancellationException` is rethrown, not swallowed. `AlertDialog.Builder(context)`
-  gets the launcher look from `alertDialogTheme` — never pass a theme id at a call site.
+- `ui/UpdateFlow.kt` — `UpdateViewModel`, the whole check / download flow in
+  `viewModelScope`, so a recreate keeps it. `state` is a `StateFlow<UpdateState>` (`Idle`,
+  `Checking`, `Downloading(percent, bytesPerSecond)`, throttled to 500 ms); `check()` and
+  `download(release)` start only while idle. Outcomes are one-shot `UpdateEvent`s on a
+  `Channel` (`UpToDate`, `Available`, `Install`, `Failed`), shown by
+  `showUpdateEvent` as `AlertDialog`s or the installer. The ViewModel takes the release
+  lookup and the download as functions (the public constructor wires `UpdateChecker` on
+  the application context), so tests drive it without the network. `progressText()`
+  gives `"45% · 2.2 MB/s"`: the percentage is concatenated, never passed through
+  `String.format` — a `%` in a format template crashed once. `updateErrorText` names a
+  failure's cause. `CancellationException` is rethrown, not swallowed.
+  `AlertDialog.Builder(context)` gets the launcher look from `alertDialogTheme` — never
+  pass a theme id at a call site.
 - `ui/KeyInput.kt` — `View.blockKeyLongPress()` routes the confirm keys (DPAD_CENTER,
   Enter, numpad Enter, Space) through `performClick()` on a key-up that ends an
   uncanceled press on that view, without arming the framework's long-press timer (touch

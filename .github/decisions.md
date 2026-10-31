@@ -591,6 +591,25 @@ handlebar-mounted screen, so progress rides on the update tile's subtitle, throt
 500 ms. The percentage is concatenated, never passed through `String.format`: a `%` in
 a format template once crashed the main thread.
 
+A failure names its cause instead of showing the exception text: a 404 means nothing is
+published right now, which happens for a few minutes while CI recreates `dev`; other
+statuses show their code; no connection and no answer in time are named as such.
+
+### The update flow runs in a ViewModel
+`UpdateViewModel` runs the check and the download in `viewModelScope`, holds what it is
+doing as a `StateFlow` (idle, checking, downloading with progress) and delivers each
+outcome (current, available, install, failed) once, through a `Channel` the app list
+collects while started. It used to run in the activity's `lifecycleScope`: a recreate
+(theme toggle, rotation) cancelled it mid-flight and lost the result dialog or the
+installer hand-off, while the download loop kept running and held the destroyed activity.
+Now a recreate keeps the flow, and an outcome that arrives while the screen is stopped
+waits for it. A step starts only while the flow is idle, so a tap during a check or a
+download is ignored; the tile's own guard used to miss the download. Leaving the app list
+for good clears the ViewModel and cancels the download, which checks for cancellation
+after every read. The ViewModel takes the release lookup and the download as functions,
+so a test can drive it without the network. The install prompt is still a plain dialog,
+lost on a recreate.
+
 ## Distribution
 
 ### Two flavors: github and play
