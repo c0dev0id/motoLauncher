@@ -132,10 +132,13 @@ long-click listener and `isLongClickable` for a tile without a long press, or th
 framework keeps arming the timer from the tile's previous binding.
 
 ### Resolved favourites are cached in a `ViewModel`
-`FavoritesCache` holds the resolved `AppEntry`s keyed on (`packageGeneration`, slot
-list), so returning from the navigation app costs no Binder calls or icon decoding. It
-was an activity field until the Sensor orientation made rotation common: every recreate
-then redid the whole resolve on the main thread in `onResume`.
+`FavoritesCache` holds the resolved `AppEntry`s of the current `packageGeneration`, so
+returning from the navigation app costs no Binder calls or icon decoding. A favourite it
+has not seen yet is resolved alone; it used to re-resolve every slot whenever one
+changed. An app that does not resolve is remembered as such until the next generation,
+so an empty-looking slot is not asked again on every resume. It was an activity field
+until the Sensor orientation made rotation common: every recreate then redid the whole
+resolve on the main thread in `onResume`.
 
 ### Favourites are slots in `SharedPreferences`
 Fourteen slots plus the fixed All Apps tile fill the largest grid, 5×3. A smaller grid

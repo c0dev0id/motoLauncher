@@ -141,9 +141,11 @@ Package layout under `de.codevoid.motolauncher`:
   from `gridTileSize`, the size the tiles were built for: on the first resume, and on
   return from a Tile size change.
   Weighted layout divides space in the layout pass by construction, which is what fixed
-  the cold-start "third row cut off" first-frame race. `buildGrid` keeps the resolved
-  `AppEntry`s in `FavoritesCache`, a `ViewModel`, keyed on (`packageGeneration`, visible
-  slot list), so returning from the navigation app costs no Binder calls or icon decoding.
+  the cold-start "third row cut off" first-frame race. `buildGrid` gets the resolved
+  `AppEntry`s from `FavoritesCache.resolve`, a `ViewModel` that empties itself when
+  `packageGeneration` moves and otherwise loads only keys it has not seen (remembering
+  ones that did not resolve), so returning from the navigation app costs no Binder calls
+  or icon decoding, and a new favourite resolves alone.
   It is a `ViewModel` rather than an activity field because a recreate — the theme toggle,
   or a rotation under the Sensor orientation — would otherwise start it empty and redo the
   whole resolve on the main thread in `onResume`. A slot is a

@@ -53,15 +53,7 @@ class HomeActivity : AppCompatActivity() {
     // The size the tiles were inflated for; null until the first resume inflates them.
     private var gridTileSize: TileSize? = null
 
-    // Resolved on first resume and reused until either packageGeneration advances (app
-    // installed/removed) or the slot list itself changes (reassign/clear). Avoids Binder
-    // IPC and icon decoding on every return from the navigation app — and, because it
-    // lives in a ViewModel rather than in the activity, on every recreate too. That
-    // matters since the Sensor orientation rotates the device: rotation recreates this
-    // activity (no `orientation` in configChanges, which is what reshapes the grid), and
-    // an activity-scoped cache would start empty each time and redo the whole resolve on
-    // the main thread in onResume — exactly the work it exists to avoid.
-    private val cache: FavoritesCache by viewModels()
+    private val favoritesCache: FavoritesCache by viewModels()
 
     // A short ESC stays inert: Home is the launcher root, there is nowhere to go back to.
     // Holding it launches the configured navigation app — still only a launch, so the
@@ -164,13 +156,11 @@ class HomeActivity : AppCompatActivity() {
 
     private fun buildGrid() {
         val slots = favorites.allSlots().take(tiles.size - 1)
-        val generation = (application as MotoLauncherApp).packageGeneration.value
-        if (generation != cache.generation || slots != cache.slots) {
-            cache.apps = repository.loadByKeys(slots.filterIsInstance<SlotEntry.App>().map { it.key })
-            cache.generation = generation
-            cache.slots = slots
-        }
-        val apps = cache.apps
+        val apps = favoritesCache.resolve(
+            keys = slots.filterIsInstance<SlotEntry.App>().map { it.key },
+            generation = (application as MotoLauncherApp).packageGeneration.value,
+            load = repository::loadByKeys,
+        )
 
         slots.forEachIndexed { index, slotEntry ->
             when (slotEntry) {
@@ -286,12 +276,27 @@ class HomeActivity : AppCompatActivity() {
 
 }
 
-// Survives the activity, so a recreate — the theme toggle, or a rotation under the Sensor
-// orientation — reuses the resolved favourites instead of re-running loadByKeys and
-// re-decoding every icon on the main thread. Keyed by the same (packageGeneration, slots)
-// pair as before; nothing about when the cache is considered stale has changed.
+/** Home's resolved favourites, kept across recreates and emptied when the package generation moves. */
 class FavoritesCache : ViewModel() {
-    var apps: Map<ComponentKey, AppEntry> = emptyMap()
-    var generation: Int = -1
-    var slots: List<SlotEntry?> = emptyList()
+    private var generation = -1
+    // Null for a key that did not resolve, so it is not asked again until the next generation.
+    private var apps: Map<ComponentKey, AppEntry?> = emptyMap()
+
+    /** Every key of [keys] mapped to its app, or to null; only keys not seen in [generation] go to [load]. */
+    fun resolve(
+        keys: List<ComponentKey>,
+        generation: Int,
+        load: (List<ComponentKey>) -> Map<ComponentKey, AppEntry>,
+    ): Map<ComponentKey, AppEntry?> {
+        if (generation != this.generation) {
+            apps = emptyMap()
+            this.generation = generation
+        }
+        val unseen = keys.filterNot { it in apps }
+        if (unseen.isNotEmpty()) {
+            val loaded = load(unseen)
+            apps = apps + unseen.associateWith { loaded[it] }
+        }
+        return apps
+    }
 }
