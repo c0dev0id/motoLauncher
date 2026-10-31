@@ -16,29 +16,9 @@ import de.codevoid.motolauncher.ui.fitContentToSystemBars
 import de.codevoid.motolauncher.ui.noTransition
 
 /**
- * The park lock: a manual, PIN-guarded screen for short unattended stops.
- *
- * It lives in its own task (singleInstance + taskAffinity) rather than being a mode of
- * HomeActivity, because HomeActivity is singleTask and the root of the home task — a Home
- * press routes through onNewIntent and clears everything above the root, which would take
- * a park screen stacked there with it. Its own task is also what makes lock task mode
- * applicable at all.
- *
- * Lock task mode (screen pinning, without device owner) is what blocks Recents and the
- * notification shade. An app pinning *itself* is not asked to confirm — the confirmation
- * dialog belongs to pinning started from Recents — so parking is a single tap. It is
- * still best effort: a device with screen pinning switched off refuses it and the park
- * screen degrades to a deterrent against a stray tap. That difference is deliberately not
- * shown — it is a technical detail, and the screen is the same lock either way.
- *
- * The system's own unpin gesture (hold Back + Recents) cannot be blocked, so it is
- * *undone* instead: while parked, a guard polls `lockTaskModeState` and re-pins within a
- * few hundred milliseconds. Only the correct PIN disarms it. The consequence is worth
- * being clear about — with the guard, the PIN is the only way out short of adb or
- * reinstalling, so a forgotten PIN strands the device.
- *
- * Even unpinned, the Home gesture is covered: it starts the home app, and HomeActivity
- * re-launches this screen while ParkStore.isParked is set.
+ * The park lock: a PIN keypad in its own task that pins the screen, and re-pins it after
+ * the system unpin gesture, until the correct PIN is entered. Opened with [setPinIntent] it
+ * is the enter-twice PIN setup instead, which never pins.
  */
 class ParkActivity : AppCompatActivity() {
 
@@ -46,9 +26,6 @@ class ParkActivity : AppCompatActivity() {
     private val store by lazy { ParkStore(this) }
     private val orientationStore by lazy { OrientationStore(this) }
 
-    // Read from the current intent, not cached: this activity is singleInstance, so a
-    // later lockIntent arrives at the same instance through onNewIntent. An abandoned
-    // set-PIN screen would otherwise come back as set-PIN when the user parks.
     private val setMode get() = intent.getBooleanExtra(EXTRA_SET_PIN, false)
 
     private val activityManager by lazy { getSystemService(ACTIVITY_SERVICE) as ActivityManager }
@@ -82,8 +59,6 @@ class ParkActivity : AppCompatActivity() {
         setRequestedOrientation(orientationStore.orientation)
         binding = ActivityParkBinding.inflate(layoutInflater)
         setContentView(binding.root)
-        // Both bars stay hidden here regardless of the NavBarStore setting: a visible
-        // navigation bar next to a lock screen is an invitation.
         window.enableImmersiveMode(showNavBar = false)
         window.fitContentToSystemBars()
 
@@ -112,9 +87,6 @@ class ParkActivity : AppCompatActivity() {
     override fun onResume() {
         super.onResume()
         setRequestedOrientation(orientationStore.orientation)
-        // The parked flag is this screen's own invariant — "only this may be in front" —
-        // so it is set here rather than by whoever launched us. No entry point has to
-        // remember a protocol, and HomeActivity's restore path is simply re-entering here.
         if (!setMode) store.isParked = true
         requestLockTask()
         render()
@@ -174,8 +146,6 @@ class ParkActivity : AppCompatActivity() {
 
     private fun submitUnlock(pin: String) {
         if (store.verify(pin)) {
-            // Order matters: the guard stops and the parked flag clears before the pin is
-            // released, so no in-flight guard run can re-pin what the PIN just opened.
             disarmLockTaskGuard()
             store.isParked = false
             stopLockTask()
@@ -238,7 +208,7 @@ class ParkActivity : AppCompatActivity() {
         /** Shows the keypad, marks the launcher parked and asks for pinning. */
         fun lockIntent(context: Context) = Intent(context, ParkActivity::class.java)
 
-        /** Enter-twice PIN setup. Never pins: setup happens at a desk, not at a kerb. */
+        /** Enter-twice PIN setup; never pins. */
         fun setPinIntent(context: Context) =
             Intent(context, ParkActivity::class.java).putExtra(EXTRA_SET_PIN, true)
     }

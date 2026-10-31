@@ -188,11 +188,13 @@ Package layout under `de.codevoid.motolauncher`:
   task** (`singleInstance` + `taskAffinity`), which is load-bearing — `HomeActivity` is
   `singleTask` and the root of the home task, so a Home press clears anything stacked above
   it. `onResume` and `onWindowFocusChanged` call `startLockTask()` (screen pinning, no device
-  owner) to block Recents and the shade — an app pinning itself is not asked to confirm, so
-  parking is one tap. The request is best effort: `startLockTask()` throws when the task
+  owner) to block Recents and the shade — on Android 15+ an app pinning itself is not
+  asked to confirm (measured on 16; AOSP suggests otherwise, see `.github/decisions.md`),
+  so parking is one tap. The request is best effort: `startLockTask()` throws when the task
   is not in front, so it is wrapped in `runCatching`, and a device with screen pinning
   switched off does not pin. Which state is in force is deliberately not shown on the
-  screen. `stopLockTask()` is called directly; it returns quietly when nothing is pinned. `settleCheck` runs after a delay because `lockTaskModeState` is updated
+  screen. `stopLockTask()` is called directly; it returns quietly when nothing is pinned.
+  `settleCheck` runs after a delay because `lockTaskModeState` is updated
   asynchronously and reads as `NONE` straight after a successful request; it counts the
   requests in a row that have not taken, and after three the guard stops asking until
   focus returns. The system's unpin gesture (hold Back + Recents) cannot be

@@ -412,14 +412,28 @@ install side by side.
 The separate task is restored explicitly: while `ParkStore.isParked` is set,
 `HomeActivity.onResume` re-launches the park screen. That one path covers a reboot,
 which pinning does not survive, and a Home press on a device that refused pinning. The
-park screen sets `isParked` itself, so no entry point carries a protocol, and the Park
-lock tile finishes the app list as it launches so unlocking returns to Home.
+park screen sets `isParked` itself in `onResume`, so no entry point carries a protocol,
+and the Park lock tile finishes the app list as it launches so unlocking returns to Home.
+Pinning is requested from `onResume` too, not `onCreate`: `startLockTask()` needs a
+resumed activity, and the restore path enters there as well.
+
+Being `singleInstance`, the screen receives later intents through `onNewIntent`, so set
+mode is read from the current intent rather than cached; an abandoned set-PIN screen
+would otherwise come back as set-PIN when the rider parks. Both system bars stay hidden
+on the park screen whatever the navigation bar setting: a visible navigation bar beside
+a lock screen is an invitation.
 
 ### Measured on the device
-On the 7" device with gesture navigation, an app pinning itself is not asked to
+On an Android 16 device with gesture navigation, an app pinning itself is not asked to
 confirm, so parking is one tap. The shade is blank and Home, Back and Recents are
-inert. `lockTaskModeState` updates asynchronously and reads `NONE` straight after a
-successful request; the settle window in `shouldRequestLockTask` and the delayed
+inert. Android 14 confirmed every pin. AOSP routes an app's own `startLockTask()`
+through the screen-pinning request on 14, 15 and 16 alike, so the silent pin on 16 may be
+that device's own behaviour; the measurement is what the Android 15 gate rests on. The
+7" device runs Android 14, so the park lock is not offered there until it receives
+Android 16.
+
+`lockTaskModeState` updates asynchronously and reads `NONE` straight after a successful
+request; the settle window in `ParkLockRules.shouldRequestLockTask` and the delayed
 `settleCheck` exist for that, and stop a redundant second request and toast.
 
 ### The unpin gesture is undone, not blocked
