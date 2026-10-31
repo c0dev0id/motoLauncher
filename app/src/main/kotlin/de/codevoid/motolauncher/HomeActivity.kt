@@ -20,6 +20,8 @@ import de.codevoid.motolauncher.data.NavBarStore
 import de.codevoid.motolauncher.data.OrientationStore
 import de.codevoid.motolauncher.data.ParkStore
 import de.codevoid.motolauncher.data.SlotEntry
+import de.codevoid.motolauncher.data.TileSize
+import de.codevoid.motolauncher.data.TileSizeStore
 import de.codevoid.motolauncher.databinding.ActivityHomeBinding
 import de.codevoid.motolauncher.databinding.ItemAppTileBinding
 import de.codevoid.motolauncher.ui.EscapeKeys
@@ -41,9 +43,10 @@ class HomeActivity : AppCompatActivity() {
     private val orientationStore by lazy { OrientationStore(this) }
     private val navBarStore by lazy { NavBarStore(this) }
     private val parkStore by lazy { ParkStore(this) }
-    private val columns get() = if (isPortrait) 3 else 4
-    private val rows get() = if (isPortrait) 4 else 3
-    private val tiles = ArrayList<ItemAppTileBinding>(12)
+    private val tileSizeStore by lazy { TileSizeStore(this) }
+    private val tiles = ArrayList<ItemAppTileBinding>()
+    // The size the tiles were inflated for; null until the first resume inflates them.
+    private var gridTileSize: TileSize? = null
 
     // Resolved on first resume and reused until either packageGeneration advances (app
     // installed/removed) or the slot list itself changes (reassign/clear). Avoids Binder
@@ -71,11 +74,6 @@ class HomeActivity : AppCompatActivity() {
         favorites = FavoritesStore(this)
         repository = AppRepository(this)
 
-        populateGrid()
-        // Seed the remote's focus once. Tiles are reused across rebinds and Android keeps
-        // the focused view across app switches, so nothing needs re-seeding on resume.
-        tiles[0].root.post { tiles[0].root.requestFocus() }
-
         onBackPressedDispatcher.addCallback(this) { /* home is the root; swallow back */ }
 
         // Start loading the app list in the background so it is ready before the user taps
@@ -85,16 +83,18 @@ class HomeActivity : AppCompatActivity() {
 
     // Weighted rows divide space during the layout pass, avoiding the RecyclerView
     // first-frame race that briefly showed the third row cut off on cold start.
-    private fun populateGrid() {
+    private fun populateGrid(tileSize: TileSize) {
+        binding.homeGrid.removeAllViews()
+        tiles.clear()
         val inflater = LayoutInflater.from(this)
-        repeat(rows) {
+        repeat(tileSize.homeRows(isPortrait)) {
             val row = LinearLayout(this).apply {
                 orientation = LinearLayout.HORIZONTAL
                 layoutParams = LinearLayout.LayoutParams(
                     LinearLayout.LayoutParams.MATCH_PARENT, 0, 1f,
                 )
             }
-            repeat(columns) {
+            repeat(tileSize.homeColumns(isPortrait)) {
                 val tile = ItemAppTileBinding.inflate(inflater, row, false)
                 val existing = tile.root.layoutParams as ViewGroup.MarginLayoutParams
                 tile.root.layoutParams = LinearLayout.LayoutParams(
@@ -113,6 +113,10 @@ class HomeActivity : AppCompatActivity() {
             }
             binding.homeGrid.addView(row)
         }
+        gridTileSize = tileSize
+        // Seeded only on new tiles. Rebinding keeps the views, and Android keeps the
+        // focused view across app switches, so a resume needs no re-seeding.
+        tiles[0].root.post { tiles[0].root.requestFocus() }
     }
 
     override fun onResume() {
@@ -126,6 +130,8 @@ class HomeActivity : AppCompatActivity() {
             return
         }
         setRequestedOrientation(orientationStore.orientation)
+        val tileSize = tileSizeStore.tileSize
+        if (tileSize != gridTileSize) populateGrid(tileSize)
         buildGrid()
     }
 
@@ -141,7 +147,7 @@ class HomeActivity : AppCompatActivity() {
         escapeKeys.onKeyUp(keyCode, event) || super.onKeyUp(keyCode, event)
 
     private fun buildGrid() {
-        val slots = favorites.allSlots()
+        val slots = favorites.allSlots().take(tiles.size - 1)
         val generation = (application as MotoLauncherApp).packageGeneration
         if (generation != cache.generation || slots != cache.slots) {
             val appComponents = slots.filterIsInstance<SlotEntry.App>().map { it.component }
