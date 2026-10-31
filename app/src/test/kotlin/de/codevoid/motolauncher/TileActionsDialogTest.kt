@@ -132,4 +132,15 @@ class TileActionsDialogTest {
         val order = (0 until parent.childCount).map { parent.getChildAt(it).id }.filter { it in actionIds }
         assertEquals(listOf(R.id.actionAppInfo, R.id.actionUninstall, R.id.actionRemove), order)
     }
+
+    // A touch opens the menu; the remote must not be able to press App info or Uninstall.
+    @Test
+    fun noRowCanTakeFocus() {
+        val dialog = show()
+        val rows = listOf(
+            R.id.actionAppInfo, R.id.actionUninstall, R.id.actionHide,
+            R.id.actionRemove, R.id.actionEditLink, R.id.actionRemoveLink,
+        ).map { dialog.findViewById<TextView>(it) }
+        assertTrue(rows.none { it.isFocusable })
+    }
 }

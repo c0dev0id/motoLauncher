@@ -6,15 +6,16 @@ import android.widget.EditText
 import androidx.appcompat.app.AlertDialog
 import de.codevoid.motolauncher.R
 
+// Returns the shown dialog; tests use the handle.
 fun Context.showLinkDialog(
     existingLabel: String = "",
     existingUrl: String = "",
     onConfirm: (label: String, url: String) -> Unit,
-) {
+): AlertDialog {
     val view = LayoutInflater.from(this).inflate(R.layout.dialog_add_link, null)
     val labelInput = view.findViewById<EditText>(R.id.linkLabel).apply { setText(existingLabel) }
     val urlInput = view.findViewById<EditText>(R.id.linkUrl).apply { setText(existingUrl) }
-    AlertDialog.Builder(this)
+    return AlertDialog.Builder(this)
         .setTitle(R.string.add_link)
         .setView(view)
         .setPositiveButton(R.string.ok) { _, _ ->
@@ -24,5 +25,5 @@ fun Context.showLinkDialog(
         }
         .setNegativeButton(R.string.cancel, null)
         .create()
-        .showImmersive()
+        .also { it.showImmersive() }
 }

@@ -247,6 +247,18 @@ The custom view reuses `tile_background`, so the menu reads as part of the grid 
 stays glove-sized. The update flow and the link dialog use `AlertDialog`; they are
 off-bike tasks. Their look comes from `alertDialogTheme`, so no call site names a theme.
 
+### Dialog controls are touch-only
+A touch opens every dialog, but the first remote key afterwards used to focus its first
+row or button, and Enter then ran App info, Uninstall or the update download, which
+hand off to system screens the remote may not be able to leave. Every dialog row
+(`Widget.MotoLauncher.DialogAction`) and every `AlertDialog` button
+(`Widget.MotoLauncher.DialogButton`) is therefore unfocusable. One style item covers all
+the buttons because AppCompat resolves the positive, negative and neutral button styles
+through `buttonBarButtonStyle`, the only one the Material3 alert overlay sets. Escape
+still cancels a dialog with nothing focused. The link dialog's fields sit in a
+`TouchOnlyRow`; focus search then no longer finds the URL field from the label, so the
+label names it in `nextFocusForward` to keep the keyboard's Next working.
+
 ### Every dialog goes through `showImmersive()`
 A dialog is its own window and would bring the system bars back while it shows.
 `showImmersive()` re-applies immersive mode to the dialog's window and drops the dialog

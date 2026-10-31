@@ -302,6 +302,9 @@ Package layout under `de.codevoid.motolauncher`:
   palette) with `tile_background` buttons; dismisses itself before invoking the chosen
   callback. Dialog chrome lives in that theme and in the
   `ThemeOverlay.MotoLauncher.Dialog.Alert` sibling that `alertDialogTheme` points at.
+  Every dialog control is touch-only: `Widget.MotoLauncher.DialogAction` rows and
+  `Widget.MotoLauncher.DialogButton` `AlertDialog` buttons set `focusable=false`, so the
+  remote can only cancel a dialog with Escape.
 - `ui/OptionsDialog.kt` — `showOptionsDialog(context, title, options, selectedIndex,
   onPick)`: pick one of a list, as tile-styled rows on `Theme.MotoLauncher.Dialog`. Rows are
   *inflated* from `item_dialog_option` rather than constructed, so the style's `layout_*`
@@ -313,8 +316,10 @@ Package layout under `de.codevoid.motolauncher`:
   value is itself disruptive.
 - `ui/LinkDialog.kt` — `Context.showLinkDialog(label, url, onConfirm)`: the one
   `AlertDialog` with text input (`dialog_add_link`); confirms only when both fields are
-  non-blank. Any URL scheme is accepted — Android resolves the intent, and Home wraps the
-  launch in `runCatching`.
+  non-blank, and returns the shown dialog. Any URL scheme is accepted — Android resolves
+  the intent, and Home wraps the launch in `runCatching`. The fields sit in a
+  `TouchOnlyRow`; the label's `nextFocusForward` carries the keyboard's Next to the URL,
+  which focus search no longer finds.
 - `ui/Immersive.kt` — `Window.enableImmersiveMode(showNavBar)`: status bar always
   hidden, nav bar per the flag. Called in `onCreate` and again on
   `onWindowFocusChanged(true)` because permission dialogs and the installer restore the
@@ -423,7 +428,7 @@ republishes the `dev` pre-release. Three parallel jobs plus a follow-up release 
   unit tests in `app/src/test/kotlin` (`isIncludeAndroidResources = true`, so real resources and view
   inflation work; see *Commands* for running a single class or test).
   Robolectric runs them against SDK 36, which needs JDK 21 — hence JDK 21 in CI.
-  Eighteen classes, and the shape they set: `AppRepositoryTest` (the pure `sortApps` /
+  Nineteen classes, and the shape they set: `AppRepositoryTest` (the pure `sortApps` /
   `filterApps`), `FavoritesStoreTest` (app and link slot round-trips against real
   `SharedPreferences`, the two representations cleaning each other up, and
   `clearSlotsForPackage` matching whole package names and leaving link slots alone),
@@ -437,12 +442,15 @@ republishes the `dev` pre-release. Three parallel jobs plus a follow-up release 
   can, and a reused tile follows its slot's content across resumes),
   `TileActionsDialogTest` (inflates the dialog through the
   handle `showTileActionsDialog` returns: row order, optional rows hidden, one callback per
-  row, dismissal), `EscapeKeysTest` (short vs. held Escape, dispatched through a real
+  row, dismissal, no row focusable), `LinkDialogTest` (out of touch mode, default focus
+  finds neither field and no button is focusable, while the keyboard's Next still moves
+  from the label to the URL), `EscapeKeysTest` (short vs. held Escape, dispatched through a real
   `KeyEvent.DispatcherState` so the framework's tracking rules are exercised rather than
   assumed), `TouchOnlyRowTest` (out of touch mode, focus search, default focus, the
   refocus after a removal and a child becoming focusable all skip the row, while a child's
   own request still focuses it), `BlockKeyLongPressTest` (Enter and Space click on
-  release; a release without a press or a canceled one does not), `StatusBarViewTest` (`wifiIconLevel` across platform rating ranges, that
+  release; a release without a press or a canceled one does not), `StatusBarViewTest`
+  (`wifiIconLevel` across platform rating ranges, that
   `refreshOnResume` re-reads the clock and the battery when the bar returns to view but
   touches neither when it leaves, that cellular bars need no permission, and, on SDK 28,
   the GPS listener surviving a provider toggle, the five-step Wi-Fi rating and the
@@ -456,8 +464,8 @@ republishes the `dev` pre-release. Three parallel jobs plus a follow-up release 
   through a second instance, an unknown stored name falling back to Medium, the 8 / 12 /
   15 Home counts, portrait as the landscape grid transposed, the app-list columns, and
   `SLOT_COUNT` filling every grid), `OptionsDialogTest` (rows
-  in caller order, one index reported per pick, dismissal, and that only the selected row
-  is marked selected and drawn differently) and `ColorContrastTest` (every text colour on
+  in caller order, one index reported per pick, dismissal, that only the selected row
+  is marked selected and drawn differently, and that no row is focusable) and `ColorContrastTest` (every text colour on
   every fill it is drawn on at 4.5:1 and the focus ring at 3:1, in both themes, read
   through an explicit `uiMode`).
   Write new behaviour so it lands in that surface — a pure function, a store, or
