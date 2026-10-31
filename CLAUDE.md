@@ -116,7 +116,8 @@ These drive nearly every UI decision — violating them defeats the point of the
 
 Kotlin, Android classic Views (no Compose), AppCompat + Material3, view binding.
 Versions and SDK levels are in `.github/stackinfo.md`. Coroutines for the app
-enumeration and update I/O only. No networking library: `HttpURLConnection` +
+enumeration and update I/O, and `StateFlow` for the package generation and the app list,
+collected with `repeatOnLifecycle(STARTED)`. No networking library: `HttpURLConnection` +
 `org.json`.
 
 Package layout under `de.codevoid.motolauncher`:
@@ -462,18 +463,27 @@ republishes the `dev` pre-release. Three parallel jobs plus a follow-up release 
   unit tests in `app/src/test/kotlin` (`isIncludeAndroidResources = true`, so real resources and view
   inflation work; see *Commands* for running a single class or test).
   Robolectric runs them against SDK 36, which needs JDK 21 — hence JDK 21 in CI.
-  Twenty classes, and the shape they set: `AppRepositoryTest` (the pure `sortApps` /
+  Twenty-four classes, and the shape they set: `AppRepositoryTest` (the pure `sortApps` /
   `filterApps`), `FavoritesStoreTest` (app and link slot round-trips against real
-  `SharedPreferences`, the two representations cleaning each other up, and
-  `clearSlotsForPackage` matching whole package names and leaving link slots alone),
+  `SharedPreferences`, a work-profile app keeping its profile through a profile added to
+  Robolectric's `UserManager`, a gone profile reading empty, every write leaving no stale
+  key, and `clearSlotsForPackage` matching whole package names in one profile and leaving
+  link slots alone), `NavAppStoreTest` (the nav app keeps its profile; clearing forgets
+  it), `PackageWatcherTest` (a removal clears the app only in its profile, every other
+  event only advances the generation), `MotoLauncherAppTest` (driven through Robolectric's
+  `LauncherApps` shadow: the app list is reused until a package event, and an uninstall
+  clears its favourite), `FavoritesCacheTest` (only unseen keys are loaded, an unresolved
+  one is not asked again, a new generation reloads everything),
   `UpdateCheckerTest` (`parseRelease` / `isNewer` / `releaseApiUrl` /
   `deleteInstalledUpdate` over JSON fixtures and temp files), `ImmersiveTest` (content
   padding follows dispatched bar and cutout insets), `PrivacyPolicyTest` (the in-app text is
   the body of `PRIVACY.md`, read from the module's parent directory), `AppTileAdapterTest`
   (`updateItem` patches only the matching tile and ignores a missing one; a touch-only
-  submit leaves a recycled holder unfocusable and the next browse submit restores it),
+  submit leaves a recycled holder unfocusable and the next browse submit restores it; out
+  of touch mode, focus stays on the same tile when the list is submitted again),
   `HomeGridTest` (a real `HomeActivity`: empty "+" tiles cannot take focus while All Apps
-  can, and a reused tile follows its slot's content across resumes),
+  can, a reused tile follows its slot's content across resumes, and a package event while
+  Home is in front rebinds the grid without a resume),
   `TileActionsDialogTest` (inflates the dialog through the
   handle `showTileActionsDialog` returns: row order, optional rows hidden, one callback per
   row, dismissal, no row focusable), `LinkDialogTest` (out of touch mode, default focus
