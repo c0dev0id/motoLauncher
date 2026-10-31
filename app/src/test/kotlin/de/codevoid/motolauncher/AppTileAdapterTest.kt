@@ -1,9 +1,12 @@
 package de.codevoid.motolauncher
 
 import android.app.Activity
+import android.content.Context
+import android.graphics.drawable.ColorDrawable
 import android.os.Looper
 import android.view.View
 import android.widget.FrameLayout
+import androidx.core.content.ContextCompat
 import androidx.recyclerview.widget.GridLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import androidx.test.core.app.ApplicationProvider
@@ -53,6 +56,24 @@ class AppTileAdapterTest {
         adapter.bindViewHolder(holder, 0)
 
         assertEquals(View.GONE, holder.binding.appSubtitle.visibility)
+    }
+
+    // A hidden app reads as dimmed, but its label keeps 4.5:1 and its focus ring stays opaque.
+    @Test
+    fun aDimmedTileFadesItsIconAndMutesItsLabelButNotTheTile() {
+        val context = ApplicationProvider.getApplicationContext<Context>()
+        val holder = adapter.createViewHolder(FrameLayout(context), 0)
+
+        adapter.submit(listOf(TileItem("Maps", icon = ColorDrawable(), dimmed = true)))
+        adapter.bindViewHolder(holder, 0)
+        assertEquals(1f, holder.binding.root.alpha)
+        assertTrue(holder.binding.appIcon.alpha < 1f)
+        assertEquals(ContextCompat.getColor(context, R.color.on_surface_muted), holder.binding.appLabel.currentTextColor)
+
+        adapter.submit(listOf(TileItem("Maps", icon = ColorDrawable())))
+        adapter.bindViewHolder(holder, 0)
+        assertEquals(1f, holder.binding.appIcon.alpha)
+        assertEquals(ContextCompat.getColor(context, R.color.on_surface), holder.binding.appLabel.currentTextColor)
     }
 
     // Holders are shared between touch-only and browse tiles, so every bind sets it.

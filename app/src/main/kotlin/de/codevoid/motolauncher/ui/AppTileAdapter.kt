@@ -7,7 +7,9 @@ import android.view.View
 import android.view.ViewGroup
 import android.widget.ImageView
 import android.widget.TextView
+import androidx.core.content.ContextCompat
 import androidx.recyclerview.widget.RecyclerView
+import de.codevoid.motolauncher.R
 import de.codevoid.motolauncher.databinding.ItemAppTileBinding
 
 class AppTileAdapter(private var items: List<TileItem>) :
@@ -49,9 +51,12 @@ class AppTileAdapter(private var items: List<TileItem>) :
         val binding = holder.binding
 
         binding.appLabel.text = item.label
+        binding.appLabel.setTextColor(
+            ContextCompat.getColor(binding.root.context, if (item.dimmed) R.color.on_surface_muted else R.color.on_surface)
+        )
         binding.appIcon.bindOptional(item.icon)
+        binding.appIcon.alpha = if (item.dimmed) DIMMED_ICON_ALPHA else 1f
         binding.appSubtitle.bindOptional(item.subtitle)
-        binding.root.alpha = if (item.dimmed) 0.35f else 1.0f
         binding.root.isFocusable = !touchOnly
 
         binding.root.setOnClickListener { item.onClick() }
@@ -62,6 +67,10 @@ class AppTileAdapter(private var items: List<TileItem>) :
             binding.root.setOnLongClickListener(null)
             binding.root.isLongClickable = false
         }
+    }
+
+    private companion object {
+        const val DIMMED_ICON_ALPHA = 0.35f
     }
 }
 

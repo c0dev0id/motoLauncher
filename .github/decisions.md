@@ -353,6 +353,16 @@ theme toggle still needs no colour logic in code.
 overlay, the attribute Material3's own overlay sets. Material's default, `colorPrimary`,
 is about 4:1 on the dialog background in both themes.
 
+A hidden app shown under "Hidden apps: Showing" fades its icon and draws its label in
+`on_surface_muted`; the tile itself stays opaque. The whole tile used to be drawn at
+35 % alpha, which took the label to 2.3-3.0:1 and the focus ring to about 1.5:1, so the
+remote's position marker all but vanished on exactly the tiles a rider was reviewing.
+
+The charging bolt is a mark, not text, and has its own token, `battery_bolt`, the
+accent. It sits partly on the battery fill (`on_surface`) and partly on the empty icon
+(`background`), so it needs 3:1 against both; `on_surface_muted` was 1.83:1 against the
+fill in the dark theme.
+
 ### Signal meters have their own "unlit" colour
 Unlit bars were once drawn in `on_surface_muted`, a secondary-text colour that sits
 about 1.85:1 from `on_surface` in the dark theme, so full and empty signal looked
