@@ -7,6 +7,7 @@ import android.widget.TextView
 import androidx.test.core.app.ApplicationProvider
 import de.codevoid.motolauncher.data.AppEntry
 import de.codevoid.motolauncher.data.ComponentKey
+import de.codevoid.motolauncher.ui.showLinkActionsDialog
 import de.codevoid.motolauncher.ui.showTileActionsDialog
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
@@ -148,5 +149,33 @@ class TileActionsDialogTest {
             R.id.actionRemove, R.id.actionEditLink, R.id.actionRemoveLink,
         ).map { dialog.findViewById<TextView>(it) }
         assertTrue(rows.none { it.isFocusable })
+    }
+
+    @Test
+    fun theLinkMenuOffersOnlyEditAndRemove() {
+        val dialog = showLinkActionsDialog(ApplicationProvider.getApplicationContext(), "Weather", onEdit = {}, onRemove = {})
+        val visible = listOf(
+            R.id.actionAppInfo, R.id.actionUninstall, R.id.actionHide,
+            R.id.actionRemove, R.id.actionEditLink, R.id.actionRemoveLink,
+        ).filter { dialog.findViewById<TextView>(it).visibility == android.view.View.VISIBLE }
+        assertEquals(listOf(R.id.actionEditLink, R.id.actionRemoveLink), visible)
+        assertEquals("Weather", dialog.findViewById<TextView>(R.id.appLabel).text.toString())
+    }
+
+    @Test
+    fun eachLinkRowInvokesOnlyItsCallbackAndDismisses() {
+        var edits = 0
+        var removes = 0
+        val context = ApplicationProvider.getApplicationContext<android.content.Context>()
+
+        val edit = showLinkActionsDialog(context, "Weather", onEdit = { edits++ }, onRemove = { removes++ })
+        edit.findViewById<TextView>(R.id.actionEditLink).performClick()
+        assertEquals(1 to 0, edits to removes)
+        assertFalse(edit.isShowing)
+
+        val remove = showLinkActionsDialog(context, "Weather", onEdit = { edits++ }, onRemove = { removes++ })
+        remove.findViewById<TextView>(R.id.actionRemoveLink).performClick()
+        assertEquals(1 to 1, edits to removes)
+        assertFalse(remove.isShowing)
     }
 }
