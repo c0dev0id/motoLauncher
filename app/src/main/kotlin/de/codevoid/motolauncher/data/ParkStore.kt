@@ -5,7 +5,10 @@ import android.util.Base64
 import java.security.MessageDigest
 import java.security.SecureRandom
 
-/** Park lock state: whether the launcher is parked, and the salted hash of the PIN that ends it. */
+/**
+ * Park lock state: whether the launcher is parked, and the salted hash of the PIN that ends
+ * it. Kept in its own file, which the backup rules exclude.
+ */
 class ParkStore(context: Context) {
 
     private val prefs = context.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
@@ -32,7 +35,7 @@ class ParkStore(context: Context) {
     }
 
     companion object {
-        private const val PREFS = "settings"
+        const val PREFS = "park"
         private const val KEY_PARKED = "parked"
         private const val KEY_SALT = "park_pin_salt"
         private const val KEY_HASH = "park_pin_hash"

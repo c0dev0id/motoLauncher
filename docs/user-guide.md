@@ -102,8 +102,9 @@ newer, and only while the device has no screen lock of its own.
 **C** clears the entry, **⌫** deletes the last digit. The lock stays on through Home
 presses and reboots. The remote cannot operate the keypad.
 
-> **While locked, the PIN is the only way back in.** If you forget it, the launcher has
-> to be reinstalled from a computer.
+> **While locked, the PIN is the only way back in.** If you forget it, clear the
+> launcher's data from a computer (`adb shell pm clear de.codevoid.motolauncher`) or
+> reinstall it. The PIN is never part of a backup, so a restore does not bring the lock back.
 
 ## Update the launcher
 

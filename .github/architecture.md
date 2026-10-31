@@ -92,8 +92,8 @@ services, and `ParkActivity` calls lock task mode.
 
 ## Persistent state
 
-There is no database. State lives in three `SharedPreferences` files, shown here as
-entities.
+There is no database. State lives in four `SharedPreferences` files, shown here as
+entities. All but `park` are included in Android backup.
 
 ```mermaid
 erDiagram
@@ -116,6 +116,8 @@ erDiagram
         boolean speed_enabled "default false"
         boolean speed_metric "default true"
         string battery_display "BOTH, ICON or TEXT"
+    }
+    park {
         boolean parked "default false"
         string park_pin_salt
         string park_pin_hash

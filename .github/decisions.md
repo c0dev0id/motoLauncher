@@ -444,7 +444,20 @@ before `stopLockTask()`, or an in-flight run would re-pin what the PIN released.
 guard is disarmed in `onPause`, so a parked device with the screen off polls nothing.
 
 The consequence was accepted deliberately: while parked, the PIN is the only way out
-short of adb or reinstalling. A forgotten PIN strands the device.
+short of a computer. A forgotten PIN strands the device until its data is cleared
+(`adb shell pm clear de.codevoid.motolauncher`) or the launcher is reinstalled.
+
+### The park state is never backed up
+Auto Backup and device transfer used to copy the whole `settings` file, the parked flag
+and the PIN hash included, and Android restores a backup on every install. A backup
+taken while parked (overnight, charging, on Wi-Fi) turned the recovery, a reinstall, into
+a device that came back up parked behind the forgotten PIN, and a new device set up from
+that backup started parked as well. The park state now has its own `park` file,
+excluded from cloud backup and device transfer (`data_extraction_rules`, Android 12+) and
+from full backup (`backup_rules`, Android 11 and lower). The rules can only match whole
+files, hence the separate file. A restored device has no PIN and is not parked. The
+park keys left in an older `settings` file are not cleaned up: nothing reads them, and
+the project carries no migration code before 1.0.
 
 ### Pinning state is not shown
 A status line under the keypad reported whether pinning took while the mechanism was
@@ -473,7 +486,7 @@ park lock outright.
 ### Offered only on Android 15+ and without a secure lock screen
 Below Android 15 the system confirms every `startLockTask()`, so the guard would answer
 an unpin with a dialog instead of a silent re-pin. A device with a secure lock screen
-already has a better park lock one power-button press away. `shouldOfferParkLock` gates
+already has a better park lock one power-button press away. `ParkLockRules.shouldOfferParkLock` gates
 the settings tile only; that is enough because the tile is the sole entry point and the
 restore path fires only on a flag the park screen sets. The Android 15 boundary comes
 from testing on 14 (confirmed every pin) and 16 (silent); 15 itself is untested and

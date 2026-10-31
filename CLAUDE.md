@@ -200,13 +200,15 @@ Package layout under `de.codevoid.motolauncher`:
   focus returns. The system's unpin gesture (hold Back + Recents) cannot be
   blocked, so it is undone: `lockTaskGuard` polls `lockTaskModeState` every 300 ms while
   parked and re-pins, and `onWindowFocusChanged` re-asserts too.
-  `ParkLockRules.shouldRequestLockTask` is the pure, unit-tested rule behind both — parked, not in set mode, not finishing, not
-  already pinned, and past the settle window that covers the asynchronous state update.
+  `ParkLockRules.shouldRequestLockTask` is the pure, unit-tested rule behind both —
+  parked, not in set mode, not finishing, not already pinned, and past the settle window
+  that covers the asynchronous state update.
   Order on unlock is load-bearing: disarm the guard and clear `isParked` *before*
   `stopLockTask()`, or an in-flight guard run re-pins the screen the correct PIN just
   released. The guard is armed in `onResume` and disarmed in `onPause`, so a parked device
   with the screen off polls nothing. **It also means the PIN is the only way out** short of
-  adb or reinstalling — a forgotten PIN strands the device. `setMode` is read from the
+  a computer — a forgotten PIN strands the device until `adb shell pm clear` or a
+  reinstall, which works because the park state is never backed up (see `ParkStore`). `setMode` is read from the
   *current* intent, never cached, because a reused `singleInstance` gets later intents
   through `onNewIntent`. The restore path is
   `HomeActivity.onResume`: while `ParkStore.isParked` is set it re-launches this screen,
@@ -246,10 +248,14 @@ Package layout under `de.codevoid.motolauncher`:
   file: `ThemeStore` (default dark, drives `AppCompatDelegate.setDefaultNightMode`),
   `NavAppStore`, `OrientationStore`, `NavBarStore`, `CellularStore`, `SpeedStore`
   (enabled + metric), `BatteryStore` (`BatteryDisplay` enum), `TileSizeStore` (`TileSize`
-  enum: Home grid per orientation and app-list columns; default `MEDIUM`), and `ParkStore` (parked
-  flag + salted-hash park PIN; the hash is hygiene, not security). `StatusBarView` listens to
-  that file by key, so a new status-bar setting is a new public `KEY_*` constant plus a
-  branch in its `prefsListener`, not new lifecycle wiring.
+  enum: Home grid per orientation and app-list columns; default `MEDIUM`). `StatusBarView`
+  listens to that file by key, so a new status-bar setting is a new public `KEY_*`
+  constant plus a branch in its `prefsListener`, not new lifecycle wiring. `ParkStore`
+  (file `park`: parked flag + salted-hash park PIN; the hash is hygiene, not security) has
+  its own file because it is the one store left out of backups:
+  `res/xml/data_extraction_rules.xml` (Android 12+) and `res/xml/backup_rules.xml`
+  (Android 11 and lower) exclude `park.xml`, and the rules can only match whole files. A
+  new store goes into `settings` unless it must stay out of backups too.
 - `update/UpdateChecker` — github flavor only. One-shot GET on
   `releaseApiUrl(VERSION_NAME)`: the `dev` tag for a `dev-` build, `releases/latest`
   otherwise. `parseRelease`
@@ -460,8 +466,9 @@ republishes the `dev` pre-release. Three parallel jobs plus a follow-up release 
   the GPS listener surviving a provider toggle, the five-step Wi-Fi rating and the
   cellular subscription following its toggle), `ParkStoreTest`
   (PIN round-trips against real `SharedPreferences`, the parked flag read back through a
-  second instance — the path a reboot takes — and that the PIN is never written in the
-  clear), `ParkLockTaskGuardTest` (the pure `ParkLockRules.shouldRequestLockTask`,
+  second instance — the path a reboot takes — that the PIN is never written in the
+  clear, and that the store's file is the one both backup rule files exclude),
+  `ParkLockTaskGuardTest` (the pure `ParkLockRules.shouldRequestLockTask`,
   including the settle window that stops a redundant second pin request; plain JUnit),
   `ParkLockAvailabilityTest` (the pure `ParkLockRules.shouldOfferParkLock`, with the API
   boundary written as numbers so it is pinned independently of the constant; plain JUnit), `TileSizeStoreTest` (default and round trip

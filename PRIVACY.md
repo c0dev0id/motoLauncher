@@ -1,6 +1,6 @@
 # Privacy policy
 
-Effective 2026-10-19. Applies to motoLauncher from Google Play and from the GitHub
+Effective 2026-10-31. Applies to motoLauncher from Google Play and from the GitHub
 release page.
 
 motoLauncher collects no personal data and shares none. It has no accounts, advertising,
@@ -9,7 +9,8 @@ analytics or tracking.
 Everything the launcher stores — favourites, links, hidden apps, settings, and the park
 lock PIN, which is kept only as a salted hash — stays in its private storage on the
 device. If Android backup is switched on, Android may include these settings in the
-device backup.
+device backup. The park lock PIN and whether the launcher is parked are never part of a
+backup.
 
 The list of installed apps is read only to show and launch them.
 
