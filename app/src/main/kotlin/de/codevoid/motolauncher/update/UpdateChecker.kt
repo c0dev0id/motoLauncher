@@ -5,6 +5,7 @@ import android.content.Intent
 import androidx.core.content.FileProvider
 import de.codevoid.motolauncher.BuildConfig
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.ensureActive
 import kotlinx.coroutines.withContext
 import org.json.JSONObject
 import java.io.File
@@ -12,6 +13,7 @@ import java.io.FileOutputStream
 import java.io.IOException
 import java.net.HttpURLConnection
 import java.net.URL
+import kotlin.coroutines.coroutineContext
 
 data class ReleaseInfo(
     val versionName: String,
@@ -77,7 +79,8 @@ class UpdateChecker(private val context: Context) {
         }
     }
 
-    private fun httpDownload(
+    // Checks for cancellation between chunks: the blocking reads do not.
+    private suspend fun httpDownload(
         urlString: String,
         dest: File,
         onProgress: ((Long, Long) -> Unit)? = null,
@@ -98,6 +101,7 @@ class UpdateChecker(private val context: Context) {
                     val buf = ByteArray(DEFAULT_BUFFER_SIZE)
                     var n: Int
                     while (input.read(buf).also { n = it } != -1) {
+                        coroutineContext.ensureActive()
                         output.write(buf, 0, n)
                         written += n
                         onProgress?.invoke(written, totalBytes)
