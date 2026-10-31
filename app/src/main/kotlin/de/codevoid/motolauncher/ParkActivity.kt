@@ -51,9 +51,7 @@ class ParkActivity : AppCompatActivity() {
     // set-PIN screen would otherwise come back as set-PIN when the user parks.
     private val setMode get() = intent.getBooleanExtra(EXTRA_SET_PIN, false)
 
-    // Cached: looked up several times a second by the guard, and fixed for the life of
-    // the activity.
-    private val activityManager by lazy { getSystemService(ActivityManager::class.java) }
+    private val activityManager by lazy { getSystemService(ACTIVITY_SERVICE) as ActivityManager }
 
     private var lastLockTaskRequestAt = 0L
     // Set when a request demonstrably did not take *and* pinning has never worked on this
@@ -202,7 +200,7 @@ class ParkActivity : AppCompatActivity() {
             // released, so no in-flight guard run can re-pin what the PIN just opened.
             disarmLockTaskGuard()
             store.isParked = false
-            exitLockTask()
+            stopLockTask()
             finish()
             noTransition()
         } else {
@@ -223,10 +221,8 @@ class ParkActivity : AppCompatActivity() {
         }
     }
 
-    private fun isLockTaskActive(): Boolean {
-        val state = activityManager?.lockTaskModeState ?: ActivityManager.LOCK_TASK_MODE_NONE
-        return state != ActivityManager.LOCK_TASK_MODE_NONE
-    }
+    private fun isLockTaskActive(): Boolean =
+        activityManager.lockTaskModeState != ActivityManager.LOCK_TASK_MODE_NONE
 
     /** One Binder read, remembering that pinning has worked here at least once. */
     private fun readLockTaskState(): Boolean =
@@ -267,13 +263,6 @@ class ParkActivity : AppCompatActivity() {
     private fun disarmLockTaskGuard() {
         binding.root.removeCallbacks(lockTaskGuard)
         binding.root.removeCallbacks(settleCheck)
-    }
-
-    // Best effort like the request: stopLockTask throws if it was never entered, which is
-    // the normal case on a device with screen pinning switched off.
-    private fun exitLockTask() {
-        if (!isLockTaskActive()) return
-        runCatching { stopLockTask() }
     }
 
     companion object {
