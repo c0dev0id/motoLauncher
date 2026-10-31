@@ -69,8 +69,8 @@ class FavoritesStore(context: Context) {
         private const val PREFS = "favorites"
         private const val LINK_MARKER = "link:"
 
-        // Home grid is 4x3 = 12 cells; the last cell is the fixed "All Apps" tile,
-        // leaving 11 configurable favorite slots.
-        const val SLOT_COUNT = 11
+        // Enough slots for the largest Home grid, less its fixed "All Apps" tile. A smaller
+        // grid shows the leading slots and keeps the rest.
+        val SLOT_COUNT = TileSize.entries.maxOf { it.homeTileCount } - 1
     }
 }
