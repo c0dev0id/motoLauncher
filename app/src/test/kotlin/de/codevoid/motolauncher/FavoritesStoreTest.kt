@@ -33,7 +33,7 @@ class FavoritesStoreTest {
     @Before
     fun setUp() {
         shadowOf(context.getSystemService(UserManager::class.java))
-            .addProfile(own.identifier, WORK_USER_ID, "Work", 0)
+            .addProfile(Process.myUid() / 100_000, WORK_USER_ID, "Work", 0)
         store = FavoritesStore(context)
     }
 

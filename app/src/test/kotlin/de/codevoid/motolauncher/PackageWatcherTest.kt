@@ -32,7 +32,7 @@ class PackageWatcherTest {
     @Before
     fun addWorkProfile() {
         shadowOf(context.getSystemService(UserManager::class.java))
-            .addProfile(own.identifier, 10, "Work", 0)
+            .addProfile(Process.myUid() / 100_000, 10, "Work", 0)
     }
 
     @Test

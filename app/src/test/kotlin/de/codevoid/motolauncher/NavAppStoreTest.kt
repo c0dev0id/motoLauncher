@@ -24,7 +24,7 @@ class NavAppStoreTest {
     @Test
     fun aNavAppInAnotherProfileIsReadBackInThatProfile() {
         shadowOf(context.getSystemService(UserManager::class.java))
-            .addProfile(Process.myUserHandle().identifier, 10, "Work", 0)
+            .addProfile(Process.myUid() / 100_000, 10, "Work", 0)
         val work = ComponentKey(maps, UserHandle.getUserHandleForUid(10 * 100_000))
 
         NavAppStore(context).navApp = work
