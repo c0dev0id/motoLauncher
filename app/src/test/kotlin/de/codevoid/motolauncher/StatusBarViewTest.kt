@@ -12,6 +12,7 @@ import android.net.wifi.WifiManager
 import android.os.BatteryManager
 import android.os.Build
 import android.os.Looper
+import android.os.SystemClock
 import android.telephony.PhoneStateListener
 import android.telephony.TelephonyManager
 import android.view.View
@@ -320,7 +321,12 @@ class StatusBarViewTest {
         settle()
         val location = shadowOf(app.getSystemService(LocationManager::class.java))
         val kmh = app.getString(R.string.units_kmh)
-        fun fix(speed: Float?) = Location(LocationManager.GPS_PROVIDER).apply { speed?.let { this.speed = it } }
+        // Stamped like a real fix: the shadow drops one that comes within the request's
+        // 1 s interval of the last, measured by these timestamps.
+        fun fix(speed: Float?) = Location(LocationManager.GPS_PROVIDER).apply {
+            elapsedRealtimeNanos = SystemClock.elapsedRealtimeNanos()
+            speed?.let { this.speed = it }
+        }
 
         location.simulateLocation(fix(10f))
         settle()
