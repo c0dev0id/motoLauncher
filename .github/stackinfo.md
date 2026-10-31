@@ -34,7 +34,7 @@ Feature floor above `minSdk`: the park lock is offered from API 35.
 
 | Flavor | Distribution | Self-update | Network access |
 |---|---|---|---|
-| `github` | GitHub release page and `dev` pre-release; dev builds update from the home.codevoid.de dist store | Yes | `INTERNET` |
+| `github` | GitHub release page and `dev` pre-release; updates from the home.codevoid.de dist store | Yes | `INTERNET` |
 | `play` | Google Play | No | None |
 
 ## Libraries

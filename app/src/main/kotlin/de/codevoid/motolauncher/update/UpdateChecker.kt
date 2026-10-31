@@ -28,19 +28,11 @@ class UpdateChecker(private val context: Context) {
 
     private val downloadDir = File(context.cacheDir, "updates")
 
-    /**
-     * Returns release info if the build this one follows differs from the installed build,
-     * else null. Dev builds follow the newest push to the dist store, release builds the
-     * latest GitHub release.
-     */
+    /** Returns the newest build of this build's channel if it differs from the installed build, else null. */
     suspend fun check(): ReleaseInfo? = withContext(Dispatchers.IO) {
         val installed = BuildConfig.VERSION_NAME
-        val release = if (installed.startsWith(DEV_VERSION_PREFIX)) {
-            parseDistFile(httpGet(DIST_LATEST, "application/json"), DIST_LATEST)
-        } else {
-            parseRelease(httpGet(RELEASES_LATEST, "application/vnd.github+json"))
-        }
-        release?.takeIf { isNewer(it, installed) }
+        val latest = latestUrlFor(installed)
+        parseDistFile(httpGet(latest), latest)?.takeIf { isNewer(it, installed) }
     }
 
     suspend fun download(
@@ -72,12 +64,12 @@ class UpdateChecker(private val context: Context) {
         }
     }
 
-    private fun httpGet(urlString: String, accept: String): String {
+    private fun httpGet(urlString: String): String {
         val connection = (URL(urlString).openConnection() as HttpURLConnection).apply {
             requestMethod = "GET"
             connectTimeout = TIMEOUT_MS
             readTimeout = TIMEOUT_MS
-            setRequestProperty("Accept", accept)
+            setRequestProperty("Accept", "application/json")
             setRequestProperty("User-Agent", USER_AGENT)
         }
         try {
@@ -127,8 +119,7 @@ class UpdateChecker(private val context: Context) {
     }
 
     companion object {
-        private const val RELEASES_LATEST = "https://api.github.com/repos/c0dev0id/motoLauncher/releases/latest"
-        private const val DIST_LATEST = "https://home.codevoid.de/dist/pvijddyj/latest"
+        private const val DIST = "https://home.codevoid.de/dist/pvijddyj"
         private const val DEV_VERSION_PREFIX = "dev-"
         private const val USER_AGENT = "motoLauncher"
         private const val TIMEOUT_MS = 15_000
@@ -137,26 +128,10 @@ class UpdateChecker(private val context: Context) {
         fun isNewer(remote: ReleaseInfo, installedVersionName: String): Boolean =
             remote.versionName.isNotEmpty() && remote.versionName != installedVersionName
 
-        /**
-         * Extracts the APK asset from a GitHub release JSON. The version name is derived
-         * from the asset filename (`motoLauncher-<versionName>.apk`), matching the build's
-         * `versionName` so [isNewer] can compare them directly. An asset whose name is not a
-         * bare file name is skipped, since the name becomes the download's file name.
-         */
-        fun parseRelease(json: String): ReleaseInfo? {
-            val assets = JSONObject(json).optJSONArray("assets") ?: return null
-            for (i in 0 until assets.length()) {
-                val asset = assets.getJSONObject(i)
-                val name = asset.optString("name")
-                if (!name.endsWith(".apk") || '/' in name) continue
-                return ReleaseInfo(
-                    versionName = name.removeSuffix(".apk").removePrefix(APK_PREFIX),
-                    apkUrl = asset.optString("browser_download_url"),
-                    apkName = name,
-                )
-            }
-            return null
-        }
+        /** Dev builds follow the dist store's nightly channel, release builds its release channel. */
+        fun latestUrlFor(installedVersionName: String): String =
+            if (installedVersionName.startsWith(DEV_VERSION_PREFIX)) "$DIST/nightly/latest"
+            else "$DIST/release/latest"
 
         /**
          * Reads the file a dist store `latest` answer describes, whose `url` is relative to

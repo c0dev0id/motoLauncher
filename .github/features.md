@@ -33,8 +33,8 @@
 - **Park lock.** A four-digit PIN keypad in its own task that pins the screen, re-pins
   itself if unpinned, and survives a reboot. Offered on Android 15+ without a secure
   lock screen.
-- **Self-update (github flavor).** A user-triggered check against the latest release
-  for a release build, or the newest build in the home.codevoid.de dist store for a dev
+- **Self-update (github flavor).** A user-triggered check against the home.codevoid.de
+  dist store, the release channel for a release build and the nightly channel for a dev
   build, with download progress on the tile and a hand-off to the system installer.
 - **Google Play build.** The play flavor has no updater and no network access; Play
   updates it.

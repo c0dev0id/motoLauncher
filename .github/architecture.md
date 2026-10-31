@@ -45,10 +45,9 @@ flowchart LR
     repo <--> la
     repo -- uninstall --> installer
     update -- install --> installer
-    update -- release builds --> gh
-    update -- dev builds --> dist
+    update -- download --> dist
     ci -- publishes APK --> gh
-    ci -- pushes dev APK --> dist
+    ci -- pushes APKs --> dist
     ci -- uploads bundle --> play
     play -- installs and updates --> launcher
 

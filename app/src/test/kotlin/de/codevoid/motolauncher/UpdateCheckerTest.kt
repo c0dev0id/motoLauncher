@@ -15,20 +15,6 @@ import java.io.File
 @RunWith(RobolectricTestRunner::class)
 class UpdateCheckerTest {
 
-    @Test
-    fun parseReleasePicksApkAssetAndDerivesVersion() {
-        val json = """
-            {"assets":[
-              {"name":"notes.txt","browser_download_url":"https://x/notes.txt"},
-              {"name":"motoLauncher-dev-abc1234.apk","browser_download_url":"https://x/app.apk"}
-            ]}
-        """.trimIndent()
-        val info = UpdateChecker.parseRelease(json)!!
-        assertEquals("dev-abc1234", info.versionName)
-        assertEquals("https://x/app.apk", info.apkUrl)
-        assertEquals("motoLauncher-dev-abc1234.apk", info.apkName)
-    }
-
     // The shape the dist store's latest address answers with.
     private fun distFile(name: String = "motoLauncher-dev-abc1234.apk", version: String? = "\"dev-abc1234\"") = """
         {"name":"$name","version":$version,"size":5242880,"sha256":"00ff",
@@ -63,24 +49,11 @@ class UpdateCheckerTest {
     }
 
     @Test
-    fun parseReleaseSkipsAnAssetNameWithAPath() {
-        val json = """
-            {"assets":[
-              {"name":"../motoLauncher-dev-evil.apk","browser_download_url":"https://x/evil.apk"},
-              {"name":"motoLauncher-dev-abc1234.apk","browser_download_url":"https://x/app.apk"}
-            ]}
-        """.trimIndent()
-        assertEquals("motoLauncher-dev-abc1234.apk", UpdateChecker.parseRelease(json)?.apkName)
-    }
-
-    @Test
-    fun parseReleaseReturnsNullWithoutApkAsset() {
-        assertNull(UpdateChecker.parseRelease("""{"assets":[{"name":"readme.txt"}]}"""))
-    }
-
-    @Test
-    fun parseReleaseReturnsNullWithoutAssetsArray() {
-        assertNull(UpdateChecker.parseRelease("""{"tag_name":"dev"}"""))
+    fun devBuildsFollowTheNightlyChannelAndReleasesTheReleaseChannel() {
+        val dist = "https://home.codevoid.de/dist/pvijddyj"
+        assertEquals("$dist/nightly/latest", UpdateChecker.latestUrlFor("dev-abc1234"))
+        assertEquals("$dist/nightly/latest", UpdateChecker.latestUrlFor("dev-local-debug"))
+        assertEquals("$dist/release/latest", UpdateChecker.latestUrlFor("1.0.3"))
     }
 
     @Test

@@ -602,26 +602,25 @@ assumed to behave like 16.
 
 ## Updates
 
-### Releases and dev builds are two channels
-A release build (a plain version such as `1.0.3`) queries GitHub's latest release, which
-never resolves to a pre-release, and takes its version from the APK filename
-(`motoLauncher-<versionName>.apk`). A dev build (`dev-<sha>`) queries the `latest`
-address of the home.codevoid.de dist store, which also serves the motoSuite apps whose
-repositories are private, and takes the version the push sent. The installed version
-name picks the channel, so there is no setting. Any published build that differs from
-the installed one counts as an update. The check is user-triggered only: the device is
-mostly offline.
+### Releases and dev builds are two channels of the dist store
+Both channels are channels of the app's home.codevoid.de dist repository. A dev build
+(`dev-<sha>`) reads `nightly/latest`, a release build (a plain version such as `1.0.3`)
+`release/latest`, and takes the version the push sent. The installed version name picks
+the channel, so there is no setting. Any published build that differs from the installed
+one counts as an update. The check is user-triggered only: the device is mostly offline.
 
-The dist store's `latest` is the newest push to one dist repository, not the highest
-version, so a dist repository is one channel and only dev builds push to this one.
-Releases moving there would need a second dist repository with its own token and read
-key. The read key in `UpdateChecker` is no secret: it ships in every APK, and the store
-needs only that nothing lists it. The answer's `url` is relative to the `latest`
-address. CI names the file `motoLauncher-<versionName>.apk` like the GitHub asset,
-because `deleteInstalledUpdate()` finds the installed update by that name.
+A channel's `latest` is its newest push, not the highest version, so the two kinds of
+build need two channels: cutting a release commits to `main`, and `Build` pushes a dev
+build of that commit minutes later. The store serves every motoSuite app, including those
+whose repositories are private and whose GitHub releases an anonymous app cannot read, so
+all of them update the same way; motoLauncher's release builds used to ask GitHub's
+latest release. The read key in `UpdateChecker` is no secret: it ships in every APK, and
+the store needs only that nothing lists it. The answer's `url` is relative to the
+`latest` address. CI names the file `motoLauncher-<versionName>.apk`, because
+`deleteInstalledUpdate()` finds the installed update by that name.
 
-The `dev` pre-release stays as the download page for dev builds; the updater no longer
-reads it. CI updates it in place: the tag moves to the built commit, the new APK is
+The GitHub release stays as the download page for releases and the `dev` pre-release as
+the one for dev builds; the updater reads neither. CI updates it in place: the tag moves to the built commit, the new APK is
 uploaded, then the old one is deleted. CI used to delete and recreate the release, and
 because `gh release delete` ran without `--cleanup-tag` the tag stayed on the first
 commit ever built.

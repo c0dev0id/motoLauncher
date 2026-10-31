@@ -28,8 +28,8 @@
     <string name="update_failed">Update check failed: %1$s</string>
     <string name="update_error_not_found">no build is published right now. Try again in a few minutes.</string>
     <string name="update_error_http">the server answered with HTTP %1$d.</string>
-    <string name="update_error_offline">no connection to GitHub.</string>
-    <string name="update_error_timeout">GitHub did not answer in time.</string>
+    <string name="update_error_offline">no connection to the update server.</string>
+    <string name="update_error_timeout">the update server did not answer in time.</string>
     <string name="back">Back</string>
     <string name="battery_percent">%1$d%%</string>
     <string name="cellular_indicator">Cellular indicator</string>
@@ -81,5 +81,5 @@
     <string name="park_key_delete">\u232b</string>
     <string name="privacy_policy">Privacy policy</string>
     <!-- The body of PRIVACY.md; PrivacyPolicyTest compares them. -->
-    <string name="privacy_policy_text">motoLauncher collects no personal data and shares none. It has no accounts, advertising, analytics or tracking.\n\nEverything the launcher stores — favourites, links, hidden apps, settings, and the park lock PIN, which is kept only as a salted hash — stays in its private storage on the device. If Android backup is switched on, Android may include these settings in the device backup. The park lock PIN and whether the launcher is parked are never part of a backup.\n\nThe list of installed apps is read only to show and launch them.\n\nWith the GPS speed display switched on, the launcher reads the device location while the home screen is visible, to show the current speed. The location is neither recorded nor sent anywhere.\n\nThe status bar reads the Wi-Fi signal strength and, with the cellular indicator switched on, the mobile signal strength, to draw its signal bars.\n\nThe Google Play version makes no network connections. The version from the GitHub release page connects only when you tap the update check, to look for and download a newer version: a release connects to GitHub, a development build to home.codevoid.de.\n\nQuestions: https://github.com/c0dev0id/motoLauncher/issues</string>
+    <string name="privacy_policy_text">motoLauncher collects no personal data and shares none. It has no accounts, advertising, analytics or tracking.\n\nEverything the launcher stores — favourites, links, hidden apps, settings, and the park lock PIN, which is kept only as a salted hash — stays in its private storage on the device. If Android backup is switched on, Android may include these settings in the device backup. The park lock PIN and whether the launcher is parked are never part of a backup.\n\nThe list of installed apps is read only to show and launch them.\n\nWith the GPS speed display switched on, the launcher reads the device location while the home screen is visible, to show the current speed. The location is neither recorded nor sent anywhere.\n\nThe status bar reads the Wi-Fi signal strength and, with the cellular indicator switched on, the mobile signal strength, to draw its signal bars.\n\nThe Google Play version makes no network connections. The version from the GitHub release page connects only when you tap the update check, to home.codevoid.de, to look for and download a newer version.\n\nQuestions: https://github.com/c0dev0id/motoLauncher/issues</string>
 </resources>

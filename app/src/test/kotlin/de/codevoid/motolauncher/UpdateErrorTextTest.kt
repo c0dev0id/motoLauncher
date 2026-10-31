@@ -30,7 +30,7 @@ class UpdateErrorTextTest {
 
     @Test
     fun noNetworkAndNoAnswerAreNamed() {
-        assertEquals(context.getString(R.string.update_error_offline), context.updateErrorText(UnknownHostException("api.github.com")))
+        assertEquals(context.getString(R.string.update_error_offline), context.updateErrorText(UnknownHostException("home.codevoid.de")))
         assertEquals(context.getString(R.string.update_error_timeout), context.updateErrorText(SocketTimeoutException()))
     }
 

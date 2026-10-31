@@ -1,6 +1,6 @@
 # Privacy policy
 
-Effective 2026-10-31. Applies to motoLauncher from Google Play and from the GitHub
+Effective 2026-11-01. Applies to motoLauncher from Google Play and from the GitHub
 release page.
 
 motoLauncher collects no personal data and shares none. It has no accounts, advertising,
@@ -22,7 +22,7 @@ The status bar reads the Wi-Fi signal strength and, with the cellular indicator 
 on, the mobile signal strength, to draw its signal bars.
 
 The Google Play version makes no network connections. The version from the GitHub release
-page connects only when you tap the update check, to look for and download a newer
-version: a release connects to GitHub, a development build to home.codevoid.de.
+page connects only when you tap the update check, to home.codevoid.de, to look for and
+download a newer version.
 
 Questions: https://github.com/c0dev0id/motoLauncher/issues
