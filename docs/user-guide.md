@@ -81,7 +81,8 @@ count when the screen rotates. Apps in slots that a smaller grid cannot show sta
 there and come back when you pick a bigger grid.
 
 **GPS Speed** asks for location permission the first time you turn it on, and
-switches on only if you allow it. GPS Speed and Units appear only on devices with GPS.
+switches on only if you allow precise location. GPS Speed and Units appear only on
+devices with GPS.
 
 The status bar shows the time on the left and Wi-Fi, cellular and battery on the right.
 GPS speed sits between them in landscape and on its own row in portrait. A Wi-Fi icon

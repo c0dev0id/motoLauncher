@@ -180,9 +180,10 @@ Package layout under `de.codevoid.motolauncher`:
   is cached in `settingsTilesCache`; every tile that changes state sets it to `null` before
   re-rendering. Download progress patches the update tile in place, found by its label:
   in `settingsTilesCache`, and on screen only while settings mode shows, because the
-  adapter may hold a search-filtered list or the app grid. The GPS toggle asks for its
-  permission through `registerForActivityResult(RequestPermission())`; the store flips to
-  enabled only on grant. A short Escape exits settings mode before finishing. Activity
+  adapter may hold a search-filtered list or the app grid. The GPS toggle asks for fine and
+  coarse location together through `RequestMultiplePermissions()`; the store flips to
+  enabled only when fine location is granted, and the tile reads On only while both the
+  setting and the permission hold. A short Escape exits settings mode before finishing. Activity
   transitions are disabled (`noTransition()`) in both directions.
 - `ParkActivity` — the park lock: a PIN keypad for short unattended stops, in **its own
   task** (`singleInstance` + `taskAffinity`), which is load-bearing — `HomeActivity` is

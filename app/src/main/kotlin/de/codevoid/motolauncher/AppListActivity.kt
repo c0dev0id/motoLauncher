@@ -14,7 +14,7 @@ import android.text.Editable
 import android.text.TextWatcher
 import android.view.KeyEvent
 import android.view.View
-import androidx.activity.result.contract.ActivityResultContracts.RequestPermission
+import androidx.activity.result.contract.ActivityResultContracts.RequestMultiplePermissions
 import androidx.activity.viewModels
 import androidx.annotation.StringRes
 import androidx.appcompat.app.AlertDialog
@@ -104,8 +104,8 @@ class AppListActivity : AppCompatActivity() {
     )
 
     private val gpsPermissionLauncher =
-        registerForActivityResult(RequestPermission()) { granted ->
-            if (granted) speedStore.enabled = true
+        registerForActivityResult(RequestMultiplePermissions()) { grants ->
+            if (grants[Manifest.permission.ACCESS_FINE_LOCATION] == true) speedStore.enabled = true
             settingsTilesCache = null
             renderCurrentMode()
         }
@@ -257,10 +257,13 @@ class AppListActivity : AppCompatActivity() {
             onClick = { settingsTilesCache = null; cellularStore.enabled = !cellularStore.enabled; renderCurrentMode() },
         ))
 
-        if (packageManager.hasSystemFeature(android.content.pm.PackageManager.FEATURE_LOCATION_GPS)) {
+        if (packageManager.hasSystemFeature(PackageManager.FEATURE_LOCATION_GPS)) {
             // Off asks for the permission and gpsPermissionLauncher switches it on when
-            // granted; the system skips the dialog if it already is. On switches it off.
-            val gpsOn = speedStore.enabled
+            // precise location is granted; the system skips the dialog if it already is.
+            // On switches it off.
+            val gpsOn = speedStore.enabled && ContextCompat.checkSelfPermission(
+                this, Manifest.permission.ACCESS_FINE_LOCATION,
+            ) == PackageManager.PERMISSION_GRANTED
             tiles.add(TileItem(
                 label = getString(R.string.gps_speed),
                 subtitle = getString(if (gpsOn) R.string.setting_on else R.string.setting_off),
@@ -270,7 +273,10 @@ class AppListActivity : AppCompatActivity() {
                         settingsTilesCache = null
                         renderCurrentMode()
                     } else {
-                        gpsPermissionLauncher.launch(Manifest.permission.ACCESS_FINE_LOCATION)
+                        gpsPermissionLauncher.launch(arrayOf(
+                            Manifest.permission.ACCESS_FINE_LOCATION,
+                            Manifest.permission.ACCESS_COARSE_LOCATION,
+                        ))
                     }
                 },
             ))

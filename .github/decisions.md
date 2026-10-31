@@ -203,9 +203,13 @@ and, only while settings mode shows, in the adapter. Tile order carries no meani
 `getStringSet` returns the live internal set, so the store always returns a copy.
 
 ### The GPS toggle flips only on grant
-The GPS toggle requests its permission through
-`registerForActivityResult(RequestPermission())`. The store is set to enabled only when
-the grant arrives, so the setting never reads On without the access behind it.
+The GPS toggle requests `ACCESS_FINE_LOCATION` and `ACCESS_COARSE_LOCATION` together
+through `RequestMultiplePermissions`: from Android 12 a request for fine location alone
+is refused without a dialog on some releases, so the first version's tile never turned
+on there. The store is set to enabled only when precise location is granted; speed
+needs it, and a rider who picks "Approximate" keeps the tile Off. The tile reads the
+setting and the permission together, so it never reads On without the access behind
+it, also after the permission is revoked in system settings.
 
 ### A picker for multi-valued settings whose intermediate values are disruptive
 Settings tiles cycle on tap, which suits two or three harmless values (theme, units,
