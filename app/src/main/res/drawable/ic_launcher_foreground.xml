@@ -4,6 +4,6 @@
     android:viewportWidth="108"
     android:viewportHeight="108">
     <path
-        android:fillColor="#2F6FED"
+        android:fillColor="@color/tile_focused"
         android:pathData="M34,34h16v16h-16z M58,34h16v16h-16z M34,58h16v16h-16z M58,58h16v16h-16z" />
 </vector>
