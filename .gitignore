@@ -12,3 +12,4 @@ app/build/
 *.keystore
 .claude/scheduled_tasks.lock
 __pycache__/
+!app/debug.keystore

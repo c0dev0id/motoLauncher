@@ -41,8 +41,12 @@ android {
         throw GradleException("requireSigning is set, but a SIGNING_* environment variable is empty")
     }
 
-    if (hasSigningConfig) {
-        signingConfigs {
+    signingConfigs {
+        // Committed, so debug builds from every CI run share one key and install over each other.
+        getByName("debug") {
+            storeFile = file("debug.keystore")
+        }
+        if (hasSigningConfig) {
             create("release") {
                 storeFile = file(keystorePath!!)
                 storePassword = keystorePassword
@@ -61,6 +65,8 @@ android {
         debug {
             applicationIdSuffix = ".debug"
             versionNameSuffix = "-debug"
+            // The dev channel serves the release-ID build, which would install beside this one.
+            buildConfigField("boolean", "SELF_UPDATE", "false")
         }
         release {
             isMinifyEnabled = true
