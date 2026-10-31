@@ -371,7 +371,9 @@ Package layout under `de.codevoid.motolauncher`:
   free: `ACTION_BATTERY_CHANGED` is sticky, so a null receiver returns the current state
   synchronously without registering anything, and `applyBatteryIntent` already drops a
   no-change refresh. The radios are deliberately left out — Wi-Fi and cellular re-deliver
-  through their own callbacks once the network settles after a wake. Setting changes arrive
+  through their own callbacks once the network settles after a wake. The clock builds its
+  formatter on every update (a `SimpleDateFormat` keeps the zone it was created in) and
+  follows the system 12/24-hour setting. Setting changes arrive
   through the `settings` `OnSharedPreferenceChangeListener`. Uses the bundled Michroma font
   (`res/font/michroma.ttf`, OFL — see `MICHROMA-LICENSE.txt`).
 

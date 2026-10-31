@@ -391,9 +391,14 @@ free: `ACTION_BATTERY_CHANGED` is sticky and unchanged values touch no views. Th
 re-deliver through their own callbacks and are left out. A polling clock was rejected
 as wasted CPU.
 
-A manual time or timezone change still corrects at the next tick. Adding
-`ACTION_TIME_CHANGED` and `ACTION_TIMEZONE_CHANGED` was considered and declined as too
-rare to justify. Do not add them without being asked.
+The formatter is built on every update, because a `SimpleDateFormat` keeps the time
+zone it was created in. The first version built it once, and a rider crossing into
+another zone saw the old zone's time until Home was recreated, which for a `singleTask`
+launcher can take days. One formatter a minute costs nothing. With that, a manual time
+or time zone change corrects at the next tick. Adding `ACTION_TIME_CHANGED` and
+`ACTION_TIMEZONE_CHANGED` was considered and declined as too rare to justify. Do not add
+them without being asked. The pattern follows the system 12/24-hour setting (`HH:mm` or
+`h:mm`, ASCII digits through `Locale.ROOT`).
 
 ## Park lock
 

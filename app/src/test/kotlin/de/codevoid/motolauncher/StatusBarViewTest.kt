@@ -30,7 +30,12 @@ import org.robolectric.Shadows.shadowOf
 import org.robolectric.annotation.Config
 import org.robolectric.shadows.ShadowNetwork
 import org.robolectric.shadows.ShadowNetworkCapabilities
+import org.robolectric.shadows.ShadowSettings
 import org.robolectric.shadows.ShadowWifiManager
+import java.text.SimpleDateFormat
+import java.util.Date
+import java.util.Locale
+import java.util.TimeZone
 
 /**
  * What a device would otherwise be the only way to check: how a platform signal rating maps
@@ -52,9 +57,18 @@ class StatusBarViewTest {
         Robolectric.buildActivity(Activity::class.java).setup().get().setContentView(it)
     }
 
+    private val defaultZone: TimeZone = TimeZone.getDefault()
+
     // ShadowWifiManager keeps the legacy rating in a static that it never resets.
     @After
     fun resetLegacyWifiRating() = ShadowWifiManager.setSignalLevelInPercent(1f)
+
+    @After
+    fun restoreTimeZone() = TimeZone.setDefault(defaultZone)
+
+    /** The clock as it reads now in [zone]. */
+    private fun clock(pattern: String, zone: String): String =
+        SimpleDateFormat(pattern, Locale.ROOT).apply { timeZone = TimeZone.getTimeZone(zone) }.format(Date())
 
     private fun StatusBarView.timeText() = findViewById<TextView>(R.id.timeText)
 
@@ -121,6 +135,37 @@ class StatusBarViewTest {
         bar.timeText().text = STALE
         bar.dispatchWindowVisibilityChanged(View.VISIBLE)
         assertTrue("left showing '${bar.timeText().text}'", HH_MM.matches(bar.timeText().text))
+    }
+
+    // A rider crossing into another time zone: Android changes the default zone in place,
+    // and the bar must not keep the zone it was built in. Read before and after the
+    // refresh, so a minute ending in between cannot fail the test.
+    @Test
+    fun theClockFollowsATimeZoneChange() {
+        ShadowSettings.set24HourTimeFormat(true)
+        TimeZone.setDefault(TimeZone.getTimeZone("UTC"))
+        val bar = statusBar()
+        bar.dispatchWindowVisibilityChanged(View.VISIBLE)
+
+        TimeZone.setDefault(TimeZone.getTimeZone("Asia/Tokyo"))
+        val before = clock("HH:mm", "Asia/Tokyo")
+        bar.dispatchWindowVisibilityChanged(View.VISIBLE)
+        val after = clock("HH:mm", "Asia/Tokyo")
+
+        assertTrue(bar.timeText().text.toString() in setOf(before, after))
+    }
+
+    @Test
+    fun theClockFollowsTheSystem12HourSetting() {
+        ShadowSettings.set24HourTimeFormat(false)
+        TimeZone.setDefault(TimeZone.getTimeZone("UTC"))
+        val bar = statusBar()
+
+        val before = clock("h:mm", "UTC")
+        bar.dispatchWindowVisibilityChanged(View.VISIBLE)
+        val after = clock("h:mm", "UTC")
+
+        assertTrue(bar.timeText().text.toString() in setOf(before, after))
     }
 
     @Test
@@ -232,6 +277,6 @@ class StatusBarViewTest {
     private companion object {
         /** Cannot match [HH_MM] or a percentage: the assertion has to prove a real read. */
         const val STALE = "--:--"
-        val HH_MM = Regex("\\d{2}:\\d{2}")
+        val HH_MM = Regex("\\d{1,2}:\\d{2}")
     }
 }

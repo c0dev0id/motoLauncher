@@ -20,6 +20,7 @@ import android.telephony.PhoneStateListener
 import android.telephony.SignalStrength
 import android.telephony.TelephonyCallback
 import android.telephony.TelephonyManager
+import android.text.format.DateFormat
 import android.util.AttributeSet
 import android.view.Gravity
 import android.view.LayoutInflater
@@ -48,8 +49,6 @@ class StatusBarView @JvmOverloads constructor(
 
     private val binding: ViewStatusBarBinding =
         ViewStatusBarBinding.inflate(LayoutInflater.from(context), this)
-
-    private val timeFormat = SimpleDateFormat("HH:mm", Locale.ROOT)
 
     private val wifiManager =
         context.applicationContext.getSystemService(Context.WIFI_SERVICE) as WifiManager
@@ -270,7 +269,8 @@ class StatusBarView @JvmOverloads constructor(
     }
 
     private fun updateTime() {
-        binding.timeText.text = timeFormat.format(Date())
+        val pattern = if (DateFormat.is24HourFormat(context)) "HH:mm" else "h:mm"
+        binding.timeText.text = SimpleDateFormat(pattern, Locale.ROOT).format(Date())
     }
 
     private fun applyBatteryIntent(intent: Intent) {
