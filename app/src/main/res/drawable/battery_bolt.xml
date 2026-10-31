@@ -4,6 +4,6 @@
     android:viewportWidth="24"
     android:viewportHeight="24">
     <path
-        android:fillColor="@color/on_surface_muted"
+        android:fillColor="@color/battery_bolt"
         android:pathData="M12,9 L9,15 L11,15 L10,19 L14,13 L12,13 Z" />
 </vector>

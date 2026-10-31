@@ -14,5 +14,7 @@
          the lit bars must be readable at a glance, so "empty" has to recede while still
          showing where the missing bars would be. -->
     <color name="signal_track">#9AA5B4</color>
+    <!-- The charging bolt, drawn over the battery fill and over the background. -->
+    <color name="battery_bolt">@color/tile_focused</color>
     <color name="ic_launcher_background">#0F1216</color>
 </resources>

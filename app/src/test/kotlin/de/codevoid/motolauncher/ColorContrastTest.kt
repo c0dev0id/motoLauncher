@@ -25,10 +25,13 @@ class ColorContrastTest {
         R.color.on_tile_focused to R.color.tile_focused,
     )
 
-    // The focus ring is the remote's only position marker: 3:1 for a meaningful mark.
+    // Marks that carry meaning, at 3:1: the focus ring, the remote's only position marker,
+    // and the charging bolt over the battery fill and over the empty part of the icon.
     private val markPairs = listOf(
         R.color.tile_focused to R.color.tile_default,
         R.color.tile_focused to R.color.background,
+        R.color.battery_bolt to R.color.on_surface,
+        R.color.battery_bolt to R.color.background,
     )
 
     @Test
