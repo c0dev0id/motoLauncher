@@ -19,6 +19,8 @@ import de.codevoid.motolauncher.data.AppEntry
 import de.codevoid.motolauncher.data.AppRepository
 import de.codevoid.motolauncher.data.ComponentKey
 import de.codevoid.motolauncher.data.FavoritesStore
+import de.codevoid.motolauncher.data.getComponentKey
+import de.codevoid.motolauncher.data.putComponentKey
 import de.codevoid.motolauncher.data.NavBarStore
 import de.codevoid.motolauncher.data.OrientationStore
 import de.codevoid.motolauncher.data.ParkStore
@@ -34,9 +36,9 @@ import de.codevoid.motolauncher.ui.fitContentToSystemBars
 import de.codevoid.motolauncher.ui.noTransition
 import de.codevoid.motolauncher.ui.isPortrait
 import de.codevoid.motolauncher.ui.launchNavApp
-import de.codevoid.motolauncher.ui.showLinkActionsDialog
+import de.codevoid.motolauncher.ui.MenuDialog
+import de.codevoid.motolauncher.ui.menuRows
 import de.codevoid.motolauncher.ui.showLinkDialog
-import de.codevoid.motolauncher.ui.showTileActionsDialog
 import kotlinx.coroutines.flow.drop
 import kotlinx.coroutines.launch
 
@@ -72,6 +74,8 @@ class HomeActivity : AppCompatActivity() {
         repository = AppRepository(this)
 
         onBackPressedDispatcher.addCallback(this) { /* home is the root; swallow back */ }
+        supportFragmentManager.setFragmentResultListener(APP_MENU, this) { _, result -> onAppMenu(result) }
+        supportFragmentManager.setFragmentResultListener(LINK_MENU, this) { _, result -> onLinkMenu(result) }
 
         val app = application as MotoLauncherApp
         // Warms the app-list cache, so All Apps opens with the list decoded.
@@ -173,12 +177,20 @@ class HomeActivity : AppCompatActivity() {
                             icon = entry.icon,
                             onClick = { repository.launch(entry.key) },
                             onLongClick = {
-                                showTileActionsDialog(
-                                    context = this,
-                                    entry = entry,
-                                    onAppInfo = { repository.openInfo(entry.key) },
-                                    onUninstall = { repository.requestUninstall(entry.key) },
-                                    onRemove = { favorites.clearSlot(index); buildGrid() },
+                                MenuDialog.show(
+                                    supportFragmentManager,
+                                    APP_MENU,
+                                    title = entry.label,
+                                    rows = menuRows(
+                                        R.string.tile_action_app_info,
+                                        R.string.tile_action_uninstall,
+                                        R.string.tile_action_remove,
+                                    ),
+                                    app = entry.key,
+                                    extras = Bundle().apply {
+                                        putInt(EXTRA_SLOT, index)
+                                        putComponentKey(EXTRA_APP, entry.key)
+                                    },
                                 )
                                 true
                             },
@@ -198,19 +210,13 @@ class HomeActivity : AppCompatActivity() {
                             }
                         },
                         onLongClick = {
-                            showLinkActionsDialog(
-                                context = this,
-                                label = slotEntry.label,
-                                onEdit = {
-                                    showLinkDialog(slotEntry.label, slotEntry.url) { label, url ->
-                                        favorites.setLink(index, label, url)
-                                        buildGrid()
-                                    }
-                                },
-                                onRemove = {
-                                    favorites.clearSlot(index)
-                                    buildGrid()
-                                },
+                            MenuDialog.show(
+                                supportFragmentManager,
+                                LINK_MENU,
+                                title = slotEntry.label,
+                                rows = menuRows(R.string.link_action_edit, R.string.link_action_remove),
+                                iconRes = R.drawable.ic_link,
+                                extras = Bundle().apply { putInt(EXTRA_SLOT, index) },
                             )
                             true
                         },
@@ -274,6 +280,41 @@ class HomeActivity : AppCompatActivity() {
         noTransition()
     }
 
+    private fun onAppMenu(result: Bundle) {
+        val app = requireNotNull(result.getComponentKey(EXTRA_APP))
+        when (result.getInt(MenuDialog.ROW)) {
+            R.string.tile_action_app_info -> repository.openInfo(app)
+            R.string.tile_action_uninstall -> repository.requestUninstall(app)
+            R.string.tile_action_remove -> {
+                favorites.clearSlot(result.getInt(EXTRA_SLOT))
+                showGrid()
+            }
+        }
+    }
+
+    private fun onLinkMenu(result: Bundle) {
+        val slot = result.getInt(EXTRA_SLOT)
+        when (result.getInt(MenuDialog.ROW)) {
+            R.string.link_action_edit -> {
+                val link = favorites.getSlotEntry(slot) as? SlotEntry.Link ?: return
+                showLinkDialog(link.label, link.url) { label, url ->
+                    favorites.setLink(slot, label, url)
+                    showGrid()
+                }
+            }
+            R.string.link_action_remove -> {
+                favorites.clearSlot(slot)
+                showGrid()
+            }
+        }
+    }
+
+    private companion object {
+        const val APP_MENU = "home.appMenu"
+        const val LINK_MENU = "home.linkMenu"
+        const val EXTRA_SLOT = "slot"
+        const val EXTRA_APP = "app"
+    }
 }
 
 /** Home's resolved favourites, kept across recreates and emptied when the package generation moves. */

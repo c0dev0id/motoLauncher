@@ -21,6 +21,8 @@ import de.codevoid.motolauncher.data.AppRepository
 import de.codevoid.motolauncher.data.FavoritesStore
 import de.codevoid.motolauncher.data.HiddenAppsStore
 import de.codevoid.motolauncher.data.NavAppStore
+import de.codevoid.motolauncher.data.getComponentKey
+import de.codevoid.motolauncher.data.putComponentKey
 import de.codevoid.motolauncher.data.NavBarStore
 import de.codevoid.motolauncher.data.OrientationStore
 import de.codevoid.motolauncher.data.SlotEntry
@@ -36,7 +38,8 @@ import de.codevoid.motolauncher.ui.isPortrait
 import de.codevoid.motolauncher.ui.launchNavApp
 import de.codevoid.motolauncher.ui.noTransition
 import de.codevoid.motolauncher.ui.showLinkDialog
-import de.codevoid.motolauncher.ui.showTileActionsDialog
+import de.codevoid.motolauncher.ui.MenuDialog
+import de.codevoid.motolauncher.ui.menuRows
 import de.codevoid.motolauncher.ui.showUpdateEvent
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
@@ -99,6 +102,8 @@ class AppListActivity : AppCompatActivity() {
 
         repository = AppRepository(this)
         settings = SettingsTiles(this, updates, onChanged = ::renderCurrentMode)
+
+        supportFragmentManager.setFragmentResultListener(APP_MENU, this) { _, result -> onAppMenu(result) }
 
         binding.backButton.setOnClickListener { finish() }
         binding.appGrid.layoutManager = GridLayoutManager(this, columns)
@@ -210,18 +215,29 @@ class AppListActivity : AppCompatActivity() {
     }
 
     private fun showAppMenu(app: AppEntry, isHidden: Boolean) {
-        val packageName = app.key.component.packageName
-        showTileActionsDialog(
-            context = this,
-            entry = app,
-            onAppInfo = { repository.openInfo(app.key) },
-            onUninstall = { repository.requestUninstall(app.key) },
-            hideAction = if (isHidden) {
-                R.string.tile_action_unhide to { hiddenAppsStore.unhide(packageName); renderCurrentMode() }
-            } else {
-                R.string.tile_action_hide to { hiddenAppsStore.hide(packageName); renderCurrentMode() }
-            },
+        MenuDialog.show(
+            supportFragmentManager,
+            APP_MENU,
+            title = app.label,
+            rows = menuRows(
+                R.string.tile_action_app_info,
+                R.string.tile_action_uninstall,
+                if (isHidden) R.string.tile_action_unhide else R.string.tile_action_hide,
+            ),
+            app = app.key,
+            extras = Bundle().apply { putComponentKey(EXTRA_APP, app.key) },
         )
+    }
+
+    private fun onAppMenu(result: Bundle) {
+        val app = requireNotNull(result.getComponentKey(EXTRA_APP))
+        when (result.getInt(MenuDialog.ROW)) {
+            R.string.tile_action_app_info -> repository.openInfo(app)
+            R.string.tile_action_uninstall -> repository.requestUninstall(app)
+            R.string.tile_action_hide -> hiddenAppsStore.hide(app.component.packageName)
+            R.string.tile_action_unhide -> hiddenAppsStore.unhide(app.component.packageName)
+        }
+        renderCurrentMode()
     }
 
     override fun onWindowFocusChanged(hasFocus: Boolean) {
@@ -243,6 +259,8 @@ class AppListActivity : AppCompatActivity() {
     companion object {
         private const val EXTRA_PICK_SLOT = "pick_slot"
         private const val EXTRA_PICK_NAV_APP = "pick_nav_app"
+        private const val APP_MENU = "appList.appMenu"
+        private const val EXTRA_APP = "app"
 
         // Pickers write the choice themselves and callers rebuild in onResume, so there is
         // no result contract.

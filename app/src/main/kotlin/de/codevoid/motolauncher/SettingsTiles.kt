@@ -23,6 +23,7 @@ import de.codevoid.motolauncher.data.SpeedStore
 import de.codevoid.motolauncher.data.ThemeStore
 import de.codevoid.motolauncher.data.TileSize
 import de.codevoid.motolauncher.data.TileSizeStore
+import de.codevoid.motolauncher.ui.MenuDialog
 import de.codevoid.motolauncher.ui.TileItem
 import de.codevoid.motolauncher.ui.UpdateState
 import de.codevoid.motolauncher.ui.UpdateViewModel
@@ -30,7 +31,6 @@ import de.codevoid.motolauncher.ui.enableImmersiveMode
 import de.codevoid.motolauncher.ui.noTransition
 import de.codevoid.motolauncher.ui.progressText
 import de.codevoid.motolauncher.ui.showImmersive
-import de.codevoid.motolauncher.ui.showOptionsDialog
 
 /**
  * The app list's settings mode: its tiles and what tapping them does. Every change of a
@@ -61,6 +61,20 @@ class SettingsTiles(
             if (grants[Manifest.permission.ACCESS_FINE_LOCATION] == true) speedStore.enabled = true
             onChanged()
         }
+
+    init {
+        val fragments = activity.supportFragmentManager
+        fragments.setFragmentResultListener(ORIENTATION_PICKER, activity) { _, result ->
+            val orientation = result.getInt(MenuDialog.ROW)
+            orientationStore.orientation = orientation
+            activity.requestedOrientation = orientation
+            onChanged()
+        }
+        fragments.setFragmentResultListener(TILE_SIZE_PICKER, activity) { _, result ->
+            tileSizeStore.tileSize = TileSize.entries[result.getInt(MenuDialog.ROW)]
+            onChanged()
+        }
+    }
 
     /** The settings tiles, in display order; [apps] supplies the navigation app's label once loaded. */
     fun tiles(apps: List<AppEntry>?): List<TileItem> = buildList {
@@ -174,46 +188,43 @@ class SettingsTiles(
         )
     }
 
+    // Each row's id is the orientation constant it applies.
     private fun orientationTile(): TileItem {
-        val current = ORIENTATIONS.indexOfFirst { it.first == orientationStore.orientation }
+        val current = orientationStore.orientation
         return TileItem(
             label = activity.getString(R.string.orientation),
-            subtitle = activity.getString(ORIENTATIONS[current].second),
+            subtitle = activity.getString(ORIENTATIONS.first { it.first == current }.second),
             onClick = {
-                showOptionsDialog(
-                    context = activity,
+                MenuDialog.show(
+                    activity.supportFragmentManager,
+                    ORIENTATION_PICKER,
                     title = activity.getString(R.string.orientation),
-                    options = ORIENTATIONS.map { activity.getString(it.second) },
-                    selectedIndex = current,
-                ) { index ->
-                    orientationStore.orientation = ORIENTATIONS[index].first
-                    activity.requestedOrientation = ORIENTATIONS[index].first
-                    onChanged()
-                }
+                    rows = ORIENTATIONS.map { it.first to activity.getString(it.second) },
+                    selected = current,
+                )
             },
         )
     }
 
+    // Each row's id is the tile size's ordinal.
     private fun tileSizeTile(): TileItem = TileItem(
         label = activity.getString(R.string.tile_size),
         subtitle = activity.getString(tileSizeName(tileSizeStore.tileSize)),
         onClick = {
-            showOptionsDialog(
-                context = activity,
+            MenuDialog.show(
+                activity.supportFragmentManager,
+                TILE_SIZE_PICKER,
                 title = activity.getString(R.string.tile_size),
-                options = TileSize.entries.map {
-                    activity.resources.getQuantityString(
+                rows = TileSize.entries.map {
+                    it.ordinal to activity.resources.getQuantityString(
                         R.plurals.tile_size_option,
                         it.homeTileCount,
                         activity.getString(tileSizeName(it)),
                         it.homeTileCount,
                     )
                 },
-                selectedIndex = tileSizeStore.tileSize.ordinal,
-            ) { index ->
-                tileSizeStore.tileSize = TileSize.entries[index]
-                onChanged()
-            }
+                selected = tileSizeStore.tileSize.ordinal,
+            )
         },
     )
 
@@ -227,6 +238,9 @@ class SettingsTiles(
     }
 
     private companion object {
+        const val ORIENTATION_PICKER = "settings.orientation"
+        const val TILE_SIZE_PICKER = "settings.tileSize"
+
         val ORIENTATIONS = listOf(
             ActivityInfo.SCREEN_ORIENTATION_LANDSCAPE to R.string.orientation_landscape,
             ActivityInfo.SCREEN_ORIENTATION_PORTRAIT to R.string.orientation_portrait,

@@ -41,6 +41,11 @@ fun Window.fitContentToSystemBars() {
     }
 }
 
+/** Keeps the system bars hidden while this dialog is up; call it before the dialog is shown. */
+fun Dialog.hideSystemBars() {
+    window?.enableImmersiveMode(NavBarStore(context).showNavBar)
+}
+
 // A dialog is its own window; shown plainly over an immersive activity it brings the
 // system bars back for as long as it is up. Every dialog the app shows goes through
 // here, which is also where "never show on a finishing or destroyed activity" lives:
