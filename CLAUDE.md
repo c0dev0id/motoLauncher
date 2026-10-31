@@ -352,8 +352,10 @@ Package layout under `de.codevoid.motolauncher`:
 - **A dotted style name that is meant to be a root must set `parent=""`.** AAPT reads
   `Widget.MotoLauncher.DialogAction` as inheriting from a `Widget.MotoLauncher` style that
   doesn't exist and fails resource linking — a CI-only failure, so it costs a full round
-  trip. `Widget.MotoLauncher.HeaderButton` (parent `Widget.Material3.Button`) and
-  `Widget.MotoLauncher.DialogAction` (`parent=""`) are the two shapes in use.
+  trip. `Widget.MotoLauncher.HeaderButton` (parent `Widget.Material3.Button`),
+  `Widget.MotoLauncher.DialogButton` (parent `Widget.Material3.Button.TextButton.Dialog.Flush`,
+  the `AlertDialog` buttons in `on_surface`) and `Widget.MotoLauncher.DialogAction`
+  (`parent=""`) are the two shapes in use: an explicit parent, or an empty one.
 - Every size is a `@dimen` with a phone default and a `sw600dp` override; add new sizes
   to both files.
 - The unlit bars of the signal meters use `signal_track`, not `on_surface_muted` — that

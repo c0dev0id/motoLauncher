@@ -241,6 +241,10 @@ light theme. A colour that depends on a view's state is a colour state list in
 `res/color/`, and code only sets the state (`isActivated` on the Settings button), so the
 theme toggle still needs no colour logic in code.
 
+`AlertDialog` buttons are `on_surface`, through `buttonBarButtonStyle` in the alert
+overlay, the attribute Material3's own overlay sets. Material's default, `colorPrimary`,
+is about 4:1 on the dialog background in both themes.
+
 ### Signal meters have their own "unlit" colour
 Unlit bars were once drawn in `on_surface_muted`, a secondary-text colour that sits
 about 1.85:1 from `on_surface` in the dark theme, so full and empty signal looked
