@@ -16,6 +16,7 @@ import android.view.KeyEvent
 import android.view.View
 import androidx.activity.result.contract.ActivityResultContracts.RequestPermission
 import androidx.activity.viewModels
+import androidx.annotation.StringRes
 import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.content.ContextCompat
@@ -38,6 +39,8 @@ import de.codevoid.motolauncher.data.SlotEntry
 import de.codevoid.motolauncher.data.OrientationStore
 import de.codevoid.motolauncher.data.SpeedStore
 import de.codevoid.motolauncher.data.ThemeStore
+import de.codevoid.motolauncher.data.TileSize
+import de.codevoid.motolauncher.data.TileSizeStore
 import de.codevoid.motolauncher.databinding.ActivityAppListBinding
 import de.codevoid.motolauncher.ui.AppTileAdapter
 import de.codevoid.motolauncher.ui.EscapeKeys
@@ -71,7 +74,8 @@ class AppListActivity : AppCompatActivity() {
     private val navBarStore by lazy { NavBarStore(this) }
     private val orientationStore by lazy { OrientationStore(this) }
     private val parkStore by lazy { ParkStore(this) }
-    private val columns get() = if (isPortrait) 4 else 5
+    private val tileSizeStore by lazy { TileSizeStore(this) }
+    private val columns get() = tileSizeStore.tileSize.listColumns(isPortrait)
     // Invalidated by every tile that changes state.
     private var settingsTilesCache: List<TileItem>? = null
     private var allApps: List<AppEntry> = emptyList()
@@ -284,6 +288,8 @@ class AppListActivity : AppCompatActivity() {
 
         tiles.add(orientationTile())
 
+        tiles.add(tileSizeTile())
+
         tiles.add(TileItem(
             label = getString(R.string.nav_bar),
             subtitle = getString(if (navBarStore.showNavBar) R.string.nav_bar_visible else R.string.nav_bar_hidden),
@@ -393,6 +399,38 @@ class AppListActivity : AppCompatActivity() {
             }
         },
     )
+
+    private fun tileSizeTile(): TileItem = TileItem(
+        label = getString(R.string.tile_size),
+        subtitle = getString(tileSizeName(tileSizeStore.tileSize)),
+        onClick = {
+            showOptionsDialog(
+                context = this,
+                title = getString(R.string.tile_size),
+                options = TileSize.entries.map {
+                    resources.getQuantityString(
+                        R.plurals.tile_size_option,
+                        it.homeTileCount,
+                        getString(tileSizeName(it)),
+                        it.homeTileCount,
+                    )
+                },
+                selectedIndex = tileSizeStore.tileSize.ordinal,
+            ) { index ->
+                tileSizeStore.tileSize = TileSize.entries[index]
+                (binding.appGrid.layoutManager as GridLayoutManager).spanCount = columns
+                settingsTilesCache = null
+                renderCurrentMode()
+            }
+        },
+    )
+
+    @StringRes
+    private fun tileSizeName(size: TileSize): Int = when (size) {
+        TileSize.LARGE -> R.string.tile_size_large
+        TileSize.MEDIUM -> R.string.tile_size_medium
+        TileSize.SMALL -> R.string.tile_size_small
+    }
 
     // coerceAtLeast covers a stored value no longer in the list — only reachable if a
     // future release drops an option an older one wrote.

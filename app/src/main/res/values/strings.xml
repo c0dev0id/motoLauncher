@@ -48,6 +48,15 @@
     <string name="orientation_reverse_landscape">Reverse landscape</string>
     <string name="orientation_reverse_portrait">Reverse portrait</string>
     <string name="orientation_sensor">Sensor</string>
+    <string name="tile_size">Tile size</string>
+    <string name="tile_size_large">Large</string>
+    <string name="tile_size_medium">Medium</string>
+    <string name="tile_size_small">Small</string>
+    <!-- A Tile size picker row: the size's name and how many tiles Home shows with it. -->
+    <plurals name="tile_size_option">
+        <item quantity="one">%1$s · %2$d tile</item>
+        <item quantity="other">%1$s · %2$d tiles</item>
+    </plurals>
     <string name="nav_app">Navigation app</string>
     <string name="nav_bar">Navigation bar</string>
     <string name="nav_bar_hidden">Hidden</string>
