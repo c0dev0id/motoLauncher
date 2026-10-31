@@ -346,7 +346,8 @@ Package layout under `de.codevoid.motolauncher`:
   charging in the number (0–4 idle, 5–9 plugged), and `BatteryStore.display` chooses
   icon / text / both. **Wi-Fi visibility keys off the radio** (`WIFI_STATE_CHANGED_ACTION`,
   seeded from `isWifiEnabled`), bars off RSSI from `NetworkCapabilities.transportInfo`
-  (`WifiManager.connectionInfo` below API 29; no location permission needed either way);
+  (`WifiManager.connectionInfo` below API 31, because `WifiInfo` only implements
+  `TransportInfo` from Android 12; no location permission needed either way);
   losing the last network draws zero bars, it does not hide the icon.
   `calculateSignalLevel`'s rating spans `[0, maxSignalLevel]` **inclusive** (below API 30
   the static five-step rating) and is mapped onto the five icon states by the pure

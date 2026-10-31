@@ -328,9 +328,11 @@ one `setImageLevel()`. The battery encodes charging in the level number (0–4 i
 
 ### Wi-Fi reads RSSI from `NetworkCapabilities`
 RSSI comes from `NetworkCapabilities.transportInfo` in a `NetworkCallback`, which needs
-only `ACCESS_WIFI_STATE` and `ACCESS_NETWORK_STATE`. `transportInfo` arrived in Android
-10; on Android 9 the callback reads `WifiManager.connectionInfo` instead. Without
-location permission that hides only the SSID, BSSID and MAC address (Android 9's
+only `ACCESS_WIFI_STATE` and `ACCESS_NETWORK_STATE`. `getTransportInfo()` exists from
+Android 10, but `WifiInfo` only implements `TransportInfo` from Android 12, so the cast
+is gated on API 31 and Android 9 to 11 read `WifiManager.connectionInfo` instead. The
+first version gated on API 29, and Android 10 and 11 showed zero bars. Without location
+permission `connectionInfo` hides only the SSID, BSSID and MAC address (Android 9's
 `WifiServiceImpl.getConnectionInfo`); the RSSI comes through.
 
 ### The Wi-Fi icon follows the radio; no connection is zero bars

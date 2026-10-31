@@ -188,6 +188,23 @@ class StatusBarViewTest {
         assertEquals(2, bar.wifiIcon().drawable.level)
     }
 
+    // WifiInfo only became a TransportInfo in Android 12, so Android 10 and 11 read the
+    // signal from the connection info. Reading it from the capabilities left zero bars.
+    @Test
+    @Config(sdk = [Build.VERSION_CODES.Q])
+    fun wifiBarsWorkOnAndroid10() {
+        ShadowWifiManager.setSignalLevelInPercent(0.5f)
+        val bar = attachedStatusBar()
+
+        val connectivity = app.getSystemService(ConnectivityManager::class.java)
+        shadowOf(connectivity).networkCallbacks.forEach {
+            it.onCapabilitiesChanged(ShadowNetwork.newInstance(1), ShadowNetworkCapabilities.newInstance())
+        }
+        shadowOf(Looper.getMainLooper()).idle()
+
+        assertEquals(2, bar.wifiIcon().drawable.level)
+    }
+
     @Test
     fun cellularBarsNeedNoPermission() {
         CellularStore(app).enabled = true

@@ -103,7 +103,7 @@ class StatusBarView @JvmOverloads constructor(
         override fun onCapabilitiesChanged(network: Network, caps: NetworkCapabilities) {
             // Runs on a Binder thread. Classify cheaply here and only hop to the main
             // thread when the icon level actually changes.
-            val rssi = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+            val rssi = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
                 (caps.transportInfo as? WifiInfo)?.rssi ?: return
             } else {
                 @Suppress("DEPRECATION")
