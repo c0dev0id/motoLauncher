@@ -54,9 +54,17 @@ button and on park keypad key "1". Two alternatives failed:
   field stopped opening the keyboard.
 
 ### Key long-press is blocked, touch long-press is not
-`blockKeyLongPress()` routes DPAD_CENTER/Enter through `performClick()` on key-up and
+`blockKeyLongPress()` routes the confirm keys through `performClick()` on key-up and
 never arms the framework's long-press timer. A held remote button therefore cannot open
 the tile menu. The long-click listener is untouched, so a touch long press still works.
+The keys are the ones `View` itself treats as confirm keys (DPAD_CENTER, Enter, numpad
+Enter, Space); `KeyEvent.isConfirmKey` is hidden API, so the list is written out.
+
+The key-up clicks only when it ends a press on this view and is not canceled. An UP
+whose DOWN went to another window finds the view unpressed. When focus leaves the window
+mid-press (an incoming call, a system dialog), the system ends the press with a canceled
+UP that arrives before the window learns it lost focus, so the pressed state alone does
+not catch that one.
 
 ### Escape: short press is back, hold launches the navigation app
 The remote has no spare key and no spare gesture, and Escape was the only key with a

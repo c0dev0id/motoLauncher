@@ -263,8 +263,9 @@ Package layout under `de.codevoid.motolauncher`:
   concatenated, never passed through `String.format` — a `%` in a format template crashed
   once. `CancellationException` is rethrown, not swallowed. `AlertDialog.Builder(context)`
   gets the launcher look from `alertDialogTheme` — never pass a theme id at a call site.
-- `ui/KeyInput.kt` — `View.blockKeyLongPress()` routes DPAD_CENTER/Enter through
-  `performClick()` on key-up without arming the framework's long-press timer (touch
+- `ui/KeyInput.kt` — `View.blockKeyLongPress()` routes the confirm keys (DPAD_CENTER,
+  Enter, numpad Enter, Space) through `performClick()` on a key-up that ends an
+  uncanceled press on that view, without arming the framework's long-press timer (touch
   long-press still works). `EscapeKeys` is the whole Escape contract — short press to
   `onShortPress` (AppList: leave settings mode, else `finish()`, since Android doesn't
   route Escape to the back dispatcher; Home: nothing), hold to `onLongPress` (both:
@@ -416,7 +417,7 @@ republishes the `dev` pre-release. Three parallel jobs plus a follow-up release 
   unit tests in `app/src/test/kotlin` (`isIncludeAndroidResources = true`, so real resources and view
   inflation work; see *Commands* for running a single class or test).
   Robolectric runs them against SDK 36, which needs JDK 21 — hence JDK 21 in CI.
-  Sixteen classes, and the shape they set: `AppRepositoryTest` (the pure `sortApps` /
+  Seventeen classes, and the shape they set: `AppRepositoryTest` (the pure `sortApps` /
   `filterApps`), `FavoritesStoreTest` (app and link slot round-trips against real
   `SharedPreferences`, the two representations cleaning each other up, and
   `clearSlotsForPackage` matching whole package names and leaving link slots alone),
@@ -431,7 +432,8 @@ republishes the `dev` pre-release. Three parallel jobs plus a follow-up release 
   `KeyEvent.DispatcherState` so the framework's tracking rules are exercised rather than
   assumed), `TouchOnlyRowTest` (out of touch mode, focus search, default focus, the
   refocus after a removal and a child becoming focusable all skip the row, while a child's
-  own request still focuses it), `StatusBarViewTest` (`wifiIconLevel` across platform rating ranges, that
+  own request still focuses it), `BlockKeyLongPressTest` (Enter and Space click on
+  release; a release without a press or a canceled one does not), `StatusBarViewTest` (`wifiIconLevel` across platform rating ranges, that
   `refreshOnResume` re-reads the clock and the battery when the bar returns to view but
   touches neither when it leaves, that cellular bars need no permission, and, on SDK 28,
   the GPS listener surviving a provider toggle, the five-step Wi-Fi rating and the
