@@ -31,7 +31,8 @@ Uninstalling an app also clears any slot that held it.
 A hold is about half a second or longer. Coming back from an app, the highlight is still on
 the tile you launched.
 
-The remote cannot open menus, the search field or settings. That is deliberate.
+The remote cannot open menus, empty slots, the search field or settings. In a menu or
+dialog opened by touch, the remote can only close it with Escape. That is deliberate.
 
 ## Set the navigation app
 
