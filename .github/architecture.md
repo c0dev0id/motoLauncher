@@ -33,7 +33,7 @@ flowchart LR
 
     nav["Navigation app"]
     gh["GitHub releases<br/>and dev pre-release"]
-    dist["codevoid.de<br/>dist store"]
+    dist["home.codevoid.de<br/>dist store"]
     play["Google Play"]
     ci["GitHub Actions"]
 

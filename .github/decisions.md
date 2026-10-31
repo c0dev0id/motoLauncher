@@ -606,7 +606,7 @@ assumed to behave like 16.
 A release build (a plain version such as `1.0.3`) queries GitHub's latest release, which
 never resolves to a pre-release, and takes its version from the APK filename
 (`motoLauncher-<versionName>.apk`). A dev build (`dev-<sha>`) queries the `latest`
-address of the codevoid.de dist store, which also serves the motoSuite apps whose
+address of the home.codevoid.de dist store, which also serves the motoSuite apps whose
 repositories are private, and takes the version the push sent. The installed version
 name picks the channel, so there is no setting. Any published build that differs from
 the installed one counts as an update. The check is user-triggered only: the device is

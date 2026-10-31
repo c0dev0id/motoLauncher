@@ -107,7 +107,7 @@ These drive nearly every UI decision — violating them defeats the point of the
   Home and from the app list alike. No nav app configured, or uninstalled: nothing happens.
 - **In-app update check** (github flavor only — Google Play forbids self-updating): a
   release build compares itself to the latest GitHub release, a `dev-` build to the
-  newest file in the codevoid.de dist store, and offers the install if they differ. Must be **user-triggered** (the
+  newest file in the home.codevoid.de dist store, and offers the install if they differ. Must be **user-triggered** (the
   device is mostly offline — never auto-poll the network).
 - **Privacy policy** shown as text from the settings mode (Play requires it in-app);
   `privacy_policy_text` is the body of `PRIVACY.md`, and `PrivacyPolicyTest` compares them.
@@ -587,7 +587,7 @@ publish jobs:
   tag to the built commit, uploads the new APK, then deletes the other assets. The
   download page stays one stable URL, and "keep only the latest" needs no cleanup. The
   updater no longer reads it.
-- `dist` pushes the same APK to the codevoid.de dist store as
+- `dist` pushes the same APK to the home.codevoid.de dist store as
   `motoLauncher-dev-<sha>.apk` with `?version=dev-<sha>`. It has no `GITHUB_TOKEN`
   permissions (same-run artifacts download with the runner's own token); the
   `DIST_TOKEN` secret, which selects the dist repository, reaches only the push step.

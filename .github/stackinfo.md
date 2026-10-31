@@ -34,7 +34,7 @@ Feature floor above `minSdk`: the park lock is offered from API 35.
 
 | Flavor | Distribution | Self-update | Network access |
 |---|---|---|---|
-| `github` | GitHub release page and `dev` pre-release; dev builds update from the codevoid.de dist store | Yes | `INTERNET` |
+| `github` | GitHub release page and `dev` pre-release; dev builds update from the home.codevoid.de dist store | Yes | `INTERNET` |
 | `play` | Google Play | No | None |
 
 ## Libraries
@@ -80,7 +80,7 @@ GitHub Actions on `ubuntu-latest`, Node 24 actions: `actions/checkout@v7`,
 | Workflow | Trigger | Runs | Produces |
 |---|---|---|---|
 | `Check` | push to any branch except `main`, manual | release script tests; lint and unit tests for `githubDebug`; `assemble` for `githubDebug` and `playDebug` | `app-debug` artifact |
-| `Build` | push to `main` | `lintGithubRelease`, `lintPlayRelease`, unit tests, signed `assembleGithubRelease` | `dev` pre-release, dev APK in the codevoid.de dist store |
+| `Build` | push to `main` | `lintGithubRelease`, `lintPlayRelease`, unit tests, signed `assembleGithubRelease` | `dev` pre-release, dev APK in the home.codevoid.de dist store |
 | `Release` | manual, from `main` | `build`: signed `assembleGithubRelease` and `bundlePlayRelease`; `publish`: push, GitHub release, Play upload | `release-<version>` artifact, `v<version>` tag and GitHub release, Play upload |
 
 The project is not built locally.
