@@ -404,7 +404,10 @@ swallowed otherwise: gesture exclusion covers only the Back edges, and
 ### The park screen lives in its own task
 `ParkActivity` is `singleInstance` with its own `taskAffinity`. `HomeActivity` is
 `singleTask` and the root of the home task, so a Home press clears everything above it,
-which would destroy a park screen stacked there.
+which would destroy a park screen stacked there. The affinity is
+`${applicationId}.park`: unlike `android:name`, `taskAffinity` does not expand a leading
+dot, so `.park` was one literal string shared by the release and the debug build, which
+install side by side.
 
 The separate task is restored explicitly: while `ParkStore.isParked` is set,
 `HomeActivity.onResume` re-launches the park screen. That one path covers a reboot,
