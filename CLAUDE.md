@@ -358,6 +358,9 @@ Package layout under `de.codevoid.motolauncher`:
   (`parent=""`) are the two shapes in use: an explicit parent, or an empty one.
 - Every size is a `@dimen` with a phone default and a `sw600dp` override; add new sizes
   to both files.
+- Text holds 4.5:1 on every fill it is drawn on, in both themes, and the focus ring 3:1.
+  `ColorContrastTest` lists the pairs; a new text colour or fill adds its pairs there.
+  `signal_track` is the one deliberate exception: unlit bars recede.
 - The unlit bars of the signal meters use `signal_track`, not `on_surface_muted` — that
   token is secondary *text* and is far too close to `on_surface` to separate a lit bar
   from an unlit one. Keep the two roles apart.
@@ -401,7 +404,7 @@ republishes the `dev` pre-release. Three parallel jobs plus a follow-up release 
   unit tests in `app/src/test/kotlin` (`isIncludeAndroidResources = true`, so real resources and view
   inflation work; see *Commands* for running a single class or test).
   Robolectric runs them against SDK 36, which needs JDK 21 — hence JDK 21 in CI.
-  Thirteen classes, and the shape they set: `AppRepositoryTest` (the pure `sortApps` /
+  Fourteen classes, and the shape they set: `AppRepositoryTest` (the pure `sortApps` /
   `filterApps`), `FavoritesStoreTest` (app and link slot round-trips against real
   `SharedPreferences`, the two representations cleaning each other up, and
   `clearSlotsForPackage` matching whole package names and leaving link slots alone),
@@ -426,7 +429,9 @@ republishes the `dev` pre-release. Three parallel jobs plus a follow-up release 
   (the pure `shouldOfferParkLock` rule, with the API boundary written as numbers so it is
   pinned independently of the constant) and `OptionsDialogTest` (rows
   in caller order, one index reported per pick, dismissal, and that only the selected row
-  is marked selected and drawn differently).
+  is marked selected and drawn differently) and `ColorContrastTest` (every text colour on
+  every fill it is drawn on at 4.5:1 and the focus ring at 3:1, in both themes, read
+  through an explicit `uiMode`).
   Write new behaviour so it lands in that surface — a pure function, a store, or
   something a Robolectric activity can reach. No device is ever available to check it.
   The job caches `~/.m2/repository/org/robolectric` separately: Robolectric fetches its
