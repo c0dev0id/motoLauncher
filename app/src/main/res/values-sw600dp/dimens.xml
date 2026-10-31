@@ -37,6 +37,10 @@
     <dimen name="dialog_action_margin_top">12dp</dimen>
     <dimen name="text_dialog_action">22sp</dimen>
     <dimen name="dialog_min_width">480dp</dimen>
+    <dimen name="text_dialog_field_label">17sp</dimen>
+    <dimen name="dialog_field_label_padding_bottom">6dp</dimen>
+    <dimen name="dialog_field_gap">16dp</dimen>
+    <dimen name="dialog_field_padding">12dp</dimen>
 
     <dimen name="keypad_width">348dp</dimen>
     <dimen name="keypad_key_size">80dp</dimen>
