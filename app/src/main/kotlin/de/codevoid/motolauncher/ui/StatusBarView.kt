@@ -57,7 +57,7 @@ class StatusBarView @JvmOverloads constructor(
     private val connectivityManager =
         context.applicationContext.getSystemService(Context.CONNECTIVITY_SERVICE) as ConnectivityManager
     private val telephonyManager =
-        context.applicationContext.getSystemService(Context.TELEPHONY_SERVICE) as? TelephonyManager
+        context.applicationContext.getSystemService(Context.TELEPHONY_SERVICE) as TelephonyManager
     private val locationManager =
         context.getSystemService(Context.LOCATION_SERVICE) as LocationManager
     private val powerManager = context.getSystemService(Context.POWER_SERVICE) as PowerManager
@@ -68,9 +68,7 @@ class StatusBarView @JvmOverloads constructor(
     private val settingsPrefs =
         context.getSharedPreferences(SpeedStore.PREFS, Context.MODE_PRIVATE)
 
-    // Cached once — maxSignalLevel is a fixed property that would otherwise cross the
-    // Binder on every capability callback (which fires many times per second on a
-    // fluctuating link). Before API 30 the rating is on the icon's own five steps.
+    // Fixed per device, so read once. Before API 30 the rating is on the icon's own five steps.
     private val wifiMaxSignalLevel =
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) wifiManager.maxSignalLevel
         else MAX_ICON_LEVEL
@@ -80,8 +78,7 @@ class StatusBarView @JvmOverloads constructor(
     private var lastBatteryIconLevel = -1
     private var lastCellularLevel = -1
 
-    // Carries the clock while the screen is on. The gap where it does not arrive is
-    // covered by refreshOnResume, not here.
+    // Carries the clock while the screen is on.
     private val timeReceiver = object : BroadcastReceiver() {
         override fun onReceive(context: Context, intent: Intent) = updateTime()
     }
@@ -240,10 +237,7 @@ class StatusBarView @JvmOverloads constructor(
         if (level < 0 || scale <= 0) return
         val percent = level * 100 / scale
         val plugged = intent.getIntExtra(BatteryManager.EXTRA_PLUGGED, 0) != 0
-        // 5 fill buckets [0..4] plus a +5 offset for the charging variants, matching the
-        // 10-item level-list in ic_battery.xml.
-        val bucket = (percent / 20).coerceIn(0, 4)
-        val iconLevel = bucket + if (plugged) 5 else 0
+        val iconLevel = batteryIconLevel(percent, plugged)
 
         if (percent != lastBatteryPercent) {
             lastBatteryPercent = percent
@@ -261,8 +255,8 @@ class StatusBarView @JvmOverloads constructor(
         binding.wifiIcon.setImageLevel(level)
     }
 
-    private fun showWifiIcon(connected: Boolean) {
-        binding.wifiIcon.visibility = if (connected) View.VISIBLE else View.GONE
+    private fun showWifiIcon(visible: Boolean) {
+        binding.wifiIcon.visibility = if (visible) View.VISIBLE else View.GONE
     }
 
     private fun rssiToIconLevel(rssi: Int): Int {
@@ -282,19 +276,18 @@ class StatusBarView @JvmOverloads constructor(
         binding.cellularIcon.setImageLevel(level)
     }
 
-    private fun showCellularIcon(connected: Boolean) {
-        binding.cellularIcon.visibility = if (connected) View.VISIBLE else View.GONE
+    private fun showCellularIcon(visible: Boolean) {
+        binding.cellularIcon.visibility = if (visible) View.VISIBLE else View.GONE
     }
 
     // Reading the signal strength needs no permission.
     private fun registerCellular() {
         showCellularIcon(false)
         if (!cellularStore.enabled) return
-        val tm = telephonyManager ?: return
         stopSignalUpdates = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
-            listenForSignal(tm)
+            listenForSignal(telephonyManager)
         } else {
-            listenForSignalBeforeS(tm)
+            listenForSignalBeforeS(telephonyManager)
         }
         applyCellularLevel(0)
         showCellularIcon(true)
@@ -331,7 +324,7 @@ class StatusBarView @JvmOverloads constructor(
     private fun registerGps() {
         binding.speedText.visibility = View.GONE
         if (!speedStore.enabled || windowVisibility != VISIBLE || !powerManager.isInteractive) return
-        if (!context.packageManager.hasSystemFeature(android.content.pm.PackageManager.FEATURE_LOCATION_GPS)) return
+        if (!context.packageManager.hasSystemFeature(PackageManager.FEATURE_LOCATION_GPS)) return
         if (ContextCompat.checkSelfPermission(context, Manifest.permission.ACCESS_FINE_LOCATION)
             != PackageManager.PERMISSION_GRANTED) return
         locationManager.requestLocationUpdates(
@@ -381,5 +374,12 @@ class StatusBarView @JvmOverloads constructor(
             val max = maxSignalLevel.coerceAtLeast(1)
             return rawLevel.coerceIn(0, max) * MAX_ICON_LEVEL / max
         }
+
+        /**
+         * The battery icon's level in `ic_battery`: five fill steps of 20 % (0 to 4), and the
+         * same five with a charging bolt (5 to 9) while plugged in.
+         */
+        fun batteryIconLevel(percent: Int, plugged: Boolean): Int =
+            (percent / 20).coerceIn(0, MAX_ICON_LEVEL) + if (plugged) MAX_ICON_LEVEL + 1 else 0
     }
 }

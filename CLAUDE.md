@@ -469,7 +469,7 @@ republishes the `dev` pre-release. Three parallel jobs plus a follow-up release 
   refocus after a removal and a child becoming focusable all skip the row, while a child's
   own request still focuses it), `BlockKeyLongPressTest` (Enter and Space click on
   release; a release without a press or a canceled one does not), `StatusBarViewTest`
-  (`wifiIconLevel` across platform rating ranges, that
+  (`wifiIconLevel` across platform rating ranges, the pure `batteryIconLevel` encoding, that
   `refreshOnResume` re-reads the clock and the battery when the bar returns to view but
   touches neither when it leaves, the clock following a time zone change and the 12-hour
   setting, GPS waiting for the bar to be seen when switched on while hidden, detaching

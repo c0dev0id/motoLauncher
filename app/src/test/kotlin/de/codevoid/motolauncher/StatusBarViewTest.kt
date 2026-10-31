@@ -157,6 +157,19 @@ class StatusBarViewTest {
     }
 
     @Test
+    fun batteryFillsInFiveStepsAndShowsTheBoltWhilePluggedIn() {
+        val percents = listOf(0, 19, 20, 39, 40, 60, 80, 100)
+        assertEquals(
+            listOf(0, 0, 1, 1, 2, 3, 4, 4),
+            percents.map { StatusBarView.batteryIconLevel(it, plugged = false) },
+        )
+        assertEquals(
+            listOf(5, 5, 6, 6, 7, 8, 9, 9),
+            percents.map { StatusBarView.batteryIconLevel(it, plugged = true) },
+        )
+    }
+
+    @Test
     fun readsTheClockWhenTheBarComesBackIntoView() {
         val bar = statusBar()
         // The minute left on screen when the bar went away. Deliberately unlike a clock,

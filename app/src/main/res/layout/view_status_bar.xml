@@ -89,6 +89,7 @@
             android:fontFamily="@font/michroma"
             android:textColor="@color/on_surface"
             android:textSize="@dimen/text_status_battery"
+            android:maxLines="1"
             tools:text="87%" />
     </LinearLayout>
 </merge>
