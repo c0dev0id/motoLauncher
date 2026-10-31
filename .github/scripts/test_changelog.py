@@ -56,6 +56,10 @@ Intro.
         with self.assertRaises(SystemExit):
             split_release("## [Unreleased]\n\n## [1.0.0] - 2026-10-01\n- x\n", "1.0.1", "d")
 
+    def test_refuses_an_unreleased_section_with_only_headings(self):
+        with self.assertRaises(SystemExit):
+            split_release("## [Unreleased]\n\n### Added\n\n### Fixed\n\n## [1.0.0] - 2026-10-01\n- x\n", "1.0.1", "d")
+
 
 class PlayNotesTest(unittest.TestCase):
 

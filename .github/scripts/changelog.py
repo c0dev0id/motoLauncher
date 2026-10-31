@@ -20,8 +20,8 @@ def split_release(changelog, version, date):
     if end == -1:
         end = len(changelog)
     notes = changelog[start:end].strip()
-    if not notes:
-        raise SystemExit("CHANGELOG.md has nothing under [Unreleased]")
+    if not any(entries(notes)):
+        raise SystemExit("CHANGELOG.md has no entry under [Unreleased]")
     return f"{changelog[:start]}\n\n## [{version}] - {date}\n\n{notes}\n{changelog[end:]}", notes
 
 
