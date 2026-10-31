@@ -2,8 +2,6 @@ package de.codevoid.motolauncher.ui
 
 import android.app.Activity
 import android.app.Dialog
-import android.content.Context
-import android.content.ContextWrapper
 import android.view.View
 import android.view.Window
 import androidx.core.view.ViewCompat
@@ -44,25 +42,4 @@ fun Window.fitContentToSystemBars() {
 /** Keeps the system bars hidden while this dialog is up; call it before the dialog is shown. */
 fun Dialog.hideSystemBars() {
     window?.enableImmersiveMode(NavBarStore(context).showNavBar)
-}
-
-// A dialog is its own window; shown plainly over an immersive activity it brings the
-// system bars back for as long as it is up. Every dialog the app shows goes through
-// here, which is also where "never show on a finishing or destroyed activity" lives:
-// a dialog produced after an await (the update flow) can otherwise outlive its host
-// and crash on show() with a dead window token.
-fun Dialog.showImmersive() {
-    val host = hostActivity()
-    if (host != null && (host.isFinishing || host.isDestroyed)) return
-    window?.enableImmersiveMode(host?.let { NavBarStore(it).showNavBar } ?: false)
-    show()
-}
-
-private fun Dialog.hostActivity(): Activity? {
-    var c: Context = context
-    while (c is ContextWrapper) {
-        if (c is Activity) return c
-        c = c.baseContext
-    }
-    return null
 }

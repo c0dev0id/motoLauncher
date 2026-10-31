@@ -65,7 +65,7 @@ These drive nearly every UI decision — violating them defeats the point of the
 - **Orientation is a setting, Sensor by default** (`OrientationStore`: `FULL_SENSOR`,
   "Sensor", which auto-rotates through all four, plus the four fixed values). The default
   only reaches an install that never set the option — an explicit choice is already stored.
-  The tile opens a picker (`showOptionsDialog`), never a cycle: tapping through five values
+  The tile opens a picker (`MenuDialog`), never a cycle: tapping through five values
   would apply every one on the way, rotating the screen up to four times per change. Rotation
   under Sensor reshapes the grid only because no activity lists `orientation` in its
   `configChanges` — the system recreates them and `isPortrait` is read afresh. Adding
@@ -167,7 +167,7 @@ Package layout under `de.codevoid.motolauncher`:
   pick modes submit their tiles `touchOnly`. Three modes, the sealed `Mode` parsed once
   from the intent extras: **`Browse`** (tap launches, long-press opens the tile menu),
   **`PickSlot(slot)`** (`pickIntent(context, slot)`: a leading "None" tile clears the slot,
-  an "Add link" tile opens `showLinkDialog` pre-filled from the slot's current link, any
+  an "Add link" tile opens `LinkDialog` pre-filled from the slot's current link, any
   app tile is written to that `FavoritesStore` slot), and **`PickNavApp`**
   (`navAppPickerIntent`: writes `NavAppStore`). Pick modes finish on selection; callers
   rebuild in `onResume`, so there is no result contract. `AppListViewModel.apps` is a
@@ -196,7 +196,8 @@ Package layout under `de.codevoid.motolauncher`:
   label comes from the loaded app list, falling back to the package name. The update
   tile shows `UpdateViewModel.state` and taps `check()`, which ignores a tap while busy;
   every state change re-renders like any other change. It is created in `onCreate` because it
-  registers the permission request. Orientation and Tile size open `showOptionsDialog`.
+  registers the permission request and the picker result listeners. Orientation and
+  Tile size open a `MenuDialog` picker.
   The GPS toggle asks for fine and coarse location together through
   `RequestMultiplePermissions()`; the store flips to enabled only when fine location is
   granted, and the tile reads On only while both the setting and the permission hold.
@@ -333,41 +334,52 @@ Package layout under `de.codevoid.motolauncher`:
   it still opens the IME). `focusableInTouchMode` and
   `descendantFocusability="blocksDescendants"` were both tried and rejected; see
   `.github/decisions.md`.
-- `ui/TileActionsDialog.kt` — `showTileActionsDialog()` (Remove row only when `onRemove`
-  is passed, Hide/Unhide row only when `hideAction` is passed) and `showLinkActionsDialog()`
-  (Edit link / Remove). Both inflate the same `dialog_tile_actions` layout, which carries
-  all six rows, and `GONE` the ones they don't use. A plain `Dialog` on
-  `Theme.MotoLauncher.Dialog` (not `AlertDialog`, whose Material3 look would override the
-  palette) with `tile_background` buttons; dismisses itself before invoking the chosen
-  callback. Dialog chrome lives in that theme and in the
+- `ui/MenuDialog.kt` — `MenuDialog`, a `DialogFragment` and the one row menu: the tile
+  menu (App info / Uninstall / Remove on Home, Hide or Unhide in the list), the link menu
+  (Edit link / Remove) and the pickers for Orientation and Tile size. `MenuDialog.show(fm,
+  requestKey, title, rows, selected, iconRes, app, extras)` takes rows as (id, label)
+  pairs; `menuRows(...)` builds them from string resources, which then serve as the ids,
+  and a picker uses the value it applies as the id. The header shows `iconRes` or the
+  app's icon, looked up from its `ComponentKey`. A tap sets a fragment result under the
+  request key with `ROW` = the id plus the caller's extras, and dismisses; Back or Escape
+  dismisses with no result. A second `show` for a request key that is up does nothing.
+  Rows are *inflated* from `item_dialog_option` into `dialog_options`, so the style's
+  `layout_*` attributes are resolved by the parent; a style applied through a `TextView`
+  constructor would not carry them. The selected row is `isSelected`, which
+  `tile_background` and `dialog_action_text` draw as a solid `tile_focused` fill with
+  `on_tile_focused` text, because the tile that shows the value is hidden behind the
+  dialog. It runs on `Theme.MotoLauncher.Dialog` (not `AlertDialog`, whose Material3 look
+  would override the palette). Reach for a picker over a cycling tile whenever applying an
+  intermediate value is itself disruptive.
+- `ui/MessageDialog.kt` — `MessageDialog`, an `AlertDialog` fragment: `tell(fm, message,
+  title)` with OK (the privacy policy, update notices), or `ask(fm, requestKey, question,
+  positive, extras)` with a positive button that sets the extras as the result, and
+  Cancel (the install prompt).
+- `ui/LinkDialog.kt` — `LinkDialog`, the one `AlertDialog` fragment with text input
+  (`dialog_add_link`): `show(fm, requestKey, label, url, editing, extras)`, titled "Edit
+  link" when `editing`. OK stays disabled until the name is non-blank and
+  `normalizeLink(url)` accepts the address; the result carries `LABEL`, `URL` (normalized)
+  and the extras. `normalizeLink` trims, adds `https://` when there is no scheme, and
+  rejects an empty address or a web address without a host; other schemes pass. The
+  fields sit in a `TouchOnlyRow`; the label's `nextFocusForward` carries the keyboard's
+  Next to the URL, which focus search no longer finds.
+- Dialogs in general: every dialog is a `DialogFragment` whose arguments hold everything
+  it shows, so it survives a recreate; results go through `setFragmentResult`, and each
+  activity (and `SettingsTiles`, for its pickers) registers its listeners in `onCreate`.
+  Dialog chrome lives in `Theme.MotoLauncher.Dialog` and the
   `ThemeOverlay.MotoLauncher.Dialog.Alert` sibling that `alertDialogTheme` points at.
   Every dialog control is touch-only: `Widget.MotoLauncher.DialogAction` rows and
   `Widget.MotoLauncher.DialogButton` `AlertDialog` buttons set `focusable=false`, so the
-  remote can only cancel a dialog with Escape.
-- `ui/OptionsDialog.kt` — `showOptionsDialog(context, title, options, selectedIndex,
-  onPick)`: pick one of a list, as tile-styled rows on `Theme.MotoLauncher.Dialog`. Rows are
-  *inflated* from `item_dialog_option` rather than constructed, so the style's `layout_*`
-  attributes are resolved by the parent as they are for the fixed rows; a style applied
-  through a `TextView` constructor would not carry them. The current value's row is
-  `isSelected`, which `tile_background` and `dialog_action_text` draw as a solid
-  `tile_focused` fill with `on_tile_focused` text — the tile that shows the value is hidden
-  behind the dialog. Reach for this over a cycling tile whenever applying an intermediate
-  value is itself disruptive.
-- `ui/LinkDialog.kt` — `Context.showLinkDialog(label, url, onConfirm)`: the one
-  `AlertDialog` with text input (`dialog_add_link`); confirms only when both fields are
-  non-blank, and returns the shown dialog. Any URL scheme is accepted — Android resolves
-  the intent, and Home wraps the launch in `runCatching`. The fields sit in a
-  `TouchOnlyRow`; the label's `nextFocusForward` carries the keyboard's Next to the URL,
-  which focus search no longer finds.
+  remote can only cancel a dialog with Escape. Every dialog calls `hideSystemBars()` on
+  its dialog before it is shown.
 - `ui/Immersive.kt` — `Window.enableImmersiveMode(showNavBar)`: status bar always
   hidden, nav bar per the flag. Called in `onCreate` and again on
   `onWindowFocusChanged(true)` because permission dialogs and the installer restore the
   bars. `Window.fitContentToSystemBars()`, called once per activity in `onCreate`, lays the
   window out edge to edge and pads `android.R.id.content` by the visible bars and the
-  display cutout — `setDecorFitsSystemWindows` is disabled from targetSdk 35 on Android 15+. `Dialog.showImmersive()` is mandatory for every dialog: it re-applies the bars for
-  the dialog's own window and drops the dialog silently when its host activity is
-  finishing or destroyed (an update result arriving after a recreate used to crash).
-  `Activity.noTransition()` also lives here.
+  display cutout — `setDecorFitsSystemWindows` is disabled from targetSdk 35 on Android 15+. `Dialog.hideSystemBars()` applies the bars to a dialog's own window; every
+  dialog fragment calls it before the dialog is shown. `Activity.noTransition()` also
+  lives here.
 - `ui/StatusBarView` — self-contained Home top bar (time, optional GPS speed, Wi-Fi,
   cellular, battery). Registers receivers/callbacks in `onAttachedToWindow`, releases
   them in `onDetachedFromWindow`; `HomeActivity` does no lifecycle wiring. Icons are
@@ -515,11 +527,16 @@ release step:
   `HomeGridTest` (a real `HomeActivity`: empty "+" tiles cannot take focus while All Apps
   can, a reused tile follows its slot's content across resumes, and a package event while
   Home is in front rebinds the grid without a resume),
-  `TileActionsDialogTest` (inflates the dialog through the
-  handle `showTileActionsDialog` returns: row order, optional rows hidden, one callback per
-  row, dismissal, no row focusable; the link menu shows only Edit link and Remove), `LinkDialogTest` (out of touch mode, default focus
-  finds neither field and no button is focusable, while the keyboard's Next still moves
-  from the label to the URL), `EscapeKeysTest` (short vs. held Escape, dispatched through a real
+  `MenuDialogTest` (hosted by a real `AppCompatActivity`: rows in order, a tap reporting
+  its id and the extras once and closing, only the selected row marked and drawn
+  differently, no row focusable, Escape closing without a result, the menu surviving a
+  recreate and still reporting, the header icon only when given, a second show ignored),
+  `MessageDialogTest` (a message with an unfocusable OK, a question reporting its extras
+  on accept and nothing on cancel, and surviving a recreate), `LinkDialogTest` (out of
+  touch mode, default focus finds neither field and no button is focusable, while the
+  keyboard's Next still moves from the label to the URL; OK waits for a name and an
+  address that opens, reports the normalized link with the extras, the title says add
+  or edit, and `normalizeLink` cases), `EscapeKeysTest` (short vs. held Escape, dispatched through a real
   `KeyEvent.DispatcherState` so the framework's tracking rules are exercised rather than
   assumed), `TouchOnlyRowTest` (out of touch mode, focus search, default focus, the
   refocus after a removal and a child becoming focusable all skip the row, while a child's
@@ -547,9 +564,7 @@ release step:
   boundary written as numbers so it is pinned independently of the constant; plain JUnit), `TileSizeStoreTest` (default and round trip
   through a second instance, an unknown stored name falling back to Medium, the 8 / 12 /
   15 Home counts, portrait as the landscape grid transposed, the app-list columns, and
-  `SLOT_COUNT` filling every grid), `OptionsDialogTest` (rows
-  in caller order, one index reported per pick, dismissal, that only the selected row
-  is marked selected and drawn differently, and that no row is focusable) and `ColorContrastTest` (every text colour on
+  `SLOT_COUNT` filling every grid) and `ColorContrastTest` (every text colour on
   every fill it is drawn on at 4.5:1 and the focus ring and the charging bolt at 3:1, in
   both themes, read through an explicit `uiMode`).
   Write new behaviour so it lands in that surface — a pure function, a store, or

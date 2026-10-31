@@ -261,8 +261,8 @@ it, also after the permission is revoked in system settings.
 ### A picker for multi-valued settings whose intermediate values are disruptive
 Settings tiles cycle on tap, which suits two or three harmless values (theme, units,
 battery display). Orientation has five values, and cycling would rotate the screen
-through each one. `showOptionsDialog` lists the values on the launcher's dialog theme
-and applies only the one picked. Its rows are inflated from `item_dialog_option`: a
+through each one. A `MenuDialog` lists the values on the launcher's dialog theme and
+applies only the one picked. Its rows are inflated from `item_dialog_option`: a
 style applied through a `TextView` constructor does not carry its `layout_*`
 attributes. The current value's row is selected, drawn as a solid `tile_focused` fill
 with `on_tile_focused` text, because the tile showing it is hidden behind the dialog.
@@ -291,12 +291,26 @@ settings.
 
 ## Dialogs, theme and layout
 
-### Tile menus are plain `Dialog`s on the launcher theme
-The tile and link menus use a custom layout on `Theme.MotoLauncher.Dialog`, not an
-`AlertDialog`, whose Material3 look brings its own surface colours and small buttons.
-The custom view reuses `tile_background`, so the menu reads as part of the grid and
-stays glove-sized. The update flow and the link dialog use `AlertDialog`; they are
-off-bike tasks. Their look comes from `alertDialogTheme`, so no call site names a theme.
+### Menus are one `MenuDialog` on the launcher theme
+The tile menu, the link menu and the pickers for multi-valued settings are one
+`MenuDialog`: a title with an optional icon and rows from `item_dialog_option` on
+`Theme.MotoLauncher.Dialog`, not an `AlertDialog`, whose Material3 look brings its own
+surface colours and small buttons. The rows reuse `tile_background`, so the menu reads
+as part of the grid and stays glove-sized. They used to be three plain dialogs built two
+different ways. Messages, the install prompt and the link dialog use `AlertDialog`
+(`MessageDialog`, `LinkDialog`); they are off-bike tasks. Their look comes from
+`alertDialogTheme`, so no call site names a theme.
+
+### Dialogs are fragments that report through fragment results
+Every dialog is a `DialogFragment` whose arguments hold everything it shows. It reports
+a choice with `setFragmentResult` under a request key, together with extras the caller
+passed in (a slot, an app), and each activity registers its listeners in `onCreate`.
+The dialogs used to be plain `Dialog`s holding lambdas: a theme switch or a rotation
+under the Sensor orientation destroyed them with a `WindowLeaked` warning, and with the
+install prompt went the only way to start the download. Menu rows are identified by
+their string resource, or for a picker by the value it applies, never by position, so
+a result read after a recreate cannot pick the wrong action. A second show for a
+request key that is already up is ignored, so a double tap does not stack two menus.
 
 ### Dialog controls are touch-only
 A touch opens every dialog, but the first remote key afterwards used to focus its first
@@ -310,11 +324,20 @@ still cancels a dialog with nothing focused. The link dialog's fields sit in a
 `TouchOnlyRow`; focus search then no longer finds the URL field from the label, so the
 label names it in `nextFocusForward` to keep the keyboard's Next working.
 
-### Every dialog goes through `showImmersive()`
-A dialog is its own window and would bring the system bars back while it shows.
-`showImmersive()` re-applies immersive mode to the dialog's window and drops the dialog
-when its host activity is finishing or destroyed. An update result that arrived after a
-recreate used to crash on a dead window token.
+### Every dialog hides the system bars
+A dialog is its own window and would bring the system bars back while it shows. Each
+dialog fragment calls `hideSystemBars()` on its dialog before it is shown. The old
+helper also dropped a dialog whose activity was finishing, after an update result once
+crashed on a dead window token; fragments make that unnecessary, because update events
+are collected only while the app list is started and a fragment manager never shows a
+dialog for a destroyed activity.
+
+### A link without a scheme becomes https
+A link typed as `osm.org` used to be stored as is; `ACTION_VIEW` found no app for it and
+the tile silently did nothing. `normalizeLink` adds `https://` when the address names no
+scheme and rejects an empty address or a web address without a host. OK stays disabled
+until the name is filled in and the address passes, so a blank field can no longer
+discard the dialog silently. Other schemes (`geo:`, app deep links) pass unchanged.
 
 ### Immersive mode everywhere
 The status bar is always hidden; the navigation bar follows a setting, hidden by
