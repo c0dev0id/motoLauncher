@@ -9,6 +9,10 @@
     <dimen name="tile_subtitle_margin_top">3dp</dimen>
     <dimen name="text_tile_label">14sp</dimen>
     <dimen name="text_tile_subtitle">11sp</dimen>
+    <dimen name="tile_corner_radius">12dp</dimen>
+    <dimen name="tile_stroke_default">1dp</dimen>
+    <dimen name="tile_stroke_pressed">3dp</dimen>
+    <dimen name="tile_stroke_focused">4dp</dimen>
 
     <dimen name="status_padding_h">12dp</dimen>
     <dimen name="status_padding_top">12dp</dimen>
@@ -29,6 +33,8 @@
     <dimen name="header_button_margin_start">6dp</dimen>
     <dimen name="header_button_min_height">44dp</dimen>
 
+    <dimen name="dialog_corner_radius">16dp</dimen>
+    <dimen name="dialog_stroke">2dp</dimen>
     <dimen name="dialog_padding">16dp</dimen>
     <dimen name="dialog_icon_size">44dp</dimen>
     <dimen name="dialog_label_margin_start">12dp</dimen>
