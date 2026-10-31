@@ -279,10 +279,12 @@ Package layout under `de.codevoid.motolauncher`:
   clears other files first; `deleteInstalledUpdate()` removes only the running build's APK.
 - `ui/AppTileAdapter` + `ui/TileItem` — the `RecyclerView` adapter used by the app list
   (not by Home). Callers compose a `List<TileItem>` (label, optional subtitle, optional
-  icon, `dimmed`); the adapter stays dumb, calls `blockKeyLongPress()` once per view
+  icon, `dimmed`, and a `key` that defaults to the label; app tiles use their
+  `ComponentKey`); the adapter stays dumb, calls `blockKeyLongPress()` once per view
   holder, and resets icon/subtitle visibility, `isLongClickable` and focusability (from
   `submit(items, touchOnly)`) on every bind because recycled holders carry the previous
-  item's state. `updateItem` replaces the first item
+  item's state. It has stable IDs, one per key, so the remote's focus survives a
+  `submit` of the same tiles. `updateItem` replaces the first item
   matching a predicate, and does nothing when none matches, for the download-progress
   subtitle.
 - `ui/UpdateFlow.kt` — `AppCompatActivity.runUpdateFlow(setClickable, setSubtitle)`: the

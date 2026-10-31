@@ -200,6 +200,15 @@ before the package is gone, and the screen behind it has already resumed. Home s
 generation current at start (`drop(1)`), because `onResume` rebinds anyway; a change while
 it was stopped is caught there.
 
+### App list tiles have stable IDs
+The app list re-renders on every resume and every package change through
+`notifyDataSetChanged`. Without stable IDs that recycles every holder, the focused one
+included, and the remote's position is lost. `AppTileAdapter` has stable IDs, one per
+`TileItem.key` (the label for settings tiles, the `ComponentKey` for apps), and
+`RecyclerView` restores focus to the holder with the same ID after the layout. Diffing
+with `ListAdapter` was the alternative; it would skip rebinding unchanged tiles, but
+`submit` also changes every tile's focusability, so each tile is rebound anyway.
+
 ### Uninstall needs two manifest declarations
 The `ACTION_DELETE` hand-off fails silently without either:
 `REQUEST_DELETE_PACKAGES` (required since target SDK 28, granted at install), and a

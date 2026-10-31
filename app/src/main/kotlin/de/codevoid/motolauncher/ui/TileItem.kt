@@ -9,4 +9,6 @@ data class TileItem(
     val onClick: () -> Unit = {},
     val onLongClick: (() -> Boolean)? = null,
     val dimmed: Boolean = false,
+    /** Identifies the tile from one list to the next; unique within a list. */
+    val key: Any = label,
 )

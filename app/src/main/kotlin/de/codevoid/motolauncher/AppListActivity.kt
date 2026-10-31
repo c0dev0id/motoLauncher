@@ -469,6 +469,7 @@ class AppListActivity : AppCompatActivity() {
                 label = entry.label,
                 icon = entry.icon,
                 dimmed = isHidden,
+                key = entry.key,
                 onClick = { onAppSelected(entry.key) },
                 onLongClick = if (pickMode) null else ({
                     showTileActionsDialog(

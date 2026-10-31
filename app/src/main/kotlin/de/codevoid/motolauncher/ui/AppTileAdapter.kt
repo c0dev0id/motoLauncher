@@ -14,6 +14,14 @@ class AppTileAdapter(private var items: List<TileItem>) :
     RecyclerView.Adapter<AppTileAdapter.TileViewHolder>() {
 
     private var touchOnly = false
+    // One ID per TileItem.key for the adapter's lifetime.
+    private val ids = HashMap<Any, Long>()
+
+    init {
+        setHasStableIds(true)
+    }
+
+    override fun getItemId(position: Int): Long = ids.getOrPut(items[position].key) { ids.size.toLong() }
 
     /** Shows [newItems]. [touchOnly] tiles cannot take focus, so the remote cannot reach them. */
     @SuppressLint("NotifyDataSetChanged")

@@ -1,15 +1,24 @@
 package de.codevoid.motolauncher
 
+import android.app.Activity
+import android.os.Looper
 import android.widget.FrameLayout
+import androidx.recyclerview.widget.GridLayoutManager
+import androidx.recyclerview.widget.RecyclerView
 import androidx.test.core.app.ApplicationProvider
+import androidx.test.platform.app.InstrumentationRegistry
 import de.codevoid.motolauncher.ui.AppTileAdapter
 import de.codevoid.motolauncher.ui.TileItem
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
+import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertTrue
 import org.junit.Test
 import org.junit.runner.RunWith
+import org.robolectric.Robolectric
 import org.robolectric.RobolectricTestRunner
+import org.robolectric.Shadows.shadowOf
+import java.time.Duration
 
 @RunWith(RobolectricTestRunner::class)
 class AppTileAdapterTest {
@@ -52,5 +61,30 @@ class AppTileAdapterTest {
         adapter.submit(listOf(TileItem("Maps")))
         adapter.bindViewHolder(holder, 0)
         assertTrue(holder.binding.root.isFocusable)
+    }
+
+    // The app list re-renders on every resume; the remote must stay on the tile it was on.
+    @Test
+    fun focusStaysOnTheSameTileWhenTheListIsSubmittedAgain() {
+        InstrumentationRegistry.getInstrumentation().setInTouchMode(false)
+        val activity = Robolectric.buildActivity(Activity::class.java).setup().get()
+        val tiles = AppTileAdapter(emptyList())
+        val grid = RecyclerView(activity).apply {
+            layoutManager = GridLayoutManager(activity, 3)
+            adapter = tiles
+        }
+        activity.setContentView(grid)
+        fun render() {
+            tiles.submit((1..6).map { TileItem("App $it") })
+            shadowOf(Looper.getMainLooper()).idleFor(Duration.ofSeconds(1))
+        }
+
+        render()
+        grid.findViewHolderForAdapterPosition(4)!!.itemView.requestFocus()
+        render()
+
+        val focused = grid.focusedChild
+        assertNotNull(focused)
+        assertEquals(4, grid.getChildAdapterPosition(focused))
     }
 }
