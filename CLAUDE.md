@@ -348,7 +348,9 @@ Package layout under `de.codevoid.motolauncher`:
   seeded from `isWifiEnabled`), bars off RSSI from `NetworkCapabilities.transportInfo`
   (`WifiManager.connectionInfo` below API 31, because `WifiInfo` only implements
   `TransportInfo` from Android 12; no location permission needed either way);
-  losing the last network draws zero bars, it does not hide the icon.
+  losing the last network draws zero bars, it does not hide the icon. The callback is one
+  `WifiCallback` per registration on the connectivity thread; its levels are posted and
+  de-duplicated on the main thread.
   `calculateSignalLevel`'s rating spans `[0, maxSignalLevel]` **inclusive** (below API 30
   the static five-step rating) and is mapped onto the five icon states by the pure
   `wifiIconLevel`. **Cellular** shows while `CellularStore.enabled` is set and takes

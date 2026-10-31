@@ -73,8 +73,7 @@ class StatusBarView @JvmOverloads constructor(
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) wifiManager.maxSignalLevel
         else MAX_ICON_LEVEL
 
-    // Written on the main thread, read on a Binder thread in onCapabilitiesChanged.
-    @Volatile private var lastWifiLevel = -1
+    private var lastWifiLevel = -1
     private var lastBatteryPercent = -1
     private var lastBatteryIconLevel = -1
     private var lastCellularLevel = -1
@@ -89,20 +88,18 @@ class StatusBarView @JvmOverloads constructor(
         override fun onReceive(context: Context, intent: Intent) = applyBatteryIntent(intent)
     }
 
-    // Tracks active Wi-Fi networks so onLost knows when the last one is gone and can
-    // reset the level to 0. Visibility is driven by the radio state (wifiStateReceiver),
-    // not by network availability — zero bars while on but not connected is correct.
-    // ConnectivityManager serialises one callback's methods onto a single thread.
-    private val wifiNetworks = HashSet<Network>()
+    // Wi-Fi bars from RSSI, and zero bars once the last Wi-Fi network is lost; the icon
+    // itself follows the radio (wifiStateReceiver). Its methods run on the connectivity
+    // thread, so the network set is never touched elsewhere and every level is posted.
+    // One instance per registration, so the set starts empty each time.
+    private inner class WifiCallback : ConnectivityManager.NetworkCallback() {
+        private val networks = HashSet<Network>()
 
-    private val networkCallback = object : ConnectivityManager.NetworkCallback() {
         override fun onAvailable(network: Network) {
-            wifiNetworks.add(network)
+            networks.add(network)
         }
 
         override fun onCapabilitiesChanged(network: Network, caps: NetworkCapabilities) {
-            // Runs on a Binder thread. Classify cheaply here and only hop to the main
-            // thread when the icon level actually changes.
             val rssi = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
                 (caps.transportInfo as? WifiInfo)?.rssi ?: return
             } else {
@@ -110,16 +107,15 @@ class StatusBarView @JvmOverloads constructor(
                 wifiManager.connectionInfo.rssi
             }
             val level = rssiToIconLevel(rssi)
-            if (level == lastWifiLevel) return
             post { applyWifiLevel(level) }
         }
 
         override fun onLost(network: Network) {
-            if (!wifiNetworks.remove(network) || wifiNetworks.isNotEmpty()) return
-            // Reset to zero bars; icon stays visible (radio is still on).
-            post { applyWifiLevel(0) }
+            if (networks.remove(network) && networks.isEmpty()) post { applyWifiLevel(0) }
         }
     }
+
+    private var wifiCallback: WifiCallback? = null
 
     private val screenReceiver = object : BroadcastReceiver() {
         override fun onReceive(context: Context, intent: Intent) {
@@ -146,7 +142,6 @@ class StatusBarView @JvmOverloads constructor(
             when (intent.getIntExtra(WifiManager.EXTRA_WIFI_STATE, WifiManager.WIFI_STATE_UNKNOWN)) {
                 WifiManager.WIFI_STATE_ENABLED -> showWifiIcon(true)
                 WifiManager.WIFI_STATE_DISABLED -> {
-                    wifiNetworks.clear()
                     applyWifiLevel(0)
                     showWifiIcon(false)
                 }
@@ -207,7 +202,7 @@ class StatusBarView @JvmOverloads constructor(
         val wifiRequest = NetworkRequest.Builder()
             .addTransportType(NetworkCapabilities.TRANSPORT_WIFI)
             .build()
-        connectivityManager.registerNetworkCallback(wifiRequest, networkCallback)
+        wifiCallback = WifiCallback().also { connectivityManager.registerNetworkCallback(wifiRequest, it) }
 
         registerCellular()
 
@@ -222,9 +217,8 @@ class StatusBarView @JvmOverloads constructor(
         context.unregisterReceiver(screenReceiver)
         context.unregisterReceiver(batteryReceiver)
         context.unregisterReceiver(wifiStateReceiver)
-        connectivityManager.unregisterNetworkCallback(networkCallback)
-        // Clear so re-attaching gets a fresh onCapabilitiesChanged for networks already up.
-        wifiNetworks.clear()
+        wifiCallback?.let { connectivityManager.unregisterNetworkCallback(it) }
+        wifiCallback = null
         unregisterCellular()
 
         settingsPrefs.unregisterOnSharedPreferenceChangeListener(prefsListener)

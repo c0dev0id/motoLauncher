@@ -335,6 +335,12 @@ first version gated on API 29, and Android 10 and 11 showed zero bars. Without l
 permission `connectionInfo` hides only the SSID, BSSID and MAC address (Android 9's
 `WifiServiceImpl.getConnectionInfo`); the RSSI comes through.
 
+The callback runs on the connectivity thread. Its set of networks lives in the callback
+object, one per registration, and nothing else touches it; every level is posted to the
+main thread, which drops repeats. The first version shared the set with the main thread
+and compared against the last level on the callback thread, where a quick 2-3-2 change
+could drop the second 2 and leave three bars on screen.
+
 ### The Wi-Fi icon follows the radio; no connection is zero bars
 Visibility keys off `WIFI_STATE_CHANGED_ACTION`, seeded from `isWifiEnabled`. Losing the
 last network draws zero bars instead of hiding the icon. An earlier version hid the icon
