@@ -438,6 +438,16 @@ being proven. It was removed once pinning was confirmed: the screen is the same 
 its user either way, and the line offered no action. The state is still read to stop
 retrying on a device with screen pinning switched off.
 
+### The guard gives up after three unanswered requests
+Where screen pinning is switched off every request fails, and repeating one several
+times a second buys nothing. The guard stops once three requests in a row have not taken
+by their settle check, about two seconds; a success resets the count, and focus
+returning to the screen starts it over. The first version stopped after a single failed
+check, unless pinning had worked earlier on the same screen instance. A slow system
+server at boot could cause that one failure on a device where pinning works, which left
+the unpin gesture unanswered until the next focus change. Three trades that grace
+against repeating a refused request.
+
 ### The keypad is touch-only
 The keypad sits in a `TouchOnlyRow`, so the remote can never drive it.
 

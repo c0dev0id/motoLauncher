@@ -193,8 +193,9 @@ Package layout under `de.codevoid.motolauncher`:
   is not in front, so it is wrapped in `runCatching`, and a device with screen pinning
   switched off does not pin. Which state is in force is deliberately not shown on the
   screen. `stopLockTask()` is called directly; it returns quietly when nothing is pinned. `settleCheck` runs after a delay because `lockTaskModeState` is updated
-  asynchronously and reads as `NONE` straight after a successful request; it is what
-  notices that a request never took. The system's unpin gesture (hold Back + Recents) cannot be
+  asynchronously and reads as `NONE` straight after a successful request; it counts the
+  requests in a row that have not taken, and after three the guard stops asking until
+  focus returns. The system's unpin gesture (hold Back + Recents) cannot be
   blocked, so it is undone: `lockTaskGuard` polls `lockTaskModeState` every 300 ms while
   parked and re-pins, and `onWindowFocusChanged` re-asserts too.
   `ParkLockRules.shouldRequestLockTask` is the pure, unit-tested rule behind both — parked, not in set mode, not finishing, not
