@@ -20,11 +20,14 @@ import de.codevoid.motolauncher.R
  */
 class LinkDialog : DialogFragment() {
 
+    private lateinit var labelInput: EditText
+    private lateinit var urlInput: EditText
+
     override fun onCreateDialog(savedInstanceState: Bundle?): Dialog {
         val args = requireArguments()
         val view = LayoutInflater.from(requireContext()).inflate(R.layout.dialog_add_link, null)
-        val labelInput = view.findViewById<EditText>(R.id.linkLabel)
-        val urlInput = view.findViewById<EditText>(R.id.linkUrl)
+        labelInput = view.findViewById(R.id.linkLabel)
+        urlInput = view.findViewById(R.id.linkUrl)
         if (savedInstanceState == null) {
             labelInput.setText(args.getString(ARG_LABEL))
             urlInput.setText(args.getString(ARG_URL))
@@ -42,15 +45,21 @@ class LinkDialog : DialogFragment() {
             .setNegativeButton(R.string.cancel, null)
             .create()
 
-        fun updateOk() {
-            dialog.getButton(DialogInterface.BUTTON_POSITIVE)?.isEnabled =
-                labelInput.text.isNotBlank() && normalizeLink(urlInput.text.toString()) != null
-        }
-        dialog.setOnShowListener { updateOk() }
         labelInput.doAfterTextChanged { updateOk() }
         urlInput.doAfterTextChanged { updateOk() }
         dialog.hideSystemBars()
         return dialog
+    }
+
+    // The buttons exist once super.onStart has shown the dialog.
+    override fun onStart() {
+        super.onStart()
+        updateOk()
+    }
+
+    private fun updateOk() {
+        (dialog as AlertDialog?)?.getButton(DialogInterface.BUTTON_POSITIVE)?.isEnabled =
+            labelInput.text.isNotBlank() && normalizeLink(urlInput.text.toString()) != null
     }
 
     companion object {

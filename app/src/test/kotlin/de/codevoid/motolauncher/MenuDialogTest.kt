@@ -78,11 +78,12 @@ class MenuDialogTest {
     }
 
     // With the tile hidden behind the dialog, this is the only sign of the current value.
+    // The fill marks it: in the dark theme the text is white on both fills.
     @Test
     fun onlyTheSelectedRowIsMarkedAndDrawnDifferently() {
         val rows = show(selected = 40).rows()
         assertEquals(listOf(false, false, false, true), rows.map { it.isSelected })
-        assertNotEquals(rows[0].currentTextColor, rows[3].currentTextColor)
+        assertNotEquals(rows[0].background.current.constantState, rows[3].background.current.constantState)
     }
 
     @Test
@@ -127,8 +128,7 @@ class MenuDialogTest {
     @Test
     fun theHeaderShowsAnIconOnlyWhenGivenOne() {
         assertEquals(View.GONE, show().findViewById<ImageView>(R.id.optionsIcon).visibility)
-        host.get().menu().dismiss()
-        host.get().supportFragmentManager.executePendingTransactions()
+        (host.get().supportFragmentManager.findFragmentByTag(KEY) as MenuDialog).dismissNow()
 
         assertEquals(View.VISIBLE, show(iconRes = R.drawable.ic_link).findViewById<ImageView>(R.id.optionsIcon).visibility)
     }

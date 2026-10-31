@@ -103,8 +103,7 @@ class LinkDialogTest {
     fun theTitleSaysWhetherALinkIsAddedOrEdited() {
         val adding = show()
         assertEquals(activity.getString(R.string.add_link), adding.title())
-        adding.dismiss()
-        activity.supportFragmentManager.executePendingTransactions()
+        (activity.supportFragmentManager.findFragmentByTag(KEY) as LinkDialog).dismissNow()
 
         val editing = show(label = "Weather", url = "https://example.com", editing = true)
         assertEquals(activity.getString(R.string.link_action_edit), editing.title())
