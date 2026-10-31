@@ -438,7 +438,7 @@ republishes the `dev` pre-release. Three parallel jobs plus a follow-up release 
   unit tests in `app/src/test/kotlin` (`isIncludeAndroidResources = true`, so real resources and view
   inflation work; see *Commands* for running a single class or test).
   Robolectric runs them against SDK 36, which needs JDK 21 — hence JDK 21 in CI.
-  Nineteen classes, and the shape they set: `AppRepositoryTest` (the pure `sortApps` /
+  Twenty classes, and the shape they set: `AppRepositoryTest` (the pure `sortApps` /
   `filterApps`), `FavoritesStoreTest` (app and link slot round-trips against real
   `SharedPreferences`, the two representations cleaning each other up, and
   `clearSlotsForPackage` matching whole package names and leaving link slots alone),
@@ -468,6 +468,10 @@ republishes the `dev` pre-release. Three parallel jobs plus a follow-up release 
   (PIN round-trips against real `SharedPreferences`, the parked flag read back through a
   second instance — the path a reboot takes — that the PIN is never written in the
   clear, and that the store's file is the one both backup rule files exclude),
+  `ParkActivityTest` (the park flows against Robolectric's lock task shadow: parking pins,
+  the correct PIN unparks, unpins and closes, a wrong one keeps the lock, the guard re-pins
+  after an unpin, setup needs the same PIN twice and never pins, parking after an
+  abandoned setup shows the lock, and Home restores the lock only while parked),
   `ParkLockTaskGuardTest` (the pure `ParkLockRules.shouldRequestLockTask`,
   including the settle window that stops a redundant second pin request; plain JUnit),
   `ParkLockAvailabilityTest` (the pure `ParkLockRules.shouldOfferParkLock`, with the API
