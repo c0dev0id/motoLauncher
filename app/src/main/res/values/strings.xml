@@ -26,6 +26,10 @@
     <string name="update_none">You are on the latest build.</string>
     <string name="update_download">Download &amp; install</string>
     <string name="update_failed">Update check failed: %1$s</string>
+    <string name="update_error_not_found">no build is published right now. Try again in a few minutes.</string>
+    <string name="update_error_http">the server answered with HTTP %1$d.</string>
+    <string name="update_error_offline">no connection to GitHub.</string>
+    <string name="update_error_timeout">GitHub did not answer in time.</string>
     <string name="downloading">Downloading update…</string>
     <string name="back">Back</string>
     <string name="battery_percent">%1$d%%</string>

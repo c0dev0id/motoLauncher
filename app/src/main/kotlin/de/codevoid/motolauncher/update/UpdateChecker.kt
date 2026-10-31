@@ -9,6 +9,7 @@ import kotlinx.coroutines.withContext
 import org.json.JSONObject
 import java.io.File
 import java.io.FileOutputStream
+import java.io.IOException
 import java.net.HttpURLConnection
 import java.net.URL
 
@@ -17,6 +18,9 @@ data class ReleaseInfo(
     val apkUrl: String,
     val apkName: String,
 )
+
+/** The server answered with a status other than success. */
+class HttpStatusException(val code: Int) : IOException("HTTP $code")
 
 class UpdateChecker(private val context: Context) {
 
@@ -66,6 +70,7 @@ class UpdateChecker(private val context: Context) {
             setRequestProperty("User-Agent", USER_AGENT)
         }
         try {
+            connection.requireSuccess()
             return connection.inputStream.bufferedReader().use { it.readText() }
         } finally {
             connection.disconnect()
@@ -85,6 +90,7 @@ class UpdateChecker(private val context: Context) {
             setRequestProperty("User-Agent", USER_AGENT)
         }
         try {
+            connection.requireSuccess()
             val totalBytes = connection.contentLengthLong
             var written = 0L
             connection.inputStream.use { input ->
@@ -101,6 +107,10 @@ class UpdateChecker(private val context: Context) {
         } finally {
             connection.disconnect()
         }
+    }
+
+    private fun HttpURLConnection.requireSuccess() {
+        if (responseCode !in 200..299) throw HttpStatusException(responseCode)
     }
 
     companion object {

@@ -1,13 +1,19 @@
 package de.codevoid.motolauncher.ui
 
+import android.content.Context
 import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
 import androidx.lifecycle.lifecycleScope
 import de.codevoid.motolauncher.R
+import de.codevoid.motolauncher.update.HttpStatusException
 import de.codevoid.motolauncher.update.ReleaseInfo
 import de.codevoid.motolauncher.update.UpdateChecker
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.launch
+import java.net.ConnectException
+import java.net.HttpURLConnection
+import java.net.SocketTimeoutException
+import java.net.UnknownHostException
 
 // User-triggered update check: the caller is disabled while the flow is in flight
 // (setClickable false → true) and each outcome — latest build, update available with an
@@ -31,8 +37,7 @@ fun AppCompatActivity.runUpdateFlow(
             .showImmersive()
     }
 
-    fun showError(e: Exception) =
-        showMessage(getString(R.string.update_failed, e.message ?: e.javaClass.simpleName))
+    fun showError(e: Exception) = showMessage(getString(R.string.update_failed, updateErrorText(e)))
 
     fun downloadAndInstall(release: ReleaseInfo) {
         setClickable(false)
@@ -85,4 +90,14 @@ fun AppCompatActivity.runUpdateFlow(
             setClickable(true)
         }
     }
+}
+
+/** [error] in words a rider can act on. */
+fun Context.updateErrorText(error: Exception): String = when (error) {
+    is HttpStatusException ->
+        if (error.code == HttpURLConnection.HTTP_NOT_FOUND) getString(R.string.update_error_not_found)
+        else getString(R.string.update_error_http, error.code)
+    is UnknownHostException, is ConnectException -> getString(R.string.update_error_offline)
+    is SocketTimeoutException -> getString(R.string.update_error_timeout)
+    else -> error.message ?: error.javaClass.simpleName
 }
