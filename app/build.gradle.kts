@@ -37,6 +37,10 @@ android {
         !signingKeyAlias.isNullOrEmpty() &&
         !signingKeyPassword.isNullOrEmpty()
 
+    if (project.hasProperty("requireSigning") && !hasSigningConfig) {
+        throw GradleException("requireSigning is set, but a SIGNING_* environment variable is empty")
+    }
+
     if (hasSigningConfig) {
         signingConfigs {
             create("release") {

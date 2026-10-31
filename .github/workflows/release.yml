@@ -75,8 +75,9 @@ jobs:
           git bundle create "$out/release.bundle" "refs/tags/v$VERSION" "^$GITHUB_SHA"
 
       - name: Decode signing keystore
-        run: |
-          echo "${{ secrets.SIGNING_KEYSTORE_BASE64 }}" | base64 -d > "${{ runner.temp }}/release.keystore"
+        env:
+          SIGNING_KEYSTORE_BASE64: ${{ secrets.SIGNING_KEYSTORE_BASE64 }}
+        run: echo "$SIGNING_KEYSTORE_BASE64" | base64 -d > "$RUNNER_TEMP/release.keystore"
 
       - name: Build the GitHub APK and the Play bundle
         env:
@@ -85,7 +86,7 @@ jobs:
           SIGNING_KEY_ALIAS: ${{ secrets.SIGNING_KEY_ALIAS }}
           SIGNING_KEY_PASSWORD: ${{ secrets.SIGNING_KEY_PASSWORD }}
         run: |
-          ./gradlew assembleGithubRelease bundlePlayRelease \
+          ./gradlew assembleGithubRelease bundlePlayRelease -PrequireSigning \
             -PappVersionName="$VERSION" \
             -PappVersionCode="$(git rev-list --count HEAD)"
           out="$RUNNER_TEMP/release"
