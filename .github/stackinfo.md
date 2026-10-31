@@ -41,14 +41,15 @@ Feature floor above `minSdk`: the park lock is offered from API 35.
 
 | Library | Version | Use |
 |---|---|---|
-| `androidx.appcompat:appcompat` | 1.7.0 | Activities, night mode, `AlertDialog` |
-| `com.google.android.material:material` | 1.12.0 | Material3 base theme |
-| `androidx.recyclerview:recyclerview` | 1.3.2 | App list grid |
-| `androidx.activity:activity-ktx` | 1.9.3 | `viewModels`, result APIs, back dispatcher |
-| `androidx.core:core-ktx` | 1.17.0 | `FileProvider` (github), window insets, compat helpers |
-| `androidx.lifecycle:lifecycle-runtime-ktx` | 2.8.6 | `lifecycleScope` |
-| `androidx.lifecycle:lifecycle-viewmodel-ktx` | 2.8.6 | `ViewModel`, `viewModelScope` |
-| `org.jetbrains.kotlinx:kotlinx-coroutines-android` | 1.8.1 | App enumeration and update I/O |
+| `androidx.appcompat:appcompat` | 1.8.0 | Activities, night mode, `AlertDialog` |
+| `com.google.android.material:material` | 1.14.0 | Material3 base theme |
+| `androidx.recyclerview:recyclerview` | 1.4.0 | App list grid |
+| `androidx.activity:activity-ktx` | 1.13.0 | `viewModels`, result APIs, back dispatcher |
+| `androidx.fragment:fragment` | 1.9.1 | `DialogFragment`, fragment results |
+| `androidx.core:core-ktx` | 1.18.0 | `FileProvider` (github), window insets, compat helpers |
+| `androidx.lifecycle:lifecycle-runtime-ktx` | 2.11.0 | `lifecycleScope`, `repeatOnLifecycle` |
+| `androidx.lifecycle:lifecycle-viewmodel-ktx` | 2.11.0 | `ViewModel`, `viewModelScope` |
+| `org.jetbrains.kotlinx:kotlinx-coroutines-android` | 1.11.0 | App enumeration, update I/O, `StateFlow` |
 
 UI is classic Views with view binding; no Compose. Networking is `HttpURLConnection`
 with `org.json`, both from the platform.
@@ -60,7 +61,7 @@ with `org.json`, both from the platform.
 | JUnit | 4.13.2 |
 | Robolectric | 4.16.1 |
 | `androidx.test:core` | 1.7.0 |
-| `kotlinx-coroutines-test` | 1.8.1 |
+| `kotlinx-coroutines-test` | 1.11.0 |
 
 JVM unit tests in `app/src/test/kotlin`, with Android resources included.
 
