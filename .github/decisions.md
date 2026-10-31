@@ -667,6 +667,15 @@ is the newest 8.x and compiles against API 36; AGP 9 would also force the built-
 Kotlin migration. CI runs JDK 21 because Robolectric needs it to run tests against SDK
 36. The bytecode target stays 17.
 
+Library versions stop where this toolchain stops. Kotlin is 2.4.21, the newest plugin
+that supports both Gradle 8.14 and AGP 8.13; Kotlin 2.0 read metadata only up to 2.1, so
+libraries built with 2.2 were out of reach. Every AndroidX library is at its newest
+release except `core-ktx`, whose 1.19 needs compileSdk 37 and AGP 9.1. Gradle is the
+newest 8.x, and the wrapper pins the distribution's checksum and carries the wrapper
+jar of the same release. Robolectric stays on 4.16.1: 4.17 reaches into
+`jdk.internal.access` through reflection on every test start, which JDK 21 refuses
+without an `--add-opens` flag on the test JVM, and the release adds only SDK 37.
+
 ### One version counter for both channels
 `versionCode` is the number of commits reachable from `main`, for dev builds and
 releases alike, so the newer build installs over the older whichever channel it came
