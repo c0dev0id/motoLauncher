@@ -6,6 +6,7 @@ import android.content.pm.LauncherActivityInfo
 import android.content.pm.LauncherApps
 import android.net.Uri
 import android.os.UserManager
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.async
 import kotlinx.coroutines.awaitAll
 import kotlinx.coroutines.coroutineScope
@@ -23,7 +24,7 @@ class AppRepository(private val context: Context) {
             launcherApps.getActivityList(null, user)
                 .filter { it.applicationInfo.packageName != self }
         }
-        sortApps(infos.map { async { toEntry(it) } }.awaitAll())
+        sortApps(infos.map { async(Dispatchers.Default) { toEntry(it) } }.awaitAll())
     }
 
     /** Resolves only [keys], decoding only their icons; keys that no longer resolve are left out. */

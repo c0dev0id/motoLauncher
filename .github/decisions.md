@@ -189,6 +189,10 @@ result in a `StateFlow` that is shared only while the screen is started; a recre
 reuses it. `map` handles one generation at a time, so an older load cannot replace a
 newer one.
 
+The load enumerates on `Dispatchers.IO` and decodes each icon in its own coroutine on
+`Dispatchers.Default`. Decoding is CPU work; on the IO dispatcher one coroutine per app
+started up to 64 threads for it, where the default dispatcher uses one per core.
+
 ### Package changes come from one process-wide callback
 A single `LauncherApps.Callback`, `PackageWatcher`, registered in `MotoLauncherApp`,
 advances `packageGeneration` (a `StateFlow`) on every package event and clears favourite
