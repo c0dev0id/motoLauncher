@@ -168,8 +168,10 @@ battery display). Orientation has five values, and cycling would rotate the scre
 through each one. `showOptionsDialog` lists the values on the launcher's dialog theme
 and applies only the one picked. Its rows are inflated from `item_dialog_option`: a
 style applied through a `TextView` constructor does not carry its `layout_*`
-attributes. The current value is drawn in `tile_focused` because the tile showing it is
-hidden behind the dialog.
+attributes. The current value's row is selected, drawn as a solid `tile_focused` fill
+with `on_tile_focused` text, because the tile showing it is hidden behind the dialog.
+Accent-coloured text on `tile_default` was the first marker; it is 3.18:1 in the dark
+theme.
 
 ## Orientation
 

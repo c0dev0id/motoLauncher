@@ -287,9 +287,11 @@ Package layout under `de.codevoid.motolauncher`:
   onPick)`: pick one of a list, as tile-styled rows on `Theme.MotoLauncher.Dialog`. Rows are
   *inflated* from `item_dialog_option` rather than constructed, so the style's `layout_*`
   attributes are resolved by the parent as they are for the fixed rows; a style applied
-  through a `TextView` constructor would not carry them. The current value is drawn in
-  `tile_focused` — the tile that shows it is hidden behind the dialog. Reach for this over
-  a cycling tile whenever applying an intermediate value is itself disruptive.
+  through a `TextView` constructor would not carry them. The current value's row is
+  `isSelected`, which `tile_background` and `dialog_action_text` draw as a solid
+  `tile_focused` fill with `on_tile_focused` text — the tile that shows the value is hidden
+  behind the dialog. Reach for this over a cycling tile whenever applying an intermediate
+  value is itself disruptive.
 - `ui/LinkDialog.kt` — `Context.showLinkDialog(label, url, onConfirm)`: the one
   `AlertDialog` with text input (`dialog_add_link`); confirms only when both fields are
   non-blank. Any URL scheme is accepted — Android resolves the intent, and Home wraps the
@@ -421,8 +423,8 @@ republishes the `dev` pre-release. Three parallel jobs plus a follow-up release 
   settle window that stops a redundant second pin request), `ParkLockAvailabilityTest`
   (the pure `shouldOfferParkLock` rule, with the API boundary written as numbers so it is
   pinned independently of the constant) and `OptionsDialogTest` (rows
-  in caller order, one index reported per pick, dismissal, and that the selected row is
-  drawn differently).
+  in caller order, one index reported per pick, dismissal, and that only the selected row
+  is marked selected and drawn differently).
   Write new behaviour so it lands in that surface — a pure function, a store, or
   something a Robolectric activity can reach. No device is ever available to check it.
   The job caches `~/.m2/repository/org/robolectric` separately: Robolectric fetches its
