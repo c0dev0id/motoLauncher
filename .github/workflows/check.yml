@@ -25,20 +25,22 @@ jobs:
       contents: read
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
-      - uses: actions/setup-java@v4
+      - uses: actions/setup-java@v6
         with:
           distribution: temurin
           java-version: 21
 
-      - uses: gradle/actions/setup-gradle@v4
+      - uses: gradle/actions/setup-gradle@8da46b539cd8fe6ab27ca75128919a18d757604c # v6.4.1
+        with:
+          cache-provider: basic
 
       # Same reason as build.yml's test job: Robolectric fetches its ~100 MB
       # android-all jar at test runtime with its own resolver, into ~/.m2 —
       # outside the Gradle cache setup-gradle restores.
       - name: Cache Robolectric SDK jars
-        uses: actions/cache@v4
+        uses: actions/cache@v6
         with:
           path: ~/.m2/repository/org/robolectric
           key: robolectric-${{ hashFiles('app/build.gradle.kts') }}
@@ -59,7 +61,7 @@ jobs:
       # The only way to get a branch onto the device. Both flavors install beside the
       # release build (.debug applicationId) and replace each other.
       - name: Upload debug APKs
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: app-debug
           path: app/build/outputs/apk/*/debug/*.apk
@@ -68,7 +70,7 @@ jobs:
 
       - name: Upload reports
         if: failure()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: check-reports
           path: |

@@ -32,17 +32,19 @@ jobs:
       version: ${{ steps.version.outputs.version }}
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
         with:
           fetch-depth: 0
           persist-credentials: false
 
-      - uses: actions/setup-java@v4
+      - uses: actions/setup-java@v6
         with:
           distribution: temurin
           java-version: 21
 
-      - uses: gradle/actions/setup-gradle@v4
+      - uses: gradle/actions/setup-gradle@8da46b539cd8fe6ab27ca75128919a18d757604c # v6.4.1
+        with:
+          cache-provider: basic
 
       - name: Choose the version
         id: version
@@ -95,7 +97,7 @@ jobs:
 
       # Kept before anything is pushed, so a failed publish loses nothing.
       - name: Keep the release files
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: release-${{ env.VERSION }}
           path: ${{ runner.temp }}/release/
@@ -112,12 +114,12 @@ jobs:
       HAS_PLAY: ${{ secrets.PLAY_SERVICE_ACCOUNT_JSON != '' }}
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
         with:
           fetch-depth: 0
 
       - name: Fetch the release files
-        uses: actions/download-artifact@v4.1.3
+        uses: actions/download-artifact@v8
         with:
           name: release-${{ env.VERSION }}
           path: ${{ runner.temp }}/release
@@ -147,7 +149,7 @@ jobs:
 
       - name: Upload to Google Play
         if: env.HAS_PLAY == 'true'
-        uses: r0adkll/upload-google-play@v1
+        uses: r0adkll/upload-google-play@e738b9dd8f2476ea806d921b64aacd24f34515a5 # v1.1.5
         with:
           serviceAccountJsonPlainText: ${{ secrets.PLAY_SERVICE_ACCOUNT_JSON }}
           packageName: de.codevoid.motolauncher
