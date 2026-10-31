@@ -1,6 +1,8 @@
 package de.codevoid.motolauncher
 
 import android.content.Context
+import android.content.pm.LauncherApps
+import android.os.Looper
 import android.view.View
 import android.view.ViewGroup
 import androidx.test.core.app.ApplicationProvider
@@ -12,6 +14,7 @@ import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.Robolectric
 import org.robolectric.RobolectricTestRunner
+import org.robolectric.Shadows.shadowOf
 
 /**
  * The Home grid as a real activity builds it. An empty "+" slot opens the picker, which is
@@ -20,7 +23,8 @@ import org.robolectric.RobolectricTestRunner
 @RunWith(RobolectricTestRunner::class)
 class HomeGridTest {
 
-    private val favorites = FavoritesStore(ApplicationProvider.getApplicationContext<Context>())
+    private val context = ApplicationProvider.getApplicationContext<Context>()
+    private val favorites = FavoritesStore(context)
 
     private fun HomeActivity.tiles(): List<View> {
         val grid = findViewById<ViewGroup>(R.id.homeGrid)
@@ -51,6 +55,20 @@ class HomeGridTest {
 
         favorites.setLink(0, "Weather", "https://example.com")
         home.pause().resume()
+        assertTrue(home.get().tiles()[0].isFocusable)
+    }
+
+    // The uninstaller's dialog closes before the package is gone, so Home is already back
+    // in front when the change arrives.
+    @Test
+    fun aPackageChangeWhileHomeIsInFrontRebindsTheGrid() {
+        val home = Robolectric.buildActivity(HomeActivity::class.java).setup()
+        assertFalse(home.get().tiles()[0].isFocusable)
+
+        favorites.setLink(0, "Weather", "https://example.com")
+        shadowOf(context.getSystemService(LauncherApps::class.java)).notifyPackageAdded("com.example")
+        shadowOf(Looper.getMainLooper()).idle()
+
         assertTrue(home.get().tiles()[0].isFocusable)
     }
 }

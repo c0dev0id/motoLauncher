@@ -122,21 +122,24 @@ enumeration and update I/O only. No networking library: `HttpURLConnection` +
 Package layout under `de.codevoid.motolauncher`:
 
 - `MotoLauncherApp` (`Application`) — re-applies the saved theme before any activity is
-  created, deletes the just-installed update APK on a plain thread (github flavor), and
-  owns two pieces of process-wide state. (1) The single `LauncherApps.Callback`: a removed package clears any
-  favourite slot holding it (`clearSlotsForPackage`), and every package event bumps
-  `packageGeneration`. Only a real removal clears a slot — an app that merely fails to
-  resolve may be on unmounted storage. (2) `getApps()`, the process-level app-list cache: a
+  created, deletes the just-installed update APK on its IO scope (github flavor), and
+  owns two pieces of process-wide state. (1) `packageGeneration`, a `StateFlow<Int>`
+  advanced by the single `LauncherApps.Callback`, `PackageWatcher`, on every package event;
+  a removal also clears the favourite slots holding that package in that profile
+  (`clearSlotsForPackage`). Only a real removal clears a slot — an app that merely fails to
+  resolve may be on unmounted storage. Screens collect the generation while started, so a
+  change shows while they are in front. (2) `getApps()`, the process-level app-list cache: a
   `Deferred<List<AppEntry>>` on an IO scope, reissued only when `packageGeneration` moved.
-  Callers detect a stale list by comparing the returned `Deferred` instance, not by a flag.
   Home warms it in `onCreate` so "All Apps" opens with the list already decoded.
 - `HomeActivity` — the launcher entry (`category.HOME`, `singleTask`). Fixed grid of 8,
   12 or 15 tiles (`TileSize.homeTileCount`): the leading favourite slots + a pinned "All
   Apps" tile in the last cell. The grid is **not** a RecyclerView:
   `populateGrid(tileSize)` inflates `item_app_tile` once per cell into weighted
-  `LinearLayout` rows, and `buildGrid()` rebinds them in `onResume`. `onResume` calls
-  `populateGrid` only when the stored size differs from `gridTileSize`, the size the
-  tiles were built for: on the first resume, and on return from a Tile size change.
+  `LinearLayout` rows, and `buildGrid()` rebinds them. `showGrid()` runs both, from
+  `onResume` and from every package change while Home is started (`packageGeneration`
+  after its current value), and calls `populateGrid` only when the stored size differs
+  from `gridTileSize`, the size the tiles were built for: on the first resume, and on
+  return from a Tile size change.
   Weighted layout divides space in the layout pass by construction, which is what fixed
   the cold-start "third row cut off" first-frame race. `buildGrid` keeps the resolved
   `AppEntry`s in `FavoritesCache`, a `ViewModel`, keyed on (`packageGeneration`, visible
@@ -164,8 +167,10 @@ Package layout under `de.codevoid.motolauncher`:
   opens `showLinkDialog` pre-filled from the slot's current link, any app tile is written
   to that `FavoritesStore` slot), and **nav-app pick** (`navAppPickerIntent`: writes
   `NavAppStore`). Pick modes finish on selection; callers rebuild in `onResume`, so there is
-  no result contract. `onResume` calls `AppListViewModel.reloadIfStale()`, which swaps in
-  the Application's fresh `Deferred` only when the instance changed. Filtering runs
+  no result contract. `AppListViewModel.apps` is a `StateFlow` of the app list, reloaded
+  through `getApps()` on every package generation and shared while the activity is
+  started; the activity re-renders when a new list instance arrives and on every
+  `onResume`. Filtering runs
   `AppRepository.filterApps` on every keystroke, then drops packages in `HiddenAppsStore`
   unless `showHidden` is on (hidden apps then render dimmed). `AppListViewModel` (same
   file) carries `isSettingsMode`, `isCheckingUpdate` and `downloadProgressSubtitle` so the

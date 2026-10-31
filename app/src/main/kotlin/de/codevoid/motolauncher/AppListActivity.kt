@@ -20,7 +20,9 @@ import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.content.ContextCompat
 import androidx.lifecycle.AndroidViewModel
+import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.lifecycleScope
+import androidx.lifecycle.repeatOnLifecycle
 import androidx.lifecycle.viewModelScope
 import androidx.recyclerview.widget.GridLayoutManager
 import de.codevoid.motolauncher.BuildConfig
@@ -55,7 +57,11 @@ import de.codevoid.motolauncher.ui.showLinkDialog
 import de.codevoid.motolauncher.ui.showImmersive
 import de.codevoid.motolauncher.ui.showOptionsDialog
 import de.codevoid.motolauncher.ui.showTileActionsDialog
-import kotlinx.coroutines.Deferred
+import kotlinx.coroutines.flow.SharingStarted
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.filterNotNull
+import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 
 class AppListActivity : AppCompatActivity() {
@@ -78,7 +84,8 @@ class AppListActivity : AppCompatActivity() {
     private val columns get() = tileSizeStore.tileSize.listColumns(isPortrait)
     // Invalidated by every tile that changes state.
     private var settingsTilesCache: List<TileItem>? = null
-    private var allApps: List<AppEntry> = emptyList()
+    // Null until the first list arrives.
+    private var allApps: List<AppEntry>? = null
 
     // >= 0: slot pick mode — the chosen app is written to that favourite slot and the
     // activity finishes. navAppPickMode: the chosen app is stored as the nav app.
@@ -142,29 +149,29 @@ class AppListActivity : AppCompatActivity() {
             }
         }
 
-        loadAndRender(seedFocus = true)
+        lifecycleScope.launch {
+            repeatOnLifecycle(Lifecycle.State.STARTED) {
+                viewModel.apps.filterNotNull().collect(::showApps)
+            }
+        }
     }
 
     override fun onResume() {
         super.onResume()
         setRequestedOrientation(orientationStore.orientation)
-        // Enumerating apps is the most expensive thing this app does; reload only when the
-        // installed-app set actually changed (uninstall, install) since the last load.
-        if (viewModel.reloadIfStale()) loadAndRender(seedFocus = false)
-        else renderCurrentMode()
+        renderCurrentMode()
     }
 
-    private fun loadAndRender(seedFocus: Boolean) {
-        lifecycleScope.launch {
-            allApps = viewModel.apps.await()
-            // After a recreate the restored search text is already in the box; honour it.
-            renderCurrentMode()
-            // Only on first load: re-seeding would drag the remote's focus back to tile 0
-            // every time an app is installed or removed.
-            if (seedFocus) {
-                binding.appGrid.post {
-                    binding.appGrid.layoutManager?.findViewByPosition(0)?.requestFocus()
-                }
+    // Focus is seeded on the first list this activity shows, never on a later one, so an
+    // install or uninstall does not drag the remote back to the first tile.
+    private fun showApps(apps: List<AppEntry>) {
+        if (apps === allApps) return
+        val first = allApps == null
+        allApps = apps
+        renderCurrentMode()
+        if (first) {
+            binding.appGrid.post {
+                binding.appGrid.layoutManager?.findViewByPosition(0)?.requestFocus()
             }
         }
     }
@@ -186,7 +193,7 @@ class AppListActivity : AppCompatActivity() {
                 touchOnly = true,
             )
         } else {
-            render(AppRepository.filterApps(allApps, query))
+            render(AppRepository.filterApps(allApps.orEmpty(), query))
         }
     }
 
@@ -560,22 +567,17 @@ class AppListActivity : AppCompatActivity() {
     }
 }
 
-// isSettingsMode and isCheckingUpdate survive recreate() (theme toggle) here.
-// The app list itself is cached at the Application level and reused across Activity
-// instances — the ViewModel just holds the current reference and detects staleness.
+// State that survives recreate() (theme toggle, rotation).
 class AppListViewModel(app: Application) : AndroidViewModel(app) {
 
-    var apps: Deferred<List<AppEntry>> = getApplication<MotoLauncherApp>().getApps()
-        private set
+    /** The app list, reloaded on every package change while the screen is started; null until the first load. */
+    val apps: StateFlow<List<AppEntry>?> = getApplication<MotoLauncherApp>().let { launcher ->
+        launcher.packageGeneration
+            .map { launcher.getApps().await() }
+            .stateIn(viewModelScope, SharingStarted.WhileSubscribed(), null)
+    }
 
     var isSettingsMode: Boolean = false
     var isCheckingUpdate: Boolean = false
     var downloadProgressSubtitle: String? = null
-
-    fun reloadIfStale(): Boolean {
-        val fresh = getApplication<MotoLauncherApp>().getApps()
-        if (fresh === apps) return false
-        apps = fresh
-        return true
-    }
 }

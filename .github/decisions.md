@@ -180,17 +180,25 @@ finishes; Home rebuilds in `onResume`. No result contract, no result extra, and 
 ### Process-level app-list cache
 Enumerating and rasterising every installed app is the most expensive thing the app
 does. `MotoLauncherApp.getApps()` returns a `Deferred` that is reissued only when
-`packageGeneration` moved. Callers detect a stale list by comparing the returned
-instance. Home warms it in `onCreate`, so All Apps opens with the list decoded, and
-`AppListViewModel` keeps the reference across a theme or rotation recreate.
+`packageGeneration` moved. Home warms it in `onCreate`, so All Apps opens with the list
+decoded. `AppListViewModel` maps each generation to `getApps().await()` and holds the
+result in a `StateFlow` that is shared only while the screen is started; a recreate
+reuses it. `map` handles one generation at a time, so an older load cannot replace a
+newer one.
 
 ### Package changes come from one process-wide callback
-A single `LauncherApps.Callback`, registered in `MotoLauncherApp`, bumps
-`packageGeneration` on every package event and clears favourite slots on removal. It is
-process-wide because an activity paused during an uninstall would miss the event that
-concerns it most. Only `onPackageRemoved` clears a slot: an app on unmounted storage is
-unavailable, not uninstalled, and clearing it would lose the configuration. Known gap:
-a screen already in front when a package changes waits for its next resume.
+A single `LauncherApps.Callback`, `PackageWatcher`, registered in `MotoLauncherApp`,
+advances `packageGeneration` (a `StateFlow`) on every package event and clears favourite
+slots on removal. It is process-wide because an activity paused during an uninstall
+would miss the event that concerns it most. Only `onPackageRemoved` clears a slot: an
+app on unmounted storage is unavailable, not uninstalled, and clearing it would lose the
+configuration.
+
+Screens collect the generation while started, so a change that arrives while a screen is
+in front shows at once. That case is the common one: the uninstaller's dialog closes
+before the package is gone, and the screen behind it has already resumed. Home skips the
+generation current at start (`drop(1)`), because `onResume` rebinds anyway; a change while
+it was stopped is caught there.
 
 ### Uninstall needs two manifest declarations
 The `ACTION_DELETE` hand-off fails silently without either:

@@ -11,7 +11,10 @@ import android.widget.LinearLayout
 import androidx.activity.addCallback
 import androidx.activity.viewModels
 import androidx.appcompat.app.AppCompatActivity
+import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.ViewModel
+import androidx.lifecycle.lifecycleScope
+import androidx.lifecycle.repeatOnLifecycle
 import de.codevoid.motolauncher.data.AppEntry
 import de.codevoid.motolauncher.data.AppRepository
 import de.codevoid.motolauncher.data.ComponentKey
@@ -34,6 +37,8 @@ import de.codevoid.motolauncher.ui.launchNavApp
 import de.codevoid.motolauncher.ui.showLinkActionsDialog
 import de.codevoid.motolauncher.ui.showLinkDialog
 import de.codevoid.motolauncher.ui.showTileActionsDialog
+import kotlinx.coroutines.flow.drop
+import kotlinx.coroutines.launch
 
 class HomeActivity : AppCompatActivity() {
 
@@ -76,9 +81,15 @@ class HomeActivity : AppCompatActivity() {
 
         onBackPressedDispatcher.addCallback(this) { /* home is the root; swallow back */ }
 
-        // Start loading the app list in the background so it is ready before the user taps
-        // "All Apps". The result is cached at the Application level; this just warms it.
-        (application as MotoLauncherApp).getApps()
+        val app = application as MotoLauncherApp
+        // Warms the app-list cache, so All Apps opens with the list decoded.
+        app.getApps()
+        // onResume covers changes made while Home was hidden; this covers the ones after.
+        lifecycleScope.launch {
+            repeatOnLifecycle(Lifecycle.State.STARTED) {
+                app.packageGeneration.drop(1).collect { showGrid() }
+            }
+        }
     }
 
     // Weighted rows divide space during the layout pass, avoiding the RecyclerView
@@ -130,6 +141,11 @@ class HomeActivity : AppCompatActivity() {
             return
         }
         setRequestedOrientation(orientationStore.orientation)
+        showGrid()
+    }
+
+    // Inflates the tiles when the tile size has changed since they were built, then binds them.
+    private fun showGrid() {
         val tileSize = tileSizeStore.tileSize
         if (tileSize != gridTileSize) populateGrid(tileSize)
         buildGrid()
@@ -148,7 +164,7 @@ class HomeActivity : AppCompatActivity() {
 
     private fun buildGrid() {
         val slots = favorites.allSlots().take(tiles.size - 1)
-        val generation = (application as MotoLauncherApp).packageGeneration
+        val generation = (application as MotoLauncherApp).packageGeneration.value
         if (generation != cache.generation || slots != cache.slots) {
             cache.apps = repository.loadByKeys(slots.filterIsInstance<SlotEntry.App>().map { it.key })
             cache.generation = generation
