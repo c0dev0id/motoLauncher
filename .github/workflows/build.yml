@@ -4,6 +4,12 @@ on:
   push:
     branches: [main]
 
+# A newer push supersedes an older run, so an older run can never finish last and
+# publish an older dev build.
+concurrency:
+  group: build
+  cancel-in-progress: true
+
 jobs:
   lint:
     runs-on: ubuntu-latest
