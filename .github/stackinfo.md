@@ -26,7 +26,7 @@ Feature floor above `minSdk`: the park lock is offered from API 35.
 |---|---|
 | Kotlin | 2.0.21 (JVM target 17) |
 | Android Gradle Plugin | 8.13.2 |
-| Gradle | 8.13 (Kotlin DSL) |
+| Gradle | 8.14.6 (Kotlin DSL; wrapper jar and distribution checksum-pinned) |
 | JDK | 21 (Temurin in CI) |
 | Python | 3, as on `ubuntu-latest` (release notes script) |
 
