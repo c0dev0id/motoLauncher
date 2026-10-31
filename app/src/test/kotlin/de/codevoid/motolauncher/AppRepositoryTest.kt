@@ -7,6 +7,7 @@ import de.codevoid.motolauncher.data.AppEntry
 import de.codevoid.motolauncher.data.AppRepository
 import de.codevoid.motolauncher.data.ComponentKey
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertSame
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
@@ -31,8 +32,8 @@ class AppRepositoryTest {
     }
 
     @Test
-    fun blankQueryReturnsEverything() {
+    fun emptyQueryReturnsEverything() {
         val apps = listOf(entry("A"), entry("B"))
-        assertEquals(apps, AppRepository.filterApps(apps, "  "))
+        assertSame(apps, AppRepository.filterApps(apps, ""))
     }
 }

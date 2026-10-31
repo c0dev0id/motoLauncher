@@ -77,10 +77,7 @@ class AppRepository(private val context: Context) {
         fun sortApps(apps: List<AppEntry>): List<AppEntry> =
             apps.sortedWith(compareBy(String.CASE_INSENSITIVE_ORDER) { it.label })
 
-        fun filterApps(apps: List<AppEntry>, query: String): List<AppEntry> {
-            val trimmed = query.trim()
-            if (trimmed.isEmpty()) return apps
-            return apps.filter { it.label.contains(trimmed, ignoreCase = true) }
-        }
+        fun filterApps(apps: List<AppEntry>, query: String): List<AppEntry> =
+            if (query.isEmpty()) apps else apps.filter { it.label.contains(query, ignoreCase = true) }
     }
 }
