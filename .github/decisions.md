@@ -234,6 +234,11 @@ while a finger was down. Turning labels white while pressed was rejected because
 text and glyph colour on a tile would then need a state list; with a per-theme fill,
 `on_surface` and `on_surface_muted` read on it unchanged.
 
+Text on a `tile_focused` fill is `on_tile_focused`; `on_surface` there was 3.92:1 in the
+light theme. A colour that depends on a view's state is a colour state list in
+`res/color/`, and code only sets the state (`isActivated` on the Settings button), so the
+theme toggle still needs no colour logic in code.
+
 ### Signal meters have their own "unlit" colour
 Unlit bars were once drawn in `on_surface_muted`, a secondary-text colour that sits
 about 1.85:1 from `on_surface` in the dark theme, so full and empty signal looked

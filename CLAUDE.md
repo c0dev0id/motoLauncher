@@ -341,9 +341,12 @@ Package layout under `de.codevoid.motolauncher`:
 - The palette lives in `values/colors.xml` (light) with dark overrides in
   `values-night/colors.xml`; a colour that is the same in both modes is defined once, in
   the light file. Layouts reference tokens (`background`, `surface`, `tile_default`,
-  `tile_focused`, `tile_pressed`, `on_surface`, `on_surface_muted`, `signal_track`), never
-  literals — the theme toggle works purely by resource qualifier, with no colour logic in
-  code. Same for system-bar icon polarity: `@bool/light_system_bars`.
+  `tile_focused`, `tile_pressed`, `on_surface`, `on_surface_muted`, `on_tile_focused`,
+  `signal_track`), never literals — the theme toggle works purely by resource qualifier,
+  with no colour logic in code. Same for system-bar icon polarity: `@bool/light_system_bars`.
+  A colour that follows a view state is a colour state list in `res/color/` and code sets
+  only the state: the Settings button is `isActivated` in settings mode, and
+  `header_button_background` / `header_button_text` draw it.
 - **A dotted style name that is meant to be a root must set `parent=""`.** AAPT reads
   `Widget.MotoLauncher.DialogAction` as inheriting from a `Widget.MotoLauncher` style that
   doesn't exist and fails resource linking — a CI-only failure, so it costs a full round

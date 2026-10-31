@@ -8,7 +8,6 @@ import android.content.Context
 import android.content.Intent
 import android.content.pm.ActivityInfo
 import android.content.pm.PackageManager
-import android.content.res.ColorStateList
 import android.os.Build
 import android.os.Bundle
 import android.text.Editable
@@ -73,8 +72,6 @@ class AppListActivity : AppCompatActivity() {
     private val orientationStore by lazy { OrientationStore(this) }
     private val parkStore by lazy { ParkStore(this) }
     private val columns get() = if (isPortrait) 4 else 5
-    private val defaultSettingsTint by lazy { ColorStateList.valueOf(ContextCompat.getColor(this, R.color.tile_default)) }
-    private val activeSettingsTint by lazy { ColorStateList.valueOf(ContextCompat.getColor(this, R.color.tile_focused)) }
     // Invalidated by every tile that changes state.
     private var settingsTilesCache: List<TileItem>? = null
     private var allApps: List<AppEntry> = emptyList()
@@ -168,12 +165,11 @@ class AppListActivity : AppCompatActivity() {
         }
     }
 
-    // Single dispatch point for both modes: tints the toggle to reflect the active state,
-    // swaps the search hint, and updates the grid with the current search text applied.
+    // Single dispatch point for both modes: marks the toggle active, swaps the search
+    // hint, and updates the grid with the current search text applied.
     private fun renderCurrentMode() {
         if (!pickMode) {
-            binding.settingsButton.backgroundTintList =
-                if (viewModel.isSettingsMode) activeSettingsTint else defaultSettingsTint
+            binding.settingsButton.isActivated = viewModel.isSettingsMode
         }
         binding.searchBox.setHint(
             if (viewModel.isSettingsMode) R.string.search_settings_hint else R.string.search_hint
