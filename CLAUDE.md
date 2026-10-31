@@ -483,10 +483,10 @@ PR triggers nothing — the newest result is whatever the last push produced —
 requests from forks would go unchecked. The concurrency group (`check-<ref_name>`,
 `cancel-in-progress`) now only supersedes an older run when you push twice quickly.
 
-**`Build`** (`.github/workflows/build.yml`) runs **only on push to `main`** and
-republishes the `dev` pre-release; a newer push cancels an older run (concurrency group
-`build`), so an older run never publishes last. Three parallel jobs plus a follow-up
-release step:
+**`Build`** (`.github/workflows/build.yml`) runs **only on push to `main`**,
+republishes the `dev` pre-release and pushes the dev APK to the dist store; a newer push cancels an older run (concurrency group
+`build`), so an older run never publishes last. Three parallel jobs plus two follow-up
+publish jobs:
 
 - `./gradlew lintGithubRelease lintPlayRelease` — the variants that ship; plain `lint`
   covers only the default debug variant, which `Check` already lints.
@@ -586,6 +586,10 @@ release step:
   tag to the built commit, uploads the new APK, then deletes the other assets. The update
   endpoint stays one stable URL that never answers 404, and "keep only the latest" needs
   no cleanup.
+- `dist` pushes the same APK to the codevoid.de dist store as
+  `motoLauncher-dev-<sha>.apk` with `?version=dev-<sha>`. It has no `GITHUB_TOKEN`
+  permissions (same-run artifacts download with the runner's own token); the
+  `DIST_TOKEN` secret, which selects the dist repository, reaches only the push step.
 
 **`Release`** (`.github/workflows/release.yml`) is manual, from `main` only, and has two
 jobs. `build` (read-only, holds the signing secrets) picks the next patch version after

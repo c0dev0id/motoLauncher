@@ -147,3 +147,25 @@ jobs:
           else
             gh release create dev "$apk" --title "Development Build" --notes "$notes" --prerelease --latest=false
           fi
+
+  dist:
+    needs: build
+    runs-on: ubuntu-latest
+    permissions: {}
+
+    steps:
+      - name: Download signed APK
+        uses: actions/download-artifact@v8
+        with:
+          name: app-release
+
+      # The token selects the dist repository; the version equals the build's versionName.
+      - name: Push the dev APK to the dist store
+        env:
+          DIST_TOKEN: ${{ secrets.DIST_TOKEN }}
+        run: |
+          version="dev-${GITHUB_SHA::7}"
+          curl -fsS -H "Authorization: Bearer $DIST_TOKEN" \
+            -H "Content-Type: application/vnd.android.package-archive" \
+            -T app-github-release.apk \
+            "https://codevoid.de/dist/motoLauncher-$version.apk?version=$version"
