@@ -475,7 +475,7 @@ republishes the `dev` pre-release. Three parallel jobs plus a follow-up release 
   unit tests in `app/src/test/kotlin` (`isIncludeAndroidResources = true`, so real resources and view
   inflation work; see *Commands* for running a single class or test).
   Robolectric runs them against SDK 36, which needs JDK 21 — hence JDK 21 in CI.
-  Twenty-six classes, and the shape they set: `AppRepositoryTest` (the pure `sortApps` /
+  Twenty-eight classes, and the shape they set: `AppRepositoryTest` (the pure `sortApps` /
   `filterApps`), `FavoritesStoreTest` (app and link slot round-trips against real
   `SharedPreferences`, a work-profile app keeping its profile through a profile added to
   Robolectric's `UserManager`, a gone profile reading empty, every write leaving no stale
@@ -493,7 +493,12 @@ republishes the `dev` pre-release. Three parallel jobs plus a follow-up release 
   slot picker leads with None and Add link without a settings button, the nav-app picker
   with None only),
   `UpdateCheckerTest` (`parseRelease` / `isNewer` / `releaseApiUrl` /
-  `deleteInstalledUpdate` over JSON fixtures and temp files), `ImmersiveTest` (content
+  `deleteInstalledUpdate` over JSON fixtures and temp files; an asset name with a path is
+  skipped), `UpdateViewModelTest` (the flow driven by fake lookup and download functions:
+  both check outcomes, a tap while busy starting nothing, a failure reported once and the
+  flow idle again, download progress then the installer, and the progress text),
+  `UpdateErrorTextTest` (a 404, another status, no connection, a timeout and anything
+  else, each in words), `ImmersiveTest` (content
   padding follows dispatched bar and cutout insets), `PrivacyPolicyTest` (the in-app text is
   the body of `PRIVACY.md`, read from the module's parent directory), `AppTileAdapterTest`
   (subtitles shown as given and hidden when absent on a recycled holder; a touch-only
