@@ -5,6 +5,7 @@ import android.app.Activity
 import android.app.Application
 import android.content.Intent
 import android.content.pm.PackageManager
+import android.location.Location
 import android.location.LocationManager
 import android.net.ConnectivityManager
 import android.net.wifi.WifiManager
@@ -295,6 +296,31 @@ class StatusBarViewTest {
         activity.window.decorView.visibility = View.VISIBLE
         settle()
         assertEquals(1, gpsListeners().size)
+    }
+
+    // A speed left on screen after GPS stops reporting reads as current.
+    @Test
+    fun speedShowsDashesOnceGpsStopsReportingIt() {
+        allowGps()
+        SpeedStore(app).enabled = true
+        val bar = attachedStatusBar()
+        settle()
+        val location = shadowOf(app.getSystemService(LocationManager::class.java))
+        val kmh = app.getString(R.string.units_kmh)
+        fun fix(speed: Float?) = Location(LocationManager.GPS_PROVIDER).apply { speed?.let { this.speed = it } }
+
+        location.simulateLocation(fix(10f))
+        settle()
+        assertEquals("36 $kmh", bar.speedText().text.toString())
+
+        location.simulateLocation(fix(null))
+        settle()
+        assertEquals("-- $kmh", bar.speedText().text.toString())
+
+        location.simulateLocation(fix(10f))
+        location.setProviderEnabled(LocationManager.GPS_PROVIDER, false)
+        settle()
+        assertEquals("-- $kmh", bar.speedText().text.toString())
     }
 
     @Test

@@ -7,6 +7,7 @@ import android.content.Intent
 import android.content.IntentFilter
 import android.content.SharedPreferences
 import android.content.pm.PackageManager
+import android.location.Location
 import android.location.LocationManager
 import android.net.ConnectivityManager
 import android.net.Network
@@ -146,12 +147,16 @@ class StatusBarView @JvmOverloads constructor(
 
     private var stopSignalUpdates: (() -> Unit)? = null
 
-    // Compat: LocationListener's provider and status callbacks are abstract before API 30.
-    private val locationListener = LocationListenerCompat { location ->
-        if (!location.hasSpeed()) return@LocationListenerCompat
-        val metric = speedStore.isMetric
-        val displaySpeed = if (metric) (location.speed * 3.6).toInt() else (location.speed * 2.237).toInt()
-        binding.speedText.text = "$displaySpeed ${speedUnitString(metric)}"
+    // Dashes rather than the last speed once GPS stops reporting one.
+    private val locationListener = object : LocationListenerCompat {
+        override fun onLocationChanged(location: Location) {
+            if (!location.hasSpeed()) return showNoSpeed()
+            val metric = speedStore.isMetric
+            val displaySpeed = if (metric) (location.speed * 3.6).toInt() else (location.speed * 2.237).toInt()
+            binding.speedText.text = "$displaySpeed ${speedUnitString(metric)}"
+        }
+
+        override fun onProviderDisabled(provider: String) = showNoSpeed()
     }
 
     private val prefsListener = SharedPreferences.OnSharedPreferenceChangeListener { _, key ->
@@ -159,12 +164,7 @@ class StatusBarView @JvmOverloads constructor(
             CellularStore.KEY_CELLULAR_ENABLED ->
                 if (cellularStore.enabled) registerCellular() else unregisterCellular()
             SpeedStore.KEY_SPEED_ENABLED -> if (speedStore.enabled) registerGps() else unregisterGps()
-            SpeedStore.KEY_SPEED_METRIC -> {
-                // Next GPS fix (~1 s) will overwrite this; just update the unit in the placeholder.
-                if (binding.speedText.visibility == View.VISIBLE) {
-                    binding.speedText.text = "-- ${speedUnitString(speedStore.isMetric)}"
-                }
-            }
+            SpeedStore.KEY_SPEED_METRIC -> if (binding.speedText.visibility == View.VISIBLE) showNoSpeed()
             BatteryStore.KEY_BATTERY_DISPLAY -> applyBatteryDisplay()
         }
     }
@@ -337,8 +337,12 @@ class StatusBarView @JvmOverloads constructor(
         locationManager.requestLocationUpdates(
             LocationManager.GPS_PROVIDER, 1000L, 0f, locationListener, context.mainLooper
         )
-        binding.speedText.text = "-- ${speedUnitString(speedStore.isMetric)}"
+        showNoSpeed()
         binding.speedText.visibility = View.VISIBLE
+    }
+
+    private fun showNoSpeed() {
+        binding.speedText.text = "-- ${speedUnitString(speedStore.isMetric)}"
     }
 
     private fun unregisterGps() {

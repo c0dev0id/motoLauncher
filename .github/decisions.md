@@ -389,6 +389,9 @@ behind it until the screen went off. Attaching starts nothing itself: `View` sen
 `onWindowVisibilityChanged` right after `onAttachedToWindow` unless the window is gone,
 and that call refreshes the clock and battery and starts GPS.
 
+A fix without speed, and location being switched off, show dashes. The last speed used
+to stay on screen, where it reads as current.
+
 ### Clock and battery are re-read on resume
 `ACTION_TIME_TICK` stops while the screen is off, so a device picked up after a night
 showed the minute it went dark until the next tick. `refreshOnResume` is called from
