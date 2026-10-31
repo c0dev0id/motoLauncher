@@ -3,8 +3,6 @@ package de.codevoid.motolauncher
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Test
-import org.junit.runner.RunWith
-import org.robolectric.RobolectricTestRunner
 
 /**
  * The rule that decides whether the park lock is offered at all. Both halves of it are
@@ -15,11 +13,10 @@ import org.robolectric.RobolectricTestRunner
  * API levels are written as numbers rather than `Build.VERSION_CODES` so the boundary is
  * stated independently of the constant the rule uses.
  */
-@RunWith(RobolectricTestRunner::class)
 class ParkLockAvailabilityTest {
 
     private fun offered(sdkInt: Int = 35, deviceSecure: Boolean = false) =
-        ParkActivity.shouldOfferParkLock(sdkInt, deviceSecure)
+        ParkLockRules.shouldOfferParkLock(sdkInt, deviceSecure)
 
     @Test
     fun offeredOnAndroid15AndUp() {

@@ -3,15 +3,12 @@ package de.codevoid.motolauncher
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Test
-import org.junit.runner.RunWith
-import org.robolectric.RobolectricTestRunner
 
 /**
  * The guard's decision to re-pin. Lock task mode itself needs a device, but the rule that
  * drives it does not — and getting it wrong is how the park screen would either stop
  * re-pinning or re-pin the screen a correct PIN just released.
  */
-@RunWith(RobolectricTestRunner::class)
 class ParkLockTaskGuardTest {
 
     private fun shouldRequest(
@@ -20,7 +17,7 @@ class ParkLockTaskGuardTest {
         finishing: Boolean = false,
         lockTaskActive: Boolean = false,
         sinceLastRequestMs: Long = 10_000,
-    ) = ParkActivity.shouldRequestLockTask(
+    ) = ParkLockRules.shouldRequestLockTask(
         parked, setMode, finishing, lockTaskActive, sinceLastRequestMs,
     )
 

@@ -221,7 +221,7 @@ class AppListActivity : AppCompatActivity() {
         // and the decision is then as stale as the rest of settingsTilesCache until the
         // next rebuild — a redundant tile that still works, which is not worth a resume
         // hook to catch.
-        if (ParkActivity.shouldOfferParkLock(
+        if (ParkLockRules.shouldOfferParkLock(
                 sdkInt = Build.VERSION.SDK_INT,
                 deviceSecure = getSystemService(KeyguardManager::class.java)?.isDeviceSecure == true,
             )

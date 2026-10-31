@@ -3,7 +3,6 @@ package de.codevoid.motolauncher
 import android.app.ActivityManager
 import android.content.Context
 import android.content.Intent
-import android.os.Build
 import android.os.Bundle
 import android.os.SystemClock
 import android.widget.TextView
@@ -239,7 +238,7 @@ class ParkActivity : AppCompatActivity() {
      * than reading it, so one Binder round trip serves the whole pass.
      */
     private fun requestLockTask(lockTaskActive: Boolean) {
-        if (!shouldRequestLockTask(
+        if (!ParkLockRules.shouldRequestLockTask(
                 parked = store.isParked,
                 setMode = setMode,
                 finishing = isFinishing,
@@ -256,7 +255,7 @@ class ParkActivity : AppCompatActivity() {
         // request, and a second system toast, into the same window. Hence both the settle
         // check and the sinceLastRequestMs term in shouldRequestLockTask.
         binding.root.removeCallbacks(settleCheck)
-        binding.root.postDelayed(settleCheck, LOCK_TASK_SETTLE_MS)
+        binding.root.postDelayed(settleCheck, ParkLockRules.LOCK_TASK_SETTLE_MS)
     }
 
     private fun armLockTaskGuard() {
@@ -279,42 +278,7 @@ class ParkActivity : AppCompatActivity() {
 
     companion object {
         private const val EXTRA_SET_PIN = "set_pin"
-        private const val LOCK_TASK_SETTLE_MS = 400L
         private const val GUARD_INTERVAL_MS = 300L
-
-        /**
-         * Whether the guard should ask for lock task mode again. Pure, so the single place
-         * that decides to re-pin is unit-testable without a device.
-         *
-         * `sinceLastRequestMs` keeps the guard off its own toes: lockTaskModeState lags a
-         * successful request, so without it the first poll after parking would fire a
-         * redundant second request.
-         */
-        fun shouldRequestLockTask(
-            parked: Boolean,
-            setMode: Boolean,
-            finishing: Boolean,
-            lockTaskActive: Boolean,
-            sinceLastRequestMs: Long,
-        ): Boolean = parked && !setMode && !finishing && !lockTaskActive &&
-            sinceLastRequestMs >= LOCK_TASK_SETTLE_MS
-
-        /**
-         * Whether the park lock is worth offering at all — the pure rule behind showing
-         * or hiding its settings tile. Both cases below leave a screen that still works
-         * but is not worth reaching.
-         *
-         * Below Android 15 the system asks the rider to confirm every `startLockTask()`.
-         * That turns [shouldRequestLockTask] into a dialog generator: the guard answers an
-         * unpin with a confirmation prompt instead of a silent re-pin, so the one hatch the
-         * guard exists to close stays open and parking costs a tap on every request.
-         *
-         * A device with a secure lock screen already has a better park lock, one button
-         * away — the power key. Offering this one beside it only asks for a second PIN at
-         * every stop and locks nothing the first PIN did not.
-         */
-        fun shouldOfferParkLock(sdkInt: Int, deviceSecure: Boolean): Boolean =
-            sdkInt >= Build.VERSION_CODES.VANILLA_ICE_CREAM && !deviceSecure
 
         /** Shows the keypad, marks the launcher parked and asks for pinning. */
         fun lockIntent(context: Context) = Intent(context, ParkActivity::class.java)

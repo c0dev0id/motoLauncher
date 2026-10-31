@@ -173,7 +173,7 @@ Package layout under `de.codevoid.motolauncher`:
   button, the search box and a single `settingsButton` (hidden in pick mode) that toggles
   settings mode; `renderCurrentMode()` then swaps the RecyclerView between the app grid
   and text-only settings tiles (theme, nav app, update check with live download progress
-  in the github flavor, park lock when `ParkActivity.shouldOfferParkLock` allows it,
+  in the github flavor, park lock when `ParkLockRules.shouldOfferParkLock` allows it,
   cellular toggle, GPS speed toggle + units when the device has `FEATURE_LOCATION_GPS`,
   battery display, hidden apps, orientation, tile size, nav bar, privacy policy).
   Orientation and Tile size open `showOptionsDialog`. The settings list
@@ -195,8 +195,8 @@ Package layout under `de.codevoid.motolauncher`:
   asynchronously and reads as `NONE` straight after a successful request; it is what
   notices that a request never took. The system's unpin gesture (hold Back + Recents) cannot be
   blocked, so it is undone: `lockTaskGuard` polls `lockTaskModeState` every 300 ms while
-  parked and re-pins, and `onWindowFocusChanged` re-asserts too. `shouldRequestLockTask` is
-  the pure, unit-tested rule behind both — parked, not in set mode, not finishing, not
+  parked and re-pins, and `onWindowFocusChanged` re-asserts too.
+  `ParkLockRules.shouldRequestLockTask` is the pure, unit-tested rule behind both — parked, not in set mode, not finishing, not
   already pinned, and past the settle window that covers the asynchronous state update.
   Order on unlock is load-bearing: disarm the guard and clear `isParked` *before*
   `stopLockTask()`, or an in-flight guard run re-pins the screen the correct PIN just
@@ -214,8 +214,8 @@ Package layout under `de.codevoid.motolauncher`:
   invisible to dpad traversal — the remote must never drive it. Entry point is the Park
   lock tile in the app list's settings mode (tap to lock or set a PIN, long-press to
   change it). That tile
-  is the only way in, and it appears only when `shouldOfferParkLock` — the second pure,
-  unit-tested rule here — says the lock is worth reaching: Android 15+ (below it the
+  is the only way in, and it appears only when `ParkLockRules.shouldOfferParkLock` — the
+  second pure, unit-tested rule — says the lock is worth reaching: Android 15+ (below it the
   system confirms every `startLockTask()`, so the guard raises a dialog instead of
   re-pinning) and no secure lock screen (`KeyguardManager.isDeviceSecure`, whose power
   button is the better park lock). Hiding the tile is enough because nothing else starts
@@ -457,10 +457,10 @@ republishes the `dev` pre-release. Three parallel jobs plus a follow-up release 
   cellular subscription following its toggle), `ParkStoreTest`
   (PIN round-trips against real `SharedPreferences`, the parked flag read back through a
   second instance — the path a reboot takes — and that the PIN is never written in the
-  clear), `ParkLockTaskGuardTest` (the pure `shouldRequestLockTask` rule, including the
-  settle window that stops a redundant second pin request), `ParkLockAvailabilityTest`
-  (the pure `shouldOfferParkLock` rule, with the API boundary written as numbers so it is
-  pinned independently of the constant), `TileSizeStoreTest` (default and round trip
+  clear), `ParkLockTaskGuardTest` (the pure `ParkLockRules.shouldRequestLockTask`,
+  including the settle window that stops a redundant second pin request; plain JUnit),
+  `ParkLockAvailabilityTest` (the pure `ParkLockRules.shouldOfferParkLock`, with the API
+  boundary written as numbers so it is pinned independently of the constant; plain JUnit), `TileSizeStoreTest` (default and round trip
   through a second instance, an unknown stored name falling back to Medium, the 8 / 12 /
   15 Home counts, portrait as the landscape grid transposed, the app-list columns, and
   `SLOT_COUNT` filling every grid), `OptionsDialogTest` (rows
