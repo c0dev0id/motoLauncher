@@ -58,9 +58,13 @@
             </intent-filter>
         </activity>
 
+        <!-- "behind" on both screens above Home: until onCreate requests the stored
+             orientation, a new activity would otherwise ask for none, and the display
+             turns to the system's own rotation and back. -->
         <activity
             android:name=".AppListActivity"
-            android:exported="false" />
+            android:exported="false"
+            android:screenOrientation="behind" />
 
         <!-- Own task, deliberately: HomeActivity is singleTask and the root of the home
              task, so a Home press clears anything stacked above it. A separate task also
@@ -71,6 +75,7 @@
             android:exported="false"
             android:launchMode="singleInstance"
             android:taskAffinity="${applicationId}.park"
+            android:screenOrientation="behind"
             android:excludeFromRecents="true"
             android:stateNotNeeded="true"
             android:configChanges="keyboard|keyboardHidden|navigation" />

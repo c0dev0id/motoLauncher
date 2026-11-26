@@ -2,6 +2,7 @@ package de.codevoid.motolauncher
 
 import android.content.ComponentName
 import android.content.Context
+import android.content.pm.ActivityInfo
 import android.os.Process
 import android.os.SystemClock
 import android.view.KeyEvent
@@ -46,6 +47,14 @@ class AppListActivityTest {
         val down = SystemClock.uptimeMillis()
         dispatchKeyEvent(KeyEvent(down, down, KeyEvent.ACTION_DOWN, KeyEvent.KEYCODE_ESCAPE, 0))
         dispatchKeyEvent(KeyEvent(down, down + 50, KeyEvent.ACTION_UP, KeyEvent.KEYCODE_ESCAPE, 0))
+    }
+
+    @Test
+    fun startsInTheOrientationOfTheScreenBelow() {
+        val info = context.packageManager
+            .getActivityInfo(ComponentName(context, AppListActivity::class.java), 0)
+
+        assertEquals(ActivityInfo.SCREEN_ORIENTATION_BEHIND, info.screenOrientation)
     }
 
     @Test

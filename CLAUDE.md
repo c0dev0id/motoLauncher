@@ -71,7 +71,10 @@ These drive nearly every UI decision — violating them defeats the point of the
   `configChanges` — the system recreates them and `isPortrait` is read afresh. Adding
   `orientation` there would freeze the layout in whatever shape it started in. The device
   is a 7" landscape screen; portrait exists for phones. Every activity calls
-  `setRequestedOrientation` in `onCreate` and `onResume`; grid shape
+  `setRequestedOrientation` in `onCreate` and `onResume`; the two screens above Home
+  also declare `screenOrientation="behind"`, which holds Home's orientation until their
+  `onCreate` runs — without it the display turns to the system's rotation and back on
+  every start. Grid shape
   follows the Tile size setting (`TileSize`) and `Context.isPortrait`
   (`ui/LayoutUtils.kt`): Home is 4×2, 4×3 (default) or 5×3 in landscape and the same
   grid transposed in portrait, so rotating never changes the tile count; the app list

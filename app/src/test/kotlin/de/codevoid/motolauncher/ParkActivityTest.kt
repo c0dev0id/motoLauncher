@@ -3,6 +3,7 @@ package de.codevoid.motolauncher
 import android.app.ActivityManager
 import android.content.ComponentName
 import android.content.Context
+import android.content.pm.ActivityInfo
 import android.os.Looper
 import android.widget.TextView
 import androidx.test.core.app.ApplicationProvider
@@ -56,6 +57,14 @@ class ParkActivityTest {
 
     private fun ParkActivity.pinned() =
         activityManager().lockTaskModeState != ActivityManager.LOCK_TASK_MODE_NONE
+
+    @Test
+    fun startsInTheOrientationOfTheScreenBelow() {
+        val info = context.packageManager
+            .getActivityInfo(ComponentName(context, ParkActivity::class.java), 0)
+
+        assertEquals(ActivityInfo.SCREEN_ORIENTATION_BEHIND, info.screenOrientation)
+    }
 
     @Test
     fun parkingMarksTheLauncherParkedAndPins() {
