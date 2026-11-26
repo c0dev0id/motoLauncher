@@ -520,11 +520,18 @@ as wasted CPU.
 The formatter is built on every update, because a `SimpleDateFormat` keeps the time
 zone it was created in. The first version built it once, and a rider crossing into
 another zone saw the old zone's time until Home was recreated, which for a `singleTask`
-launcher can take days. One formatter a minute costs nothing. With that, a manual time
-or time zone change corrects at the next tick. Adding `ACTION_TIME_CHANGED` and
-`ACTION_TIMEZONE_CHANGED` was considered and declined as too rare to justify. Do not add
-them without being asked. The pattern follows the system 12/24-hour setting (`HH:mm` or
-`h:mm`, ASCII digits through `Locale.ROOT`).
+launcher can take days. One formatter a minute costs nothing.
+
+The receiver that carries the minute tick also takes `ACTION_TIME_CHANGED` and
+`ACTION_TIMEZONE_CHANGED`, so a time fix after a long time offline or a zone border
+shows at once instead of at the next tick. They were first declined as too rare, and
+added on request. A change of the 12/24-hour setting needs no observer: it is made in
+Android's settings, and Home re-reads the clock when it returns to view.
+`TextClock` was considered in place of the hand-written clock and not used: it formats
+through `android.text.format.DateFormat`, which writes digits in the locale's script,
+and its public `refreshTime()` for the wake-up read exists only from API 30. The pattern
+follows the system 12/24-hour setting (`HH:mm` or `h:mm`, ASCII digits through
+`Locale.ROOT`).
 
 ## Park lock
 

@@ -79,7 +79,8 @@ class StatusBarView @JvmOverloads constructor(
     private var lastBatteryIconLevel = -1
     private var lastCellularLevel = -1
 
-    // Carries the clock while the screen is on.
+    // Carries the clock while the screen is on: every minute, and when the time or the
+    // time zone is set.
     private val timeReceiver = object : BroadcastReceiver() {
         override fun onReceive(context: Context, intent: Intent) = updateTime()
     }
@@ -177,7 +178,10 @@ class StatusBarView @JvmOverloads constructor(
     override fun onAttachedToWindow() {
         super.onAttachedToWindow()
 
-        context.registerReceiver(timeReceiver, IntentFilter(Intent.ACTION_TIME_TICK))
+        context.registerReceiver(timeReceiver, IntentFilter(Intent.ACTION_TIME_TICK).also {
+            it.addAction(Intent.ACTION_TIME_CHANGED)
+            it.addAction(Intent.ACTION_TIMEZONE_CHANGED)
+        })
         context.registerReceiver(screenReceiver,
             IntentFilter(Intent.ACTION_SCREEN_OFF).also { it.addAction(Intent.ACTION_SCREEN_ON) })
         context.registerReceiver(batteryReceiver, IntentFilter(Intent.ACTION_BATTERY_CHANGED))

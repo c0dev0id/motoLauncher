@@ -428,8 +428,9 @@ Package layout under `de.codevoid.motolauncher`:
   synchronously without registering anything, and `applyBatteryIntent` already drops a
   no-change refresh. The radios are deliberately left out — Wi-Fi and cellular re-deliver
   through their own callbacks once the network settles after a wake. The clock builds its
-  formatter on every update (a `SimpleDateFormat` keeps the zone it was created in) and
-  follows the system 12/24-hour setting. Setting changes arrive
+  formatter on every update (a `SimpleDateFormat` keeps the zone it was created in),
+  follows the system 12/24-hour setting, and is also read on `ACTION_TIME_CHANGED` and
+  `ACTION_TIMEZONE_CHANGED`, which share the tick's receiver. Setting changes arrive
   through the `settings` `OnSharedPreferenceChangeListener`. Uses the bundled Michroma font
   (`res/font/michroma.ttf`, OFL — see `MICHROMA-LICENSE.txt`).
 
@@ -558,7 +559,7 @@ publish jobs:
   (`wifiIconLevel` across platform rating ranges, the pure `batteryIconLevel` encoding, that
   `refreshOnResume` re-reads the clock and the battery when the bar returns to view but
   touches neither when it leaves, the clock following a time zone change and the 12-hour
-  setting, GPS waiting for the bar to be seen when switched on while hidden, detaching
+  setting and being read again when the time or the zone is set, GPS waiting for the bar to be seen when switched on while hidden, detaching
   releasing every subscription, that cellular bars need no permission, Wi-Fi bars on SDK
   29, and, on SDK 28, the GPS listener surviving a provider toggle, the five-step Wi-Fi
   rating and the cellular subscription following its toggle; it sets

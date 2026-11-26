@@ -198,6 +198,18 @@ class StatusBarViewTest {
         assertTrue(bar.timeText().text.toString() in setOf(before, after))
     }
 
+    // A time fix after a long time offline, or a zone border, while Home is in front.
+    @Test
+    fun theClockIsReadAgainWhenTheTimeOrTheZoneIsSet() {
+        val bar = attachedStatusBar()
+        listOf(Intent.ACTION_TIME_CHANGED, Intent.ACTION_TIMEZONE_CHANGED).forEach { action ->
+            bar.timeText().text = STALE
+            app.sendBroadcast(Intent(action))
+            settle()
+            assertTrue("$action left '${bar.timeText().text}'", HH_MM.matches(bar.timeText().text))
+        }
+    }
+
     @Test
     fun theClockFollowsTheSystem12HourSetting() {
         ShadowSettings.set24HourTimeFormat(false)
@@ -359,6 +371,8 @@ class StatusBarViewTest {
         assertTrue(wifiCallbacks().isEmpty())
         listOf(
             Intent.ACTION_TIME_TICK,
+            Intent.ACTION_TIME_CHANGED,
+            Intent.ACTION_TIMEZONE_CHANGED,
             Intent.ACTION_SCREEN_ON,
             Intent.ACTION_BATTERY_CHANGED,
             WifiManager.WIFI_STATE_CHANGED_ACTION,
