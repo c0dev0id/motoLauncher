@@ -27,6 +27,11 @@ is stored as no serial at all, so a favourite set before profiles were tracked r
 unchanged. A serial whose profile no longer exists, for example after a restore on
 another device, reads as an empty slot. Hidden apps stay per package, across profiles.
 
+### The app list is sorted by `Collator`
+Labels are compared with `Collator.getInstance()`, the order of the device's language.
+`String.CASE_INSENSITIVE_ORDER` compares code points, which puts Öffi and Übersetzer
+after Zoom.
+
 ### Every launch checks the app still resolves
 A tile can outlive its app: the uninstaller's dialog closes before the package is gone,
 so the screen behind it resumes with the old tile, and a stored navigation app outlives

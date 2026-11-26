@@ -25,6 +25,12 @@ class AppRepositoryTest {
     }
 
     @Test
+    fun accentedLettersSortWithTheirBaseLetter() {
+        val sorted = AppRepository.sortApps(listOf(entry("Zoom"), entry("Öffi"), entry("Übersetzer"), entry("Maps")))
+        assertEquals(listOf("Maps", "Öffi", "Übersetzer", "Zoom"), sorted.map { it.label })
+    }
+
+    @Test
     fun filterMatchesSubstringIgnoringCase() {
         val apps = listOf(entry("Maps"), entry("Camera"), entry("Calculator"))
         val filtered = AppRepository.filterApps(apps, "ca")

@@ -10,6 +10,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.async
 import kotlinx.coroutines.awaitAll
 import kotlinx.coroutines.coroutineScope
+import java.text.Collator
 
 class AppRepository(private val context: Context) {
 
@@ -74,8 +75,9 @@ class AppRepository(private val context: Context) {
     )
 
     companion object {
+        /** [apps] by label, in the order of the device's language. */
         fun sortApps(apps: List<AppEntry>): List<AppEntry> =
-            apps.sortedWith(compareBy(String.CASE_INSENSITIVE_ORDER) { it.label })
+            apps.sortedWith(compareBy(Collator.getInstance()) { it.label })
 
         fun filterApps(apps: List<AppEntry>, query: String): List<AppEntry> =
             if (query.isEmpty()) apps else apps.filter { it.label.contains(query, ignoreCase = true) }
