@@ -98,13 +98,22 @@ class LinkDialog : DialogFragment() {
 
 /**
  * [input] as a link Android can open: trimmed, with https:// added when it names no
- * scheme. Null when it is empty, or a web address without a host.
+ * scheme, and the scheme in lower case, which is how Android matches it. Null when it is
+ * empty, or a web address without a host.
  */
 fun normalizeLink(input: String): String? {
     val trimmed = input.trim()
     if (trimmed.isEmpty()) return null
-    val link = if (Uri.parse(trimmed).scheme == null) "https://$trimmed" else trimmed
-    val uri = Uri.parse(link)
-    val web = uri.scheme.equals("http", ignoreCase = true) || uri.scheme.equals("https", ignoreCase = true)
-    return link.takeIf { !web || !uri.host.isNullOrEmpty() }
+    val uri = Uri.parse(if (namesScheme(trimmed)) trimmed else "https://$trimmed").normalizeScheme()
+    val web = uri.scheme == "http" || uri.scheme == "https"
+    return uri.toString().takeIf { !web || !uri.host.isNullOrEmpty() }
+}
+
+private val SCHEME = Regex("^([A-Za-z][A-Za-z0-9+.-]*):(//)?")
+
+// host:port has the shape of scheme:rest, so a prefix that reads as a host is one unless
+// "//" follows it.
+private fun namesScheme(link: String): Boolean {
+    val (prefix, slashes) = SCHEME.find(link)?.destructured ?: return false
+    return slashes.isNotEmpty() || ('.' !in prefix && !prefix.equals("localhost", ignoreCase = true))
 }

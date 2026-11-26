@@ -353,7 +353,17 @@ A link typed as `osm.org` used to be stored as is; `ACTION_VIEW` found no app fo
 the tile silently did nothing. `normalizeLink` adds `https://` when the address names no
 scheme and rejects an empty address or a web address without a host. OK stays disabled
 until the name is filled in and the address passes, so a blank field can no longer
-discard the dialog silently. Other schemes (`geo:`, app deep links) pass unchanged.
+discard the dialog silently. Other schemes (`geo:`, app deep links) pass.
+
+What precedes the first colon is a scheme only if it has a scheme's syntax and does not
+read as a host: `192.168.4.1:8080`, `localhost:8080` and `example.com:8443` are hosts
+with a port and get `https://`, where `Uri.parse` alone reports `192.168.4.1` as the
+scheme and the tile did nothing. A prefix with a dot is a scheme only before `//`
+(`com.example.app://`). A dotless host other than `localhost` with a port still reads as
+a scheme, because `tel:112` has the same shape; it needs `http://` typed out. The scheme
+is stored in lower case (`Uri.normalizeScheme`): Android matches intent filters
+case-sensitively, so `HTTPS://osm.org` found no browser. `URLUtil.guessUrl` was not
+used: it rewrites non-web links and adds `www.` and `.com` to a dotless host.
 
 ### Immersive mode everywhere
 The status bar is always hidden; the navigation bar follows a setting, hidden by

@@ -363,7 +363,8 @@ Package layout under `de.codevoid.motolauncher`:
   (`dialog_add_link`): `show(fm, requestKey, label, url, editing, extras)`, titled "Edit
   link" when `editing`. OK stays disabled until the name is non-blank and
   `normalizeLink(url)` accepts the address; the result carries `LABEL`, `URL` (normalized)
-  and the extras. `normalizeLink` trims, adds `https://` when there is no scheme, and
+  and the extras. `normalizeLink` trims, adds `https://` when there is no scheme (a
+  host with a port, such as `192.168.4.1:8080`, has none), lower-cases the scheme, and
   rejects an empty address or a web address without a host; other schemes pass. The
   fields sit in a `TouchOnlyRow`; the label's `nextFocusForward` carries the keyboard's
   Next to the URL, which focus search no longer finds.

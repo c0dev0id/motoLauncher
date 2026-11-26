@@ -119,8 +119,29 @@ class LinkDialogTest {
 
     @Test
     fun anAddressWithASchemeIsKept() {
-        assertEquals("HTTPS://osm.org", normalizeLink("HTTPS://osm.org"))
+        assertEquals("http://osm.org", normalizeLink("http://osm.org"))
         assertEquals("geo:49.4,8.6", normalizeLink("geo:49.4,8.6"))
+        assertEquals("tel:112", normalizeLink("tel:112"))
+        assertEquals("com.example.app://open/map", normalizeLink("com.example.app://open/map"))
+    }
+
+    // Android matches schemes in lower case only.
+    @Test
+    fun theSchemeIsLowerCased() {
+        assertEquals("https://osm.org/Path", normalizeLink("HTTPS://osm.org/Path"))
+        assertEquals("geo:49.4,8.6", normalizeLink("Geo:49.4,8.6"))
+    }
+
+    @Test
+    fun aHostWithAPortIsNotTakenForAScheme() {
+        assertEquals("https://192.168.4.1:8080", normalizeLink("192.168.4.1:8080"))
+        assertEquals("https://localhost:8080/ui", normalizeLink("localhost:8080/ui"))
+        assertEquals("https://example.com:8443/a", normalizeLink("example.com:8443/a"))
+    }
+
+    @Test
+    fun aColonLaterInAnAddressIsNotAScheme() {
+        assertEquals("https://osm.org/#map=12/49.4:8.6", normalizeLink("osm.org/#map=12/49.4:8.6"))
     }
 
     @Test
