@@ -225,6 +225,11 @@ Package layout under `de.codevoid.motolauncher`:
   `ParkLockRules.shouldRequestLockTask` is the pure, unit-tested rule behind both —
   parked, not in set mode, not finishing, not already pinned, and past the settle window
   that covers the asynchronous state update.
+  After `ParkLockRules.FREE_ATTEMPTS` wrong PINs in a row, each further one shuts the
+  keypad for `ParkLockRules.retryDelayMs` — 30 seconds doubling to ten minutes, the
+  third pure, unit-tested rule — counted down on the prompt by `retryCountdown`; the
+  count is in `ParkStore.failedAttempts`, the end of the pause only in memory. It is a
+  pause, never a lockout.
   Order on unlock is load-bearing: disarm the guard and clear `isParked` *before*
   `stopLockTask()`, or an in-flight guard run re-pins the screen the correct PIN just
   released. The guard is armed in `onResume` and disarmed in `onPause`, so a parked device
@@ -501,7 +506,7 @@ publish jobs:
   unit tests in `app/src/test/kotlin` (`isIncludeAndroidResources = true`, so real resources and view
   inflation work; see *Commands* for running a single class or test).
   Robolectric runs them against SDK 36, which needs JDK 21 — hence JDK 21 in CI.
-  Twenty-eight classes, and the shape they set: `AppRepositoryTest` (the pure `sortApps` /
+  Twenty-nine classes, and the shape they set: `AppRepositoryTest` (the pure `sortApps` /
   `filterApps`), `FavoritesStoreTest` (app and link slot round-trips against real
   `SharedPreferences`, a work-profile app keeping its profile through a profile added to
   Robolectric's `UserManager`, a gone profile reading empty, every write leaving no stale
@@ -561,13 +566,16 @@ publish jobs:
   gone and the bar never starts), `ParkStoreTest`
   (PIN round-trips against real `SharedPreferences`, the parked flag read back through a
   second instance — the path a reboot takes — that the PIN is never written in the
-  clear, and that the store's file is the one both backup rule files exclude),
+  clear, the wrong-PIN count surviving a second instance until a new PIN is set, and that the store's file is the one both backup rule files exclude),
   `ParkActivityTest` (the park flows against Robolectric's lock task shadow: parking pins,
-  the correct PIN unparks, unpins and closes, a wrong one keeps the lock, the guard re-pins
+  the correct PIN unparks, unpins and closes, a wrong one keeps the lock, five wrong ones shut the keypad
+  until the pause has passed, a correct one clears the count, the guard re-pins
   after an unpin, setup needs the same PIN twice and never pins, parking after an
   abandoned setup shows the lock, and Home restores the lock only while parked),
   `ParkLockTaskGuardTest` (the pure `ParkLockRules.shouldRequestLockTask`,
   including the settle window that stops a redundant second pin request; plain JUnit),
+  `ParkRetryDelayTest` (the pure `ParkLockRules.retryDelayMs`: four free attempts, then
+  30 seconds doubling to a ten-minute ceiling; plain JUnit),
   `ParkLockAvailabilityTest` (the pure `ParkLockRules.shouldOfferParkLock`, with the API
   boundary written as numbers so it is pinned independently of the constant; plain JUnit), `TileSizeStoreTest` (default and round trip
   through a second instance, an unknown stored name falling back to Medium, the 8 / 12 /

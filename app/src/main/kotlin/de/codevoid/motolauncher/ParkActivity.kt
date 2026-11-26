@@ -5,6 +5,7 @@ import android.content.Context
 import android.content.Intent
 import android.os.Bundle
 import android.os.SystemClock
+import android.text.format.DateUtils
 import android.widget.TextView
 import androidx.activity.addCallback
 import androidx.appcompat.app.AppCompatActivity
@@ -47,6 +48,19 @@ class ParkActivity : AppCompatActivity() {
         unansweredRequests = if (isLockTaskActive()) 0 else unansweredRequests + 1
     }
 
+    // elapsedRealtime before which the keypad takes no digits, after too many wrong PINs.
+    private var retryAt = 0L
+    private val retryWaitMs get() = retryAt - SystemClock.elapsedRealtime()
+
+    // Renders, and counts the wait down on the prompt while there is one.
+    private val retryCountdown = object : Runnable {
+        override fun run() {
+            binding.root.removeCallbacks(this)
+            render()
+            if (retryWaitMs > 0) binding.root.postDelayed(this, COUNTDOWN_INTERVAL_MS)
+        }
+    }
+
     private val entered = StringBuilder()
     // Set mode only: the first of the two entries, held until the repeat confirms it.
     private var firstEntry: String? = null
@@ -85,11 +99,12 @@ class ParkActivity : AppCompatActivity() {
         super.onResume()
         if (!setMode) store.isParked = true
         requestLockTask()
-        render()
+        retryCountdown.run()
         armLockTaskGuard()
     }
 
     override fun onPause() {
+        binding.root.removeCallbacks(retryCountdown)
         disarmLockTaskGuard()
         super.onPause()
     }
@@ -110,7 +125,7 @@ class ParkActivity : AppCompatActivity() {
     )
 
     private fun onDigit(digit: Char) {
-        if (entered.length >= ParkStore.PIN_LENGTH) return
+        if (retryWaitMs > 0 || entered.length >= ParkStore.PIN_LENGTH) return
         entered.append(digit)
         message = null
         if (entered.length == ParkStore.PIN_LENGTH) submit() else render()
@@ -144,17 +159,24 @@ class ParkActivity : AppCompatActivity() {
         if (store.verify(pin)) {
             disarmLockTaskGuard()
             store.isParked = false
+            store.failedAttempts = 0
             stopLockTask()
             finish()
             noTransition()
         } else {
+            val failed = store.failedAttempts + 1
+            store.failedAttempts = failed
+            retryAt = SystemClock.elapsedRealtime() + ParkLockRules.retryDelayMs(failed)
             message = getString(R.string.park_wrong_pin)
-            render()
+            retryCountdown.run()
         }
     }
 
     private fun render() {
-        binding.parkPrompt.text = message ?: when {
+        val waitMs = retryWaitMs
+        binding.parkPrompt.text = if (waitMs > 0) {
+            getString(R.string.park_try_again, DateUtils.formatElapsedTime((waitMs + 999) / 1000))
+        } else message ?: when {
             !setMode -> getString(R.string.park_enter_pin)
             firstEntry == null ->
                 getString(if (store.hasPin) R.string.park_change_pin else R.string.park_new_pin)
@@ -199,6 +221,7 @@ class ParkActivity : AppCompatActivity() {
     companion object {
         private const val EXTRA_SET_PIN = "set_pin"
         private const val GUARD_INTERVAL_MS = 300L
+        private const val COUNTDOWN_INTERVAL_MS = 1000L
         private const val MAX_UNANSWERED_REQUESTS = 3
 
         /** Shows the keypad, marks the launcher parked and asks for pinning. */

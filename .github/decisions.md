@@ -622,6 +622,17 @@ The PIN is salted and hashed so it is not in a prefs file in plain text. Four di
 fall to a trivial search, and anyone who can read the file has adb, which defeats the
 park lock outright.
 
+### Wrong PINs are slowed down, never locked out
+The keypad took the next attempt at once, so all 10,000 PINs could be tried in a few
+hours. After four wrong PINs in a row, which gloves produce honestly, each further one
+shuts the keypad for a pause that doubles from 30 seconds to ten minutes
+(`ParkLockRules.retryDelayMs`), counted down on the prompt. There is no lockout: the
+PIN is the only way out, so a rider must always be able to try again. The count is
+stored, the end of the pause is not: it is a point in `elapsedRealtime`, and a
+wall-clock deadline could strand the device when the clock is set back. A reboot
+therefore ends the running pause, but takes longer than most pauses and leaves the
+count, so the next wrong PIN starts the following, longer one.
+
 ### Offered only on Android 15+ and without a secure lock screen
 Below Android 15 the system confirms every `startLockTask()`, so the guard would answer
 an unpin with a dialog instead of a silent re-pin. A device with a secure lock screen

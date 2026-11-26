@@ -46,6 +46,17 @@ class ParkStoreTest {
     }
 
     @Test
+    fun wrongPinsAreCountedAcrossInstancesUntilANewPinIsSet() {
+        store.setPin("1234")
+        store.failedAttempts = 3
+        val reopened = ParkStore(ApplicationProvider.getApplicationContext())
+        assertEquals(3, reopened.failedAttempts)
+
+        reopened.setPin("5678")
+        assertEquals(0, store.failedAttempts)
+    }
+
+    @Test
     fun parkedFlagRoundTrips() {
         assertFalse(store.isParked)
         store.isParked = true

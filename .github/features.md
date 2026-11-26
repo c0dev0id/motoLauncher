@@ -31,7 +31,8 @@
   and battery as icon, text or both. Clock and battery refresh when the screen wakes or
   Home returns to view.
 - **Park lock.** A four-digit PIN keypad in its own task that pins the screen, re-pins
-  itself if unpinned, and survives a reboot. Offered on Android 15+ without a secure
+  itself if unpinned, survives a reboot, keeps the rotation it opened in and pauses
+  after repeated wrong PINs. Offered on Android 15+ without a secure
   lock screen.
 - **Self-update (github flavor).** A user-triggered check against the home.codevoid.de
   dist store, the release channel for a release build and the nightly channel for a dev

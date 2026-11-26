@@ -96,6 +96,32 @@ class ParkActivityTest {
         assertEquals(park.getString(R.string.park_wrong_pin), park.prompt())
     }
 
+    @Test
+    fun repeatedWrongPinsShutTheKeypadForAWhile() {
+        store.setPin("1234")
+        val park = park()
+        repeat(5) { park.enter("9999") }
+        assertEquals(park.getString(R.string.park_try_again, "00:30"), park.prompt())
+
+        park.enter("1234")
+        assertTrue(store.isParked)
+
+        shadowOf(Looper.getMainLooper()).idleFor(Duration.ofSeconds(31))
+        park.enter("1234")
+        assertFalse(store.isParked)
+    }
+
+    @Test
+    fun theCorrectPinForgetsEarlierWrongOnes() {
+        store.setPin("1234")
+        val park = park()
+        repeat(4) { park.enter("9999") }
+        assertEquals(park.getString(R.string.park_wrong_pin), park.prompt())
+
+        park.enter("1234")
+        assertEquals(0, store.failedAttempts)
+    }
+
     // The system unpin gesture cannot be blocked; the guard undoes it.
     @Test
     fun theGuardRepinsAfterAnUnpin() {

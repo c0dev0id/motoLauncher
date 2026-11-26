@@ -76,6 +76,7 @@
     <string name="park_new_pin">New PIN</string>
     <string name="park_repeat_pin">Repeat PIN</string>
     <string name="park_wrong_pin">Wrong PIN</string>
+    <string name="park_try_again">Try again in %1$s</string>
     <string name="park_pin_mismatch">PINs did not match</string>
     <string name="park_key_clear">C</string>
     <string name="park_key_delete">\u232b</string>

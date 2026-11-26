@@ -18,6 +18,11 @@ class ParkStore(context: Context) {
         get() = prefs.getBoolean(KEY_PARKED, false)
         set(value) = prefs.edit().putBoolean(KEY_PARKED, value).apply()
 
+    /** Wrong PINs entered in a row; a correct or a new PIN starts the count over. */
+    var failedAttempts: Int
+        get() = prefs.getInt(KEY_FAILED, 0)
+        set(value) = prefs.edit().putInt(KEY_FAILED, value).apply()
+
     val hasPin: Boolean get() = prefs.getString(KEY_HASH, null) != null
 
     fun setPin(pin: String) {
@@ -25,6 +30,7 @@ class ParkStore(context: Context) {
         prefs.edit()
             .putString(KEY_SALT, salt)
             .putString(KEY_HASH, hash(pin, salt))
+            .remove(KEY_FAILED)
             .apply()
     }
 
@@ -39,6 +45,7 @@ class ParkStore(context: Context) {
         private const val KEY_PARKED = "parked"
         private const val KEY_SALT = "park_pin_salt"
         private const val KEY_HASH = "park_pin_hash"
+        private const val KEY_FAILED = "park_failed_attempts"
         private const val SALT_BYTES = 16
 
         const val PIN_LENGTH = 4
