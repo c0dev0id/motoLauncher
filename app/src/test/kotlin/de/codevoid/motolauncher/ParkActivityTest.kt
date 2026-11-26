@@ -59,11 +59,11 @@ class ParkActivityTest {
         activityManager().lockTaskModeState != ActivityManager.LOCK_TASK_MODE_NONE
 
     @Test
-    fun startsInTheOrientationOfTheScreenBelow() {
+    fun keepsTheRotationItOpensIn() {
         val info = context.packageManager
             .getActivityInfo(ComponentName(context, ParkActivity::class.java), 0)
 
-        assertEquals(ActivityInfo.SCREEN_ORIENTATION_BEHIND, info.screenOrientation)
+        assertEquals(ActivityInfo.SCREEN_ORIENTATION_LOCKED, info.screenOrientation)
     }
 
     @Test

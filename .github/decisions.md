@@ -280,13 +280,21 @@ recreates them, so the grid, the column count and the status bar's `layout-port`
 variant are chosen afresh. Adding `orientation` there would freeze the layout in its
 starting shape. Sensor is the default for installs that never set the option.
 
-### Screens above Home start as `behind`
+### The app list starts as `behind`, the park screen as `locked`
 The stored orientation can only be requested from `onCreate`. Until then a new activity
 asks for the manifest's value, and with none declared the display turns to the system's
 own rotation: on a device held in portrait with Android's auto-rotate off, the app list
-and the park screen opened with a turn to landscape and back. Both now declare
-`screenOrientation="behind"`, so they start in Home's orientation, which is the stored
+and the park screen opened with a turn to landscape and back. The app list declares
+`screenOrientation="behind"`, so it starts in Home's orientation, which is the stored
 one. Home has nothing below it and still starts unspecified once per process.
+
+The park screen was `behind` too, for one commit. It is opened from the app list's
+settings mode, which finishes as it starts it, so the screen below is Home, and Home
+learns of a changed Orientation setting only in its next `onResume`: changing the
+setting and parking straight away turned the display to the old orientation and back.
+It declares `locked` instead and requests nothing, so it keeps the rotation the display
+has when it opens and does not turn while parked, Sensor included. After a reboot it
+keeps the rotation the display had when Home restored it.
 
 ### The large-screen orientation rule is opted out of, for now
 With targetSdk 36, Android 16 ignores requested orientations on displays of 600dp

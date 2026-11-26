@@ -8,7 +8,6 @@ import android.os.SystemClock
 import android.widget.TextView
 import androidx.activity.addCallback
 import androidx.appcompat.app.AppCompatActivity
-import de.codevoid.motolauncher.data.OrientationStore
 import de.codevoid.motolauncher.data.ParkStore
 import de.codevoid.motolauncher.databinding.ActivityParkBinding
 import de.codevoid.motolauncher.ui.enableImmersiveMode
@@ -24,7 +23,6 @@ class ParkActivity : AppCompatActivity() {
 
     private lateinit var binding: ActivityParkBinding
     private val store by lazy { ParkStore(this) }
-    private val orientationStore by lazy { OrientationStore(this) }
 
     private val setMode get() = intent.getBooleanExtra(EXTRA_SET_PIN, false)
 
@@ -56,7 +54,6 @@ class ParkActivity : AppCompatActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        setRequestedOrientation(orientationStore.orientation)
         binding = ActivityParkBinding.inflate(layoutInflater)
         setContentView(binding.root)
         window.enableImmersiveMode(showNavBar = false)
@@ -86,7 +83,6 @@ class ParkActivity : AppCompatActivity() {
 
     override fun onResume() {
         super.onResume()
-        setRequestedOrientation(orientationStore.orientation)
         if (!setMode) store.isParked = true
         requestLockTask()
         render()
