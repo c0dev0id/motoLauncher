@@ -75,9 +75,17 @@ These drive nearly every UI decision — violating them defeats the point of the
   under Sensor reshapes the grid only because no activity lists `orientation` in its
   `configChanges` — the system recreates them and `isPortrait` is read afresh. Adding
   `orientation` there would freeze the layout in whatever shape it started in. The device
-  is a 7" landscape screen; portrait exists for phones. Every activity calls
-  `setRequestedOrientation` in `onCreate` and `onResume`; grid shape
-  follows `Context.isPortrait` (`ui/LayoutUtils.kt`): Home is 4×3 landscape / 3×4
+  is a 7" landscape screen; portrait exists for phones. **Every activity also declares
+  `android:screenOrientation="fullSensor"`**, matching the store's default, so the window
+  is created the right way round. Without it an activity starts at the display's default —
+  landscape here — and the `onCreate` call then forces a rotation, which relaunches the
+  activity because nothing handles the config change, so the landscape frame is on screen
+  long enough to see on every screen change. Keep the declaration and the store default in
+  step. The runtime call is `Activity.applyOrientation` (`ui/LayoutUtils.kt`), from
+  `onCreate` and `onResume`, and it skips when the activity already requests that value:
+  the setter is a Binder call that re-evaluates orientation, consulting the accelerometer
+  under Sensor. It is still what applies an explicitly chosen fixed orientation. Grid shape
+  follows `Context.isPortrait` (same file): Home is 4×3 landscape / 3×4
   portrait, the app list 5 / 4 columns, and the status bar has a `layout-port` variant.
   The status bar is always hidden (immersive mode); the navigation bar follows
   `NavBarStore` (hidden by default).

@@ -23,6 +23,7 @@ import de.codevoid.motolauncher.data.SlotEntry
 import de.codevoid.motolauncher.databinding.ActivityHomeBinding
 import de.codevoid.motolauncher.databinding.ItemAppTileBinding
 import de.codevoid.motolauncher.ui.EscapeKeys
+import de.codevoid.motolauncher.ui.applyOrientation
 import de.codevoid.motolauncher.ui.blockKeyLongPress
 import de.codevoid.motolauncher.ui.enableImmersiveMode
 import de.codevoid.motolauncher.ui.noTransition
@@ -61,7 +62,7 @@ class HomeActivity : AppCompatActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        setRequestedOrientation(orientationStore.orientation)
+        applyOrientation(orientationStore.orientation)
         binding = ActivityHomeBinding.inflate(layoutInflater)
         setContentView(binding.root)
         window.enableImmersiveMode(navBarStore.showNavBar)
@@ -123,7 +124,7 @@ class HomeActivity : AppCompatActivity() {
             noTransition()
             return
         }
-        setRequestedOrientation(orientationStore.orientation)
+        applyOrientation(orientationStore.orientation)
         buildGrid()
     }
 

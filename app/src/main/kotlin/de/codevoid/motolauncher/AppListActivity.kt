@@ -40,6 +40,7 @@ import de.codevoid.motolauncher.data.SpeedStore
 import de.codevoid.motolauncher.data.ThemeStore
 import de.codevoid.motolauncher.databinding.ActivityAppListBinding
 import de.codevoid.motolauncher.ui.AppTileAdapter
+import de.codevoid.motolauncher.ui.applyOrientation
 import de.codevoid.motolauncher.ui.EscapeKeys
 import de.codevoid.motolauncher.ui.TileItem
 import de.codevoid.motolauncher.ui.enableImmersiveMode
@@ -115,7 +116,7 @@ class AppListActivity : AppCompatActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        setRequestedOrientation(orientationStore.orientation)
+        applyOrientation(orientationStore.orientation)
         binding = ActivityAppListBinding.inflate(layoutInflater)
         setContentView(binding.root)
         window.enableImmersiveMode(navBarStore.showNavBar)
@@ -149,7 +150,7 @@ class AppListActivity : AppCompatActivity() {
 
     override fun onResume() {
         super.onResume()
-        setRequestedOrientation(orientationStore.orientation)
+        applyOrientation(orientationStore.orientation)
         // Enumerating apps is the most expensive thing this app does; reload only when the
         // installed-app set actually changed (uninstall, install) since the last load.
         if (viewModel.reloadIfStale()) loadAndRender(seedFocus = false)

@@ -38,10 +38,18 @@
         android:supportsRtl="true"
         android:theme="@style/Theme.MotoLauncher">
 
+        <!-- screenOrientation matches OrientationStore's default. Without it an activity
+             is created at the display's default, which on this landscape-mounted device is
+             landscape; setRequestedOrientation in onCreate then asks for the sensor
+             orientation, and in portrait that forces a rotation. Since no activity handles
+             the orientation config change, that rotation relaunches the activity, so the
+             landscape frame is on screen long enough to see. Declaring it means the window
+             is created the right way round and nothing has to rotate. -->
         <activity
             android:name=".HomeActivity"
             android:exported="true"
             android:launchMode="singleTask"
+            android:screenOrientation="fullSensor"
             android:stateNotNeeded="true"
             android:configChanges="keyboard|keyboardHidden|navigation">
             <intent-filter>
@@ -54,7 +62,8 @@
 
         <activity
             android:name=".AppListActivity"
-            android:exported="false" />
+            android:exported="false"
+            android:screenOrientation="fullSensor" />
 
         <!-- Own task, deliberately: HomeActivity is singleTask and the root of the home
              task, so a Home press clears anything stacked above it. A separate task also
@@ -66,6 +75,7 @@
             android:launchMode="singleInstance"
             android:taskAffinity=".park"
             android:excludeFromRecents="true"
+            android:screenOrientation="fullSensor"
             android:stateNotNeeded="true"
             android:configChanges="keyboard|keyboardHidden|navigation" />
 

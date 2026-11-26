@@ -493,6 +493,37 @@
   a minute of lag does not justify the actions. Do not add them without being asked; the
   resume refresh was worth it because sleeping is not rare, and that is the whole difference.
 
+- **The orientation an activity starts in is a manifest decision, not just a runtime one.**
+  Reported from the road: with Sensor and the device held in portrait, every screen change
+  in the launcher flashed landscape and then turned back to portrait. The cause was not the
+  sensor or the setting. No activity declared `android:screenOrientation`, so each one was
+  created at the display's default, which on this landscape-mounted device is landscape.
+  The `setRequestedOrientation` call at the top of `onCreate` then asked for the sensor
+  orientation, portrait won, and the display had to rotate — and since **no activity handles
+  the orientation config change**, that rotation destroys and relaunches the activity. The
+  flash was not a sub-frame blip but a full relaunch, which is why it was plainly visible,
+  and it happened on every activity start.
+  All three activities now declare `android:screenOrientation="fullSensor"`, matching
+  `OrientationStore`'s default, so the window is created the right way round and nothing
+  has to rotate. **Keep the declaration and the store default in step**; they are two
+  statements of the same thing in different files, which is the cost of this fix.
+  The alternative was to add `orientation` to `configChanges` and handle the callback, which
+  would make any correction a cheap relayout instead of a relaunch and would cover every
+  direction, not just the default. It was rejected for now as the larger, riskier change:
+  the recreate-on-rotation behaviour is load-bearing for the grid, the column count and the
+  status bar's `layout-port` variant (see the Sensor decision above), and none of it can be
+  checked without the device. If a flash ever shows up again, that is the next move.
+  **The honest trade:** someone who picks fixed Landscape and then holds the device in
+  portrait now gets one rotation they did not get before, because the window starts from the
+  sensor. Fixed Portrait held in portrait, and fixed Landscape on the mounted device, both
+  improve or stay the same. The regression case is a deliberately contradictory setup, and
+  the default — Sensor — is what the report was about.
+  `setRequestedOrientation` was also wrapped in `Activity.applyOrientation`, which skips
+  when the activity already requests that value. The setter is a Binder call that makes the
+  system re-evaluate orientation, and the picker already assigns it at pick time, so the
+  `onResume` assertion was pure overhead. No test: the guard is one comparison around a
+  framework property, and observing the skip would need a spy rather than an assertion.
+
 ## Core Features
 
 - Fixed favourites grid (4×3 landscape / 3×4 portrait): 11 slots holding an app or a

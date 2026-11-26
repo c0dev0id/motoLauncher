@@ -12,6 +12,7 @@ import androidx.appcompat.app.AppCompatActivity
 import de.codevoid.motolauncher.data.OrientationStore
 import de.codevoid.motolauncher.data.ParkStore
 import de.codevoid.motolauncher.databinding.ActivityParkBinding
+import de.codevoid.motolauncher.ui.applyOrientation
 import de.codevoid.motolauncher.ui.enableImmersiveMode
 import de.codevoid.motolauncher.ui.noTransition
 
@@ -98,7 +99,7 @@ class ParkActivity : AppCompatActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        setRequestedOrientation(orientationStore.orientation)
+        applyOrientation(orientationStore.orientation)
         binding = ActivityParkBinding.inflate(layoutInflater)
         setContentView(binding.root)
         // Both bars stay hidden here regardless of the NavBarStore setting: a visible
@@ -129,7 +130,7 @@ class ParkActivity : AppCompatActivity() {
 
     override fun onResume() {
         super.onResume()
-        setRequestedOrientation(orientationStore.orientation)
+        applyOrientation(orientationStore.orientation)
         // The parked flag is this screen's own invariant — "only this may be in front" —
         // so it is set here rather than by whoever launched us. No entry point has to
         // remember a protocol, and HomeActivity's restore path is simply re-entering here.
