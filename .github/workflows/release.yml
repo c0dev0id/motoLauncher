@@ -31,6 +31,7 @@ jobs:
       contents: read
     outputs:
       version: ${{ steps.version.outputs.version }}
+      version_code: ${{ steps.build.outputs.version_code }}
 
     steps:
       - uses: actions/checkout@v7
@@ -81,15 +82,18 @@ jobs:
         run: echo "$SIGNING_KEYSTORE_BASE64" | base64 -d > "$RUNNER_TEMP/release.keystore"
 
       - name: Build the GitHub APK and the Play bundle
+        id: build
         env:
           SIGNING_KEYSTORE_PATH: ${{ runner.temp }}/release.keystore
           SIGNING_KEYSTORE_PASSWORD: ${{ secrets.SIGNING_KEYSTORE_PASSWORD }}
           SIGNING_KEY_ALIAS: ${{ secrets.SIGNING_KEY_ALIAS }}
           SIGNING_KEY_PASSWORD: ${{ secrets.SIGNING_KEY_PASSWORD }}
         run: |
+          code="$(git rev-list --count HEAD)"
+          echo "version_code=$code" >> "$GITHUB_OUTPUT"
           ./gradlew assembleGithubRelease bundlePlayRelease -PrequireSigning \
             -PappVersionName="$VERSION" \
-            -PappVersionCode="$(git rev-list --count HEAD)"
+            -PappVersionCode="$code"
           out="$RUNNER_TEMP/release"
           cp app/build/outputs/apk/github/release/app-github-release.apk "$out/motoLauncher-$VERSION.apk"
           cp app/build/outputs/bundle/playRelease/app-play-release.aab "$out/"
@@ -170,6 +174,7 @@ jobs:
     permissions: {}
     env:
       VERSION: ${{ needs.build.outputs.version }}
+      VERSION_CODE: ${{ needs.build.outputs.version_code }}
 
     steps:
       - name: Fetch the release files
@@ -178,7 +183,8 @@ jobs:
           name: release-${{ env.VERSION }}
           path: ${{ runner.temp }}/release
 
-      # The token selects the dist repository; the version equals the build's versionName.
+      # The token selects the dist repository. The version is <versionName>+<versionCode>,
+      # with the plus sign percent-encoded: a bare one in a query string is a space.
       - name: Push the release APK to the release channel
         env:
           DIST_TOKEN: ${{ secrets.DIST_TOKEN }}
@@ -186,4 +192,4 @@ jobs:
           curl -fsS -H "Authorization: Bearer $DIST_TOKEN" \
             -H "Content-Type: application/vnd.android.package-archive" \
             -T "$RUNNER_TEMP/release/motoLauncher-$VERSION.apk" \
-            "https://home.codevoid.de/dist/release/motoLauncher-$VERSION.apk?version=$VERSION"
+            "https://home.codevoid.de/dist/release/motoLauncher-$VERSION.apk?version=$VERSION%2B$VERSION_CODE"

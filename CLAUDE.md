@@ -112,7 +112,7 @@ These drive nearly every UI decision — violating them defeats the point of the
 - **In-app update check** (github flavor only — Google Play forbids self-updating): a
   release build compares itself to the newest file in the home.codevoid.de dist store's
   release channel, a `dev-` build to the newest in its nightly channel, and offers the
-  install if they differ. Must be **user-triggered** (the device is mostly offline —
+  install if that file's version code is higher. Must be **user-triggered** (the device is mostly offline —
   never auto-poll the network).
 - **Privacy policy** shown as text from the settings mode (Play requires it in-app);
   `privacy_policy_text` is the body of `PRIVACY.md`, and `PrivacyPolicyTest` compares them.
@@ -287,8 +287,9 @@ Package layout under `de.codevoid.motolauncher`:
 - `update/UpdateChecker` — github flavor only. One-shot GET on the dist store:
   `latestUrlFor` picks `nightly/latest` for a `dev-` build and `release/latest`
   otherwise; the answer is JSON with `name`, `version` and a relative `url`, read by
-  `parseDistFile`. `isNewer` is a plain string inequality against
-  `BuildConfig.VERSION_NAME`, so any differing published build counts as an update.
+  `parseDistFile`. The pushed `version` is `<versionName>+<versionCode>`; `isNewer` compares
+  the code with `BuildConfig.VERSION_CODE`, the order the system installer enforces, so
+  an older published build is never offered.
   Install is a hand-off: download to `cacheDir/updates/` (with a bytes-written progress
   callback), then `FileProvider` + `ACTION_VIEW` to the system installer. `download()`
   clears other files first; `deleteInstalledUpdate()` removes only the running build's APK.
@@ -518,8 +519,8 @@ publish jobs:
   with None only),
   `UpdateCheckerTest` (`parseDistFile` / `latestUrlFor` / `isNewer` /
   `deleteInstalledUpdate` over JSON fixtures and temp files; a dist file's address
-  resolves against the `latest` URL, and one without a version or address, or not named
-  as a bare APK, is rejected; each kind of build gets its channel), `UpdateViewModelTest` (the flow driven by fake lookup and download functions:
+  resolves against the `latest` URL, and one without a version, a version code or an address, or
+  not named as a bare APK, is rejected; only a higher version code is newer; each kind of build gets its channel), `UpdateViewModelTest` (the flow driven by fake lookup and download functions:
   both check outcomes, a tap while busy starting nothing, a failure reported once and the
   flow idle again, download progress then the installer, and the progress text),
   `UpdateErrorTextTest` (a 404, another status, no connection, a timeout and anything
@@ -593,7 +594,7 @@ publish jobs:
   download page stays one stable URL, and "keep only the latest" needs no cleanup. The
   updater no longer reads it.
 - `dist` pushes the same APK to the home.codevoid.de dist store's nightly channel:
-  `PUT /dist/nightly/motoLauncher-dev-<sha>.apk?version=dev-<sha>`. It has no
+  `PUT /dist/nightly/motoLauncher-dev-<sha>.apk?version=dev-<sha>+<versionCode>`, the plus sign percent-encoded. It has no
   `GITHUB_TOKEN` permissions (same-run artifacts download with the runner's own token);
   the `DIST_TOKEN` secret, which selects the dist repository, reaches only the push step.
 
@@ -611,7 +612,7 @@ reaches only the upload step) — uploads the bundle to the chosen Play track wi
 characters, plus the release link). Push and release creation are skipped when already
 done, so `publish` can be re-run alone. `dist` waits for `publish` and pushes the APK
 from the artifact to the release channel (`PUT /dist/release/motoLauncher-<version>.apk
-?version=<version>`), with no `GITHUB_TOKEN` permissions and `DIST_TOKEN` only in that
+?version=<version>+<versionCode>`), with no `GITHUB_TOKEN` permissions and `DIST_TOKEN` only in that
 step. `[Unreleased]` must hold at least one entry before it runs, or it refuses.
 
 The actions run on their Node 24 majors. `actions/*` are referenced by major tag; the

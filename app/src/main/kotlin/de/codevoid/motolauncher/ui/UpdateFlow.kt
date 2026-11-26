@@ -67,7 +67,7 @@ class UpdateViewModel internal constructor(
     private val _events = Channel<UpdateEvent>(Channel.BUFFERED)
     val events: Flow<UpdateEvent> = _events.receiveAsFlow()
 
-    /** Asks the release channel for a different build; ignored while a check or download runs. */
+    /** Asks the build's channel for a newer build; ignored while a check or download runs. */
     fun check() = startIfIdle(UpdateState.Checking) {
         val release = findRelease()
         _events.send(if (release == null) UpdateEvent.UpToDate else UpdateEvent.Available(release))
@@ -147,12 +147,14 @@ private const val DOWNLOAD_REQUEST = "update.download"
 
 private fun ReleaseInfo.toBundle() = Bundle().apply {
     putString("versionName", versionName)
+    putInt("versionCode", versionCode)
     putString("apkUrl", apkUrl)
     putString("apkName", apkName)
 }
 
 private fun Bundle.toReleaseInfo() = ReleaseInfo(
     versionName = requireNotNull(getString("versionName")),
+    versionCode = getInt("versionCode"),
     apkUrl = requireNotNull(getString("apkUrl")),
     apkName = requireNotNull(getString("apkName")),
 )

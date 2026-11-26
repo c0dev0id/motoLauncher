@@ -74,6 +74,8 @@ jobs:
     runs-on: ubuntu-latest
     permissions:
       contents: read
+    outputs:
+      version_code: ${{ steps.build.outputs.version_code }}
 
     steps:
       # Full history: the versionCode is the commit count, shared with release.yml.
@@ -96,6 +98,7 @@ jobs:
         run: echo "$SIGNING_KEYSTORE_BASE64" | base64 -d > "$RUNNER_TEMP/release.keystore"
 
       - name: Build signed GitHub release APK
+        id: build
         env:
           SIGNING_KEYSTORE_PATH: ${{ runner.temp }}/release.keystore
           SIGNING_KEYSTORE_PASSWORD: ${{ secrets.SIGNING_KEYSTORE_PASSWORD }}
@@ -103,9 +106,11 @@ jobs:
           SIGNING_KEY_PASSWORD: ${{ secrets.SIGNING_KEY_PASSWORD }}
         run: |
           SHORT_SHA="${GITHUB_SHA:0:7}"
+          code="$(git rev-list --count HEAD)"
+          echo "version_code=$code" >> "$GITHUB_OUTPUT"
           ./gradlew assembleGithubRelease -PrequireSigning \
             -PappVersionName="dev-${SHORT_SHA}" \
-            -PappVersionCode="$(git rev-list --count HEAD)"
+            -PappVersionCode="$code"
 
       - name: Upload release APK
         uses: actions/upload-artifact@v7
@@ -159,13 +164,15 @@ jobs:
         with:
           name: app-release
 
-      # The token selects the dist repository; the version equals the build's versionName.
+      # The token selects the dist repository. The version is <versionName>+<versionCode>,
+      # with the plus sign percent-encoded: a bare one in a query string is a space.
       - name: Push the dev APK to the nightly channel
         env:
           DIST_TOKEN: ${{ secrets.DIST_TOKEN }}
+          VERSION_CODE: ${{ needs.build.outputs.version_code }}
         run: |
           version="dev-${GITHUB_SHA::7}"
           curl -fsS -H "Authorization: Bearer $DIST_TOKEN" \
             -H "Content-Type: application/vnd.android.package-archive" \
             -T app-github-release.apk \
-            "https://home.codevoid.de/dist/nightly/motoLauncher-$version.apk?version=$version"
+            "https://home.codevoid.de/dist/nightly/motoLauncher-$version.apk?version=$version%2B$VERSION_CODE"

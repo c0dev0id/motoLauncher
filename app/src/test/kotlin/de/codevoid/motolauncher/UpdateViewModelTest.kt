@@ -26,7 +26,7 @@ import java.time.Duration
 class UpdateViewModelTest {
 
     private val app = ApplicationProvider.getApplicationContext<Application>()
-    private val release = ReleaseInfo("dev-new", "https://example.com/app.apk", "motoLauncher-dev-new.apk")
+    private val release = ReleaseInfo("dev-new", 2, "https://example.com/app.apk", "motoLauncher-dev-new.apk")
     private val installer = Intent("install")
 
     private fun updates(

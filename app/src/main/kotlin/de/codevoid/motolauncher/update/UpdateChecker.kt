@@ -17,6 +17,7 @@ import kotlin.coroutines.coroutineContext
 
 data class ReleaseInfo(
     val versionName: String,
+    val versionCode: Int,
     val apkUrl: String,
     val apkName: String,
 )
@@ -28,11 +29,10 @@ class UpdateChecker(private val context: Context) {
 
     private val downloadDir = File(context.cacheDir, "updates")
 
-    /** Returns the newest build of this build's channel if it differs from the installed build, else null. */
+    /** Returns the newest build of this build's channel if it is newer than the installed build, else null. */
     suspend fun check(): ReleaseInfo? = withContext(Dispatchers.IO) {
-        val installed = BuildConfig.VERSION_NAME
-        val latest = latestUrlFor(installed)
-        parseDistFile(httpGet(latest), latest)?.takeIf { isNewer(it, installed) }
+        val latest = latestUrlFor(BuildConfig.VERSION_NAME)
+        parseDistFile(httpGet(latest), latest)?.takeIf { isNewer(it, BuildConfig.VERSION_CODE) }
     }
 
     suspend fun download(
@@ -125,8 +125,9 @@ class UpdateChecker(private val context: Context) {
         private const val TIMEOUT_MS = 15_000
         private const val APK_PREFIX = "motoLauncher-"
 
-        fun isNewer(remote: ReleaseInfo, installedVersionName: String): Boolean =
-            remote.versionName.isNotEmpty() && remote.versionName != installedVersionName
+        /** The order the system installer enforces: it refuses a lower version code. */
+        fun isNewer(remote: ReleaseInfo, installedVersionCode: Int): Boolean =
+            remote.versionCode > installedVersionCode
 
         /** Dev builds follow the dist store's nightly channel, release builds its release channel. */
         fun latestUrlFor(installedVersionName: String): String =
@@ -134,16 +135,19 @@ class UpdateChecker(private val context: Context) {
             else "$DIST/release/latest"
 
         /**
-         * Reads the file a dist store `latest` answer describes, whose `url` is relative to
-         * [latestUrl]. Null for a file without a version or address, or whose name is not a
+         * Reads the file a dist store `latest` answer describes, whose `version` is
+         * `<versionName>+<versionCode>` and whose `url` is relative to [latestUrl]. Null
+         * for a file without such a version or without an address, or whose name is not a
          * bare APK file name, since the name becomes the download's file name.
          */
         fun parseDistFile(json: String, latestUrl: String): ReleaseInfo? {
             val file = JSONObject(json)
             val name = file.optString("name")
             if (!name.endsWith(".apk") || '/' in name || file.isNull("version") || file.isNull("url")) return null
+            val version = file.getString("version")
             return ReleaseInfo(
-                versionName = file.getString("version"),
+                versionName = version.substringBeforeLast('+'),
+                versionCode = version.substringAfterLast('+', "").toIntOrNull() ?: return null,
                 apkUrl = URL(URL(latestUrl), file.getString("url")).toString(),
                 apkName = name,
             )

@@ -636,9 +636,17 @@ assumed to behave like 16.
 ### Releases and dev builds are two channels of the dist store
 Both channels are channels of the app's home.codevoid.de dist repository. A dev build
 (`dev-<sha>`) reads `nightly/latest`, a release build (a plain version such as `1.0.3`)
-`release/latest`, and takes the version the push sent. The installed version name picks
-the channel, so there is no setting. Any published build that differs from the installed
-one counts as an update. The check is user-triggered only: the device is mostly offline.
+`release/latest`. The installed version name picks the channel, so there is no setting.
+The check is user-triggered only: the device is mostly offline.
+
+The push sends `<versionName>+<versionCode>` as the version, and a published build is
+an update only when its version code is higher than the installed one, which is the
+order the system installer enforces. The first rule was that any differing version
+name counts. It offered an older build whenever the store was behind the installed
+one, for example a release installed from the GitHub page before its `dist` job had
+run, and the installer then refused the downgrade with a generic error. The store keeps
+no version code of its own, so it travels in the version string; a `latest` without
+one is not offered.
 
 A channel's `latest` is its newest push, not the highest version, so the two kinds of
 build need two channels: cutting a release commits to `main`, and `Build` pushes a dev
@@ -823,8 +831,10 @@ release APK to its release channel (`PUT /dist/<channel>/<file>`), each from a s
 for `publish`, so the store never serves a release whose tag did not reach `main`; a
 re-run of `publish` runs it again. The push is plain `curl -T`, which sends the
 `Content-Length` the store requires. The version sent is the full version name
-(`dev-<sha>`, not the bare hash, or `1.0.x`), so the app can compare it with its own
-`versionName` as is.
+(`dev-<sha>`, not the bare hash, or `1.0.x`), a plus sign and the version code. The plus
+sign is sent as `%2B`, because a bare one in a query string reads as a space. `Build`
+and `Release` hand the code from their `build` job to `dist` as a job output: `dist`
+has no checkout to count commits in.
 
 ### Robolectric's SDK jar is cached separately
 Robolectric downloads its ~100 MB `android-all` jar at test runtime into `~/.m2`,

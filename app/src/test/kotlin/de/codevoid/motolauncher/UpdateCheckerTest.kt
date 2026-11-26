@@ -16,7 +16,7 @@ import java.io.File
 class UpdateCheckerTest {
 
     // The shape the dist store's latest address answers with.
-    private fun distFile(name: String = "motoLauncher-dev-abc1234.apk", version: String? = "\"dev-abc1234\"") = """
+    private fun distFile(name: String = "motoLauncher-dev-abc1234.apk", version: String? = "\"dev-abc1234+412\"") = """
         {"name":"$name","version":$version,"size":5242880,"sha256":"00ff",
          "uploaded":"2026-10-31T22:00:00Z","url":"/dist/k3y/$name"}
     """.trimIndent()
@@ -27,6 +27,7 @@ class UpdateCheckerTest {
     fun parseDistFileTakesTheVersionAndResolvesTheAddress() {
         val info = UpdateChecker.parseDistFile(distFile(), latest)!!
         assertEquals("dev-abc1234", info.versionName)
+        assertEquals(412, info.versionCode)
         assertEquals("https://home.codevoid.de/dist/k3y/motoLauncher-dev-abc1234.apk", info.apkUrl)
         assertEquals("motoLauncher-dev-abc1234.apk", info.apkName)
     }
@@ -38,6 +39,12 @@ class UpdateCheckerTest {
     }
 
     @Test
+    fun parseDistFileRejectsAVersionWithoutAVersionCode() {
+        assertNull(UpdateChecker.parseDistFile(distFile(version = "\"dev-abc1234\""), latest))
+        assertNull(UpdateChecker.parseDistFile(distFile(version = "\"1.0.3+next\""), latest))
+    }
+
+    @Test
     fun parseDistFileRejectsANameThatIsNotABareApk() {
         assertNull(UpdateChecker.parseDistFile(distFile(name = "notes.txt"), latest))
         assertNull(UpdateChecker.parseDistFile(distFile(name = "../motoLauncher-dev-evil.apk"), latest))
@@ -45,7 +52,7 @@ class UpdateCheckerTest {
 
     @Test
     fun parseDistFileRejectsAFileWithoutAnAddress() {
-        assertNull(UpdateChecker.parseDistFile("""{"name":"motoLauncher-dev-a.apk","version":"dev-a"}""", latest))
+        assertNull(UpdateChecker.parseDistFile("""{"name":"motoLauncher-dev-a.apk","version":"dev-a+1"}""", latest))
     }
 
     @Test
@@ -73,11 +80,12 @@ class UpdateCheckerTest {
         assertTrue(pending.exists())
     }
 
+    // The system installer refuses a lower version code, so an older build is no update.
     @Test
-    fun isNewerOnlyWhenVersionDiffers() {
-        val remote = ReleaseInfo("dev-new", "url", "motoLauncher-dev-new.apk")
-        assertTrue(UpdateChecker.isNewer(remote, "dev-old"))
-        assertFalse(UpdateChecker.isNewer(remote, "dev-new"))
-        assertFalse(UpdateChecker.isNewer(ReleaseInfo("", "u", "n"), "dev-old"))
+    fun isNewerOnlyWithAHigherVersionCode() {
+        val remote = ReleaseInfo("1.0.4", 57, "url", "motoLauncher-1.0.4.apk")
+        assertTrue(UpdateChecker.isNewer(remote, 56))
+        assertFalse(UpdateChecker.isNewer(remote, 57))
+        assertFalse(UpdateChecker.isNewer(remote, 58))
     }
 }

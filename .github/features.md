@@ -35,7 +35,8 @@
   lock screen.
 - **Self-update (github flavor).** A user-triggered check against the home.codevoid.de
   dist store, the release channel for a release build and the nightly channel for a dev
-  build, with download progress on the tile and a hand-off to the system installer.
+  build, offering only a build with a higher version code, with download progress on
+  the tile and a hand-off to the system installer.
 - **Google Play build.** The play flavor has no updater and no network access; Play
   updates it.
 - **Privacy policy.** Shown as text from the settings mode, readable offline.
