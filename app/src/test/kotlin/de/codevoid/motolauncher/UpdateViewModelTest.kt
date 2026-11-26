@@ -3,6 +3,7 @@ package de.codevoid.motolauncher
 import android.app.Application
 import android.content.Intent
 import android.os.Looper
+import android.text.format.Formatter
 import androidx.test.core.app.ApplicationProvider
 import de.codevoid.motolauncher.ui.UpdateEvent
 import de.codevoid.motolauncher.ui.UpdateState
@@ -14,6 +15,7 @@ import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.withTimeout
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertTrue
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
@@ -93,8 +95,16 @@ class UpdateViewModelTest {
 
     @Test
     fun progressReadsAsPercentAndSpeed() {
-        assertEquals("45% · 2.2 MB/s", UpdateState.Downloading(45, 2_306_867).progressText())
-        assertEquals("0.0 MB/s", UpdateState.Downloading(null, 0).progressText())
+        val rate = Formatter.formatShortFileSize(app, 2_306_867)
+        assertEquals("45% · $rate/s", UpdateState.Downloading(45, 2_306_867).progressText(app))
+        assertEquals("$rate/s", UpdateState.Downloading(null, 2_306_867).progressText(app))
+    }
+
+    // A fixed megabyte unit showed a slow download as 0.0 MB/s.
+    @Test
+    fun aSlowDownloadDoesNotReadAsStalled() {
+        val text = UpdateState.Downloading(45, 40_000).progressText(app)
+        assertTrue(text, text.startsWith("45% · 40"))
     }
 
     private companion object {

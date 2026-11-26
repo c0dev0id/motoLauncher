@@ -674,7 +674,9 @@ installer if the process was restarted to serve it.
 There is no room for a status line, and a transient one is easy to miss on a
 handlebar-mounted screen, so progress rides on the update tile's subtitle, throttled to
 500 ms. The percentage is concatenated, never passed through `String.format`: a `%` in
-a format template once crashed the main thread.
+a format template once crashed the main thread. The rate comes from
+`Formatter.formatShortFileSize`, which picks the unit and follows the locale; a fixed
+megabyte unit showed a slow download as `0.0 MB/s`.
 
 A failure names its cause instead of showing the exception text: a 404 means nothing is
 published right now, which happens for a few minutes while CI recreates `dev`; other

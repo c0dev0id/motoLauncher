@@ -308,8 +308,9 @@ Package layout under `de.codevoid.motolauncher`:
   `Channel` (`UpToDate`, `Available`, `Install`, `Failed`), shown by
   `showUpdateEvent` as `AlertDialog`s or the installer. The ViewModel takes the release
   lookup and the download as functions (the public constructor wires `UpdateChecker` on
-  the application context), so tests drive it without the network. `progressText()`
-  gives `"45% · 2.2 MB/s"`: the percentage is concatenated, never passed through
+  the application context), so tests drive it without the network. `progressText(context)`
+  gives `"45% · 2.2 MB/s"`, the rate from `Formatter.formatShortFileSize` so a slow
+  download reads in kB; the percentage is concatenated, never passed through
   `String.format` — a `%` in a format template crashed once. `updateErrorText` names a
   failure's cause. `CancellationException` is rethrown, not swallowed.
   `AlertDialog.Builder(context)` gets the launcher look from `alertDialogTheme` — never

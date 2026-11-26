@@ -5,6 +5,7 @@ import android.content.Context
 import android.content.Intent
 import android.os.Bundle
 import android.os.SystemClock
+import android.text.format.Formatter
 import androidx.appcompat.app.AppCompatActivity
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
@@ -112,9 +113,9 @@ class UpdateViewModel internal constructor(
     }
 }
 
-/** The update tile's progress line, such as "45% · 2.2 MB/s". */
-fun UpdateState.Downloading.progressText(): String =
-    (percent?.let { "$it% · " } ?: "") + "%.1f MB/s".format(bytesPerSecond / (1024.0 * 1024))
+/** The update tile's progress line, such as "45% · 2.2 MB/s", the rate in the unit that fits it. */
+fun UpdateState.Downloading.progressText(context: Context): String =
+    (percent?.let { "$it% · " } ?: "") + Formatter.formatShortFileSize(context, bytesPerSecond) + "/s"
 
 /** Shows [event]: a message, the install prompt, the installer, or the failure. */
 fun AppCompatActivity.showUpdateEvent(event: UpdateEvent) {

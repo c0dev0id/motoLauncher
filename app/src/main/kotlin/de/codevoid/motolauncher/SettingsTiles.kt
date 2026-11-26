@@ -134,7 +134,7 @@ class SettingsTiles(
         subtitle = when (val state = updates.state.value) {
             UpdateState.Idle -> BuildConfig.VERSION_NAME
             UpdateState.Checking -> activity.getString(R.string.checking_updates)
-            is UpdateState.Downloading -> state.progressText()
+            is UpdateState.Downloading -> state.progressText(activity)
         },
         onClick = updates::check,
     )
